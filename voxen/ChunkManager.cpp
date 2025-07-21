@@ -367,13 +367,13 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const std::map<std::tuple<int, int, int>, Instance>& instanceMap = c->GetInstanceMap();
-		for (auto& p : instanceMap) {
+		const std::vector<Instance>& instanceList = c->GetInstanceList();
+		for (auto& p : instanceList) {
 			InstanceInfoVertex info;
-			info.texIndex = p.second.GetTextureIndex();
+			info.texIndex = p.GetTextureIndex();
 
 			info.instanceWorld =
-				(p.second.GetWorld() * Matrix::CreateTranslation(chunkPosition)).Transpose();
+				(p.GetWorld() * Matrix::CreateTranslation(chunkPosition)).Transpose();
 
 			m_instanceInfoList[Instance::GetInstanceType(info.texIndex)].push_back(info);
 		}

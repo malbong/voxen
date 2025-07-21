@@ -29,7 +29,7 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	// 0. initialize chunk data
 	InitChunkData();
 
-	// 1. intialize instance vertcie data
+	// 1. intialize instance vertices data
 	InitInstanceInfoData();
 
 	// 2. initialize world(opaque & water & semiAlpha) vertice data by greedy meshing
@@ -78,7 +78,7 @@ void Chunk::Clear()
 	m_semiAlphaVertices.clear();
 	m_semiAlphaIndices.clear();
 
-	m_instanceMap.clear();
+	m_instanceList.clear();
 }
 
 void Chunk::InitChunkData()
@@ -113,29 +113,19 @@ void Chunk::InitInstanceInfoData()
 {
 	for (int x = 0; x < CHUNK_SIZE; ++x) {
 		for (int z = 0; z < CHUNK_SIZE; ++z) {
-			int worldX = (int)m_offsetPosition.x + x - 1;
-			int worldZ = (int)m_offsetPosition.z + z - 1;
-			/*
-			float noise = Terrain::PerlinFbm(worldX / 8.0f, worldZ / 8.0f, 2.0f, 1);
-
 			for (int y = 0; y < CHUNK_SIZE; ++y) {
-				if (noise < 0.25f)
-					continue;
-
-				if ((m_blocks[x + 1][y + 1][z + 1].GetType() == BLOCK_TYPE::BLOCK_AIR ||
-						m_blocks[x + 1][y + 1][z + 1].GetType() == BLOCK_TYPE::BLOCK_WATER) &&
-					Block::IsOpaqua(m_blocks[x + 1][y][z + 1].GetType())) {
+				BLOCK_TYPE blockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+				if (Block::IsInstance(blockType)) {
 					Instance instance;
 
-					instance.SetTextureIndex(TEXTURE_INDEX::TEXTURE_SHORT_GRASS);
+					instance.SetTextureIndex(Terrain::GetBlockTextureIndex(blockType));
 
-					Vector3 pos = Vector3((float)x, (float)y, (float)z) + Vector3(0.5f);
+					Vector3 pos = Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
 					instance.SetWorld(Matrix::CreateTranslation(pos));
 
-					m_instanceMap[std::make_tuple(x, y, z)] = instance;
+					m_instanceList.push_back(instance);
 				}
 			}
-			*/
 		}
 	}
 }
@@ -163,6 +153,9 @@ void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)
 				BLOCK_TYPE type = m_blocks[x][y][z].GetType();
 
 				if (type == BLOCK_TYPE::BLOCK_AIR)
+					continue;
+
+				if (Block::IsInstance(type))
 					continue;
 
 				if (Block::IsTransparency(type)) {

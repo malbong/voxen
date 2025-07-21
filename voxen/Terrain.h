@@ -655,7 +655,19 @@ namespace Terrain {
 		case BIOME_SEASONFOREST:
 		case BIOME_SAVANA:
 			if (y == baseHeight) {
-				if (d <= 0.95)
+				if (d <= 0.25f) {
+					return BLOCK_SHORT_GRASS;
+				}
+				else if (d <= 0.95f){
+					return BLOCK_GRASS;
+				}
+				else {
+					return BLOCK_DIRT;
+				}
+
+			}
+			else if (y == baseHeight - 1) {
+				if (d <= 0.25f)
 					return BLOCK_GRASS;
 				else
 					return BLOCK_DIRT;
@@ -700,7 +712,7 @@ namespace Terrain {
 		return blockType;
 	}
 
-	static TEXTURE_INDEX GetBlockTextureIndex(BLOCK_TYPE blockType, uint8_t face)
+	static TEXTURE_INDEX GetBlockTextureIndex(BLOCK_TYPE blockType, uint8_t face = DIR::ANY)
 	{
 		switch (blockType) {
 
@@ -789,6 +801,9 @@ namespace Terrain {
 
 		case BLOCK_GOLD:
 			return TEXTURE_GOLD;
+
+		case BLOCK_SHORT_GRASS:
+			return TEXTURE_SHORT_GRASS;
 
 		default:
 			return TEXTURE_STONE;

@@ -290,7 +290,14 @@ void App::Render()
 		ConvertToMSAA();
 	}
 
-	// 3. Forward Render Pass MSAA
+	// 3. Picking Block
+	{
+		if (m_camera.IsPicking()) {
+			m_camera.RenderPickingBlock();
+		}
+	}
+
+	// 4. Forward Render Pass MSAA
 	{
 		if (m_camera.IsUnderWater()) {
 			RenderFogFilter();
@@ -304,13 +311,6 @@ void App::Render()
 			RenderFogFilter();
 			RenderSkybox();
 			RenderCloud();
-		}
-	}
-
-	// 4. Picking Block
-	{
-		if (m_camera.IsPicking()) {
-			m_camera.RenderPickingBlock();
 		}
 	}
 

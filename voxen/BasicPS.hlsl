@@ -29,7 +29,7 @@ struct psOutput
 // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
 bool useGrassColor(uint texIndex)
 {
-    return texIndex <= 2;
+    return texIndex <= 2 || texIndex == 128;
 }
 
 bool useDirtOverlay(uint texIndex)
@@ -40,7 +40,7 @@ bool useDirtOverlay(uint texIndex)
 bool useFoliageColor(uint texIndex)
 {
     // TODO
-    return texIndex == 128;
+    return texIndex == 32;
 }
 
 float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)

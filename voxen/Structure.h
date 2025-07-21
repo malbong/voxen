@@ -10,7 +10,8 @@ enum DIR : uint8_t {
 	BOTTOM = 2,
 	TOP = 3,
 	FRONT = 4,
-	BACK = 5
+	BACK = 5,
+	ANY = 6,
 };
 
 enum BIOME_TYPE : uint8_t {
@@ -30,6 +31,7 @@ enum BIOME_TYPE : uint8_t {
 };
 
 enum BLOCK_TYPE : uint8_t {
+	// block
 	BLOCK_AIR = 0,
 	BLOCK_WATER = 1,
 	BLOCK_BEDROCK = 2,
@@ -53,6 +55,9 @@ enum BLOCK_TYPE : uint8_t {
 	BLOCK_PODZOL = 20,
 	BLOCK_ICE = 21,
 	BLOCK_GOLD = 22,
+
+	// instance
+	BLOCK_SHORT_GRASS = 128
 };
 
 enum TEXTURE_INDEX : uint8_t {

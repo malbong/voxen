@@ -69,9 +69,9 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const std::map<std::tuple<int, int, int>, Instance>& GetInstanceMap() const
+	inline const std::vector<Instance>& GetInstanceList() const
 	{
-		return m_instanceMap;
+		return m_instanceList;
 	}
 
 	inline const ChunkConstantData& GetConstantData() const { return m_constantData; }
@@ -94,7 +94,7 @@ private:
 		std::vector<uint32_t>& indices, BLOCK_TYPE types);
 
 	Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
-	std::map<std::tuple<int, int, int>, Instance> m_instanceMap;
+	std::vector<Instance> m_instanceList;
 
 	UINT m_id;
 	bool m_isLoaded;

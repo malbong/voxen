@@ -233,7 +233,7 @@ void Camera::DDAPickingBlock()
 	float sideZ = (stepZ > 0) ? (floorf(m_eyePos.z + 1) - m_eyePos.z) * deltaZ
 							  : (m_eyePos.z - floorf(m_eyePos.z)) * deltaZ;
 
-	while (min(min(sideX, sideY), sideZ) < 5.0f) {
+	while (min(min(sideX, sideY), sideZ) < 4.0f) {
 		// 가장 가까운 side 찾기
 		if (sideX < sideY && sideX < sideZ) {
 			curX += stepX;

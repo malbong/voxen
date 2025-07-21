@@ -450,7 +450,7 @@ namespace MeshGenerator {
 		float thickness = 0.003f;
 
 		PickingBlockVertex vertex;
-		vertex.color = Vector3(0.0f, 0.0f, 0.0f);
+		vertex.color = Vector3(1.0f, 0.0f, 0.0f);
 
 		Vector3 dir = end - start;
 		dir.Normalize();

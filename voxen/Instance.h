@@ -5,8 +5,6 @@
 
 using namespace DirectX::SimpleMath;
 
-
-
 class Instance {
 public:
 	static const int INSTANCE_TYPE_COUNT = 3;
