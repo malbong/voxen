@@ -22,17 +22,20 @@ public:
 			return INSTANCE_TYPE::INSTANCE_NONE;
 	}
 
-	Instance() : m_world(Matrix()), m_texIndex(TEXTURE_INDEX::TEXTURE_SHORT_GRASS) {}
+	Instance() : m_worldPosition(Vector3(0.0f)), m_texIndex(TEXTURE_INDEX::TEXTURE_SHORT_GRASS) {}
 	~Instance() {}
 
-	inline const Matrix& GetWorld() const { return m_world; }
-	inline void SetWorld(const Matrix& world) { m_world = world; }
+	inline const Vector3& GetWorldPosition() const { return m_worldPosition; }
+	inline void SetWorldPosition(const Vector3& worldPosition)
+	{
+		m_worldPosition = worldPosition;
+	}
 
 	inline TEXTURE_INDEX GetTextureIndex() const { return m_texIndex; }
 	inline void SetTextureIndex(TEXTURE_INDEX index) { m_texIndex = index; }
 		
 
 private:
-	Matrix m_world; // scale rotate position
+	Vector3 m_worldPosition;
 	TEXTURE_INDEX m_texIndex;
 };

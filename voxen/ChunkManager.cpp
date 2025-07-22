@@ -359,6 +359,9 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 
 	// check instance in chunk managerList
 	for (auto& c : m_renderChunkList) {
+		if (c->IsUpdateRequired())
+			continue;
+
 		// check distance
 		Vector3 chunkPosition = c->GetPosition();
 		Vector3 chunkCenterPosition = chunkPosition + Vector3(Chunk::CHUNK_SIZE * 0.5);
@@ -367,13 +370,13 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const std::vector<Instance>& instanceList = c->GetInstanceList();
-		for (auto& p : instanceList) {
+		const std::map<std::tuple<int, int, int>, Instance>& instanceMap = c->GetInstanceMap();
+		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
-			info.texIndex = p.GetTextureIndex();
 
-			info.instanceWorld =
-				(p.GetWorld() * Matrix::CreateTranslation(chunkPosition)).Transpose();
+			info.texIndex = p.second.GetTextureIndex();
+
+			info.instanceWorld = Matrix::CreateTranslation(p.second.GetWorldPosition()).Transpose();
 
 			m_instanceInfoList[Instance::GetInstanceType(info.texIndex)].push_back(info);
 		}
@@ -623,8 +626,21 @@ const Block* ChunkManager::GetBlockByPosition(Vector3 position)
 	const Chunk* c = GetChunkByPosition(position);
 
 	if (c != nullptr && c->IsLoaded()) {
-		Vector3 blockPos = position - Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
-		return c->GetBlock(blockPos);
+		Vector3 blockLocalPosition = position - Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
+		return c->GetBlock(blockLocalPosition);
+	}
+
+	return nullptr;
+}
+
+const Instance* ChunkManager::GetInstanceByPosition(Vector3 position)
+{
+	const Chunk* c = GetChunkByPosition(position);
+
+	if (c != nullptr && c->IsLoaded())
+	{
+		Vector3 InstanceLocalPosition = position - Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
+		return c->GetInstance(InstanceLocalPosition);
 	}
 
 	return nullptr;

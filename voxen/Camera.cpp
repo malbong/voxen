@@ -10,7 +10,7 @@ Camera::Camera()
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(20.0f), m_isUnderWater(false),
 	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
-	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_pickingBlock(nullptr)
+	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(nullptr)
 {
 }
 
@@ -54,20 +54,20 @@ bool Camera::Initialize(Vector3 pos)
 
 	// Picking Block Buffer
 	{
-		MeshGenerator::CreatePickingBlockLineMesh(m_pickingBlockVertices, m_pickingBlockIndices);
-		if (!DXUtils::CreateVertexBuffer(m_pickingBlockVertexBuffer, m_pickingBlockVertices)) {
+		MeshGenerator::CreatePickingBlockLineMesh(m_pickingObjectVertices, m_pickingObjectIndices);
+		if (!DXUtils::CreateVertexBuffer(m_pickingObjectVertexBuffer, m_pickingObjectVertices)) {
 			std::cout << "failed create picking block vertex buffer in camera" << std::endl;
 			return false;
 		}
 
-		if (!DXUtils::CreateIndexBuffer(m_pickingBlockIndexBuffer, m_pickingBlockIndices)) {
+		if (!DXUtils::CreateIndexBuffer(m_pickingObjectIndexBuffer, m_pickingObjectIndices)) {
 			std::cout << "failed create picking block index buffer in camera" << std::endl;
 			return false;
 		}
 
-		m_pickingBlockConstantData.world = Matrix();
+		m_pickingObjectConstantData.world = Matrix();
 		if (!DXUtils::CreateConstantBuffer(
-				m_pickingBlockConstantBuffer, m_pickingBlockConstantData)) {
+				m_pickingObjectConstantBuffer, m_pickingObjectConstantData)) {
 			std::cout << "failed create picking block constant buffer in camera" << std::endl;
 			return false;
 		}
@@ -118,7 +118,7 @@ void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouse
 		m_constantData.view = m_constantData.view.Transpose();
 		DXUtils::UpdateConstantBuffer(m_mirrorConstantBuffer, m_constantData);
 
-		DXUtils::UpdateConstantBuffer(m_pickingBlockConstantBuffer, m_pickingBlockConstantData);
+		DXUtils::UpdateConstantBuffer(m_pickingObjectConstantBuffer, m_pickingObjectConstantData);
 
 		m_isOnConstantDirtyFlag = false;
 	}
@@ -248,20 +248,23 @@ void Camera::DDAPickingBlock()
 			sideZ += deltaZ;
 		}
 
-		m_pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(
+		const Block* pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(
 			Vector3((float)curX, (float)curY, (float)curZ));
-		if (m_pickingBlock != nullptr && !Block::IsTransparency(m_pickingBlock->GetType())) {
-			m_pickingBlockConstantData.world =
+		if (pickingBlock != nullptr && !Block::IsTransparency(pickingBlock->GetType())) {
+			m_pickingObjectConstantData.world =
 				Matrix::CreateTranslation(Vector3((float)curX, (float)curY, (float)curZ));
-			m_pickingBlockConstantData.world = m_pickingBlockConstantData.world.Transpose();
-
+			m_pickingObjectConstantData.world = m_pickingObjectConstantData.world.Transpose();
+			
 			m_isOnConstantDirtyFlag = true;
+
+			m_hasPickingObject = true;
 
 			return;
 		}
+
 	}
 
-	m_pickingBlock = nullptr;
+	m_hasPickingObject = false;
 }
 
 void Camera::RenderPickingBlock() 
@@ -271,13 +274,13 @@ void Camera::RenderPickingBlock()
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
-	UINT stride = sizeof(PickingBlockVertex);
+	UINT stride = sizeof(PickingObjectVertex);
 	UINT offset = 0;
-	Graphics::context->IASetIndexBuffer(m_pickingBlockIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	Graphics::context->IASetIndexBuffer(m_pickingObjectIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	Graphics::context->IASetVertexBuffers(
-		0, 1, m_pickingBlockVertexBuffer.GetAddressOf(), &stride, &offset);
+		0, 1, m_pickingObjectVertexBuffer.GetAddressOf(), &stride, &offset);
 
-	Graphics::context->VSSetConstantBuffers(0, 1, m_pickingBlockConstantBuffer.GetAddressOf());
+	Graphics::context->VSSetConstantBuffers(0, 1, m_pickingObjectConstantBuffer.GetAddressOf());
 
-	Graphics::context->DrawIndexed((UINT)m_pickingBlockIndices.size(), 0, 0);
+	Graphics::context->DrawIndexed((UINT)m_pickingObjectIndices.size(), 0, 0);
 }

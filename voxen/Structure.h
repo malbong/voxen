@@ -142,7 +142,7 @@ struct InstanceInfoVertex {
 	uint32_t texIndex;
 };
 
-struct PickingBlockVertex {
+struct PickingObjectVertex {
 	Vector3 position;
 	Vector3 color;
 };

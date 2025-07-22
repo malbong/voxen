@@ -281,7 +281,7 @@ void App::Render()
 	{
 		FillGBuffer();
 		MaskMSAAEdge();
-		RenderSSAO();
+		//RenderSSAO();
 		ShadingBasic();
 	}
 
@@ -292,7 +292,7 @@ void App::Render()
 
 	// 3. Picking Block
 	{
-		if (m_camera.IsPicking()) {
+		if (m_camera.HasPickingObject()) {
 			m_camera.RenderPickingBlock();
 		}
 	}

@@ -10,6 +10,7 @@
 #include <directxtk/SimpleMath.h>
 #include <vector>
 #include <map>
+#include <tuple>
 
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
@@ -69,9 +70,9 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const std::vector<Instance>& GetInstanceList() const
+	inline const std::map<std::tuple<int, int, int>, Instance>& GetInstanceMap() const
 	{
-		return m_instanceList;
+		return m_instanceMap;
 	}
 
 	inline const ChunkConstantData& GetConstantData() const { return m_constantData; }
@@ -81,6 +82,17 @@ public:
 		return &m_blocks[(int)std::floor(pos.x) % CHUNK_SIZE + 1]
 						[(int)std::floor(pos.y) % CHUNK_SIZE + 1]
 						[(int)std::floor(pos.z) % CHUNK_SIZE + 1];
+	}
+
+	inline const Instance* GetInstance(Vector3 pos) const
+	{
+		auto iter = m_instanceMap.find(std::make_tuple(
+			(int)std::floor(pos.x) % CHUNK_SIZE, (int)std::floor(pos.y) % CHUNK_SIZE, (int)std::floor(pos.z) % CHUNK_SIZE));
+		
+		if (iter == m_instanceMap.end())
+			return nullptr;
+		else
+			return &iter->second;
 	}
 
 private:
@@ -94,7 +106,7 @@ private:
 		std::vector<uint32_t>& indices, BLOCK_TYPE types);
 
 	Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
-	std::vector<Instance> m_instanceList;
+	std::map<std::tuple<int, int, int>, Instance> m_instanceMap; // instance -> instance* TODO
 
 	UINT m_id;
 	bool m_isLoaded;

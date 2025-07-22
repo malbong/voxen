@@ -445,11 +445,11 @@ namespace MeshGenerator {
 	}
 
 	static void CreateLineToThickLine(const Vector3& start, const Vector3& end,
-		std::vector<PickingBlockVertex>& vertices, std::vector<uint32_t>& indices)
+		std::vector<PickingObjectVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		float thickness = 0.003f;
 
-		PickingBlockVertex vertex;
+		PickingObjectVertex vertex;
 		vertex.color = Vector3(1.0f, 0.0f, 0.0f);
 
 		Vector3 dir = end - start;
@@ -485,7 +485,7 @@ namespace MeshGenerator {
 	}
 
 	static void CreatePickingBlockLineMesh(
-		std::vector<PickingBlockVertex>& vertices, std::vector<uint32_t>& indices)
+		std::vector<PickingObjectVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		Vector3 corner[8] = {
 			Vector3(0.0f, 0.0f, 0.0f),

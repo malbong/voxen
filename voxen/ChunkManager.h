@@ -7,6 +7,7 @@
 #include "Chunk.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Instance.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -43,6 +44,7 @@ public:
 
 	const Chunk* GetChunkByPosition(Vector3 position);
 	const Block* GetBlockByPosition(Vector3 position);
+	const Instance* GetInstanceByPosition(Vector3 position);
 	
 
 private:

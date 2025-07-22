@@ -28,7 +28,7 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 
 	// 0. initialize chunk data
 	InitChunkData();
-
+		
 	// 1. intialize instance vertices data
 	InitInstanceInfoData();
 
@@ -45,11 +45,10 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 	sum += duration.count();
 	count++;
-	/*
+
 	std::cout << "duration: " << duration.count() << " micro s"
 			  << " | "
 			  << "average: " << (float)sum / (float)count << " micro s" << std::endl;
-	*/
 	////////////////////////////////////
 
 	return memory;
@@ -78,7 +77,7 @@ void Chunk::Clear()
 	m_semiAlphaVertices.clear();
 	m_semiAlphaIndices.clear();
 
-	m_instanceList.clear();
+	m_instanceMap.clear();
 }
 
 void Chunk::InitChunkData()
@@ -120,10 +119,11 @@ void Chunk::InitInstanceInfoData()
 
 					instance.SetTextureIndex(Terrain::GetBlockTextureIndex(blockType));
 
-					Vector3 pos = Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
-					instance.SetWorld(Matrix::CreateTranslation(pos));
+					Vector3 worldPosition =
+						m_offsetPosition + Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
+					instance.SetWorldPosition(worldPosition);
 
-					m_instanceList.push_back(instance);
+					m_instanceMap.insert(std::pair(std::make_tuple(x, y, z), instance));
 				}
 			}
 		}
