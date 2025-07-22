@@ -103,6 +103,25 @@ void Chunk::InitChunkData()
 					temperature, humidity, continentalness, erosion, peaksValley, distribution);
 
 				m_blocks[x][y][z].SetType(blockType);
+
+				// instance test
+				if (1 <= x && x <= 3 && 1 <= z && z <= 3) {
+					if ((int)elevation + 1 == worldY &&
+						Block::IsTransparency(m_blocks[x][y][z].GetType())) {
+						
+						Instance instance;
+
+						instance.SetTextureIndex(Terrain::GetBlockTextureIndex(BLOCK_SHORT_GRASS));
+
+						Vector3 worldPosition =
+							m_offsetPosition +
+							Vector3((float)x - 0.5f, (float)y - 0.5f, (float)z - 0.5f);
+						instance.SetWorldPosition(worldPosition);
+
+						m_instanceMap.insert(std::pair(std::make_tuple(x - 1, y - 1, z - 1), instance));
+					}
+				}
+				
 			}
 		}
 	}
@@ -117,13 +136,7 @@ void Chunk::InitInstanceInfoData()
 				if (Block::IsInstance(blockType)) {
 					Instance instance;
 
-					instance.SetTextureIndex(Terrain::GetBlockTextureIndex(blockType));
-
-					Vector3 worldPosition =
-						m_offsetPosition + Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
-					instance.SetWorldPosition(worldPosition);
-
-					m_instanceMap.insert(std::pair(std::make_tuple(x, y, z), instance));
+					
 				}
 			}
 		}

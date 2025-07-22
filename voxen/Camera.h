@@ -68,7 +68,10 @@ private:
 	float m_speed;
 
 	bool m_isUnderWater;
+
 	bool m_hasPickingObject;
+	const Block* m_pickingBlock;
+	const Instance* m_pickingInstance;
 
 	float m_mouseSensitiveX;
 	float m_mouseSensitiveY;

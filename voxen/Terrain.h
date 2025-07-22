@@ -655,10 +655,7 @@ namespace Terrain {
 		case BIOME_SEASONFOREST:
 		case BIOME_SAVANA:
 			if (y == baseHeight) {
-				if (d <= 0.25f) {
-					return BLOCK_SHORT_GRASS;
-				}
-				else if (d <= 0.95f){
+				if (d <= 0.95f){
 					return BLOCK_GRASS;
 				}
 				else {

@@ -10,7 +10,8 @@ Camera::Camera()
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(20.0f), m_isUnderWater(false),
 	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
-	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(nullptr)
+	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false),
+	  m_pickingBlock(nullptr), m_pickingInstance(nullptr)
 {
 }
 
@@ -206,6 +207,11 @@ void Camera::SetIsUnderWater()
 
 void Camera::DDAPickingBlock()
 {
+	// Picking 관련 멤버 초기화
+	m_hasPickingObject = false;
+	m_pickingBlock = nullptr;
+	m_pickingInstance = nullptr;
+
 	// 현재 월드 위치
 	int curX = (int)floorf(m_eyePos.x);
 	int curY = (int)floorf(m_eyePos.y);
@@ -248,23 +254,27 @@ void Camera::DDAPickingBlock()
 			sideZ += deltaZ;
 		}
 
-		const Block* pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(
-			Vector3((float)curX, (float)curY, (float)curZ));
-		if (pickingBlock != nullptr && !Block::IsTransparency(pickingBlock->GetType())) {
+		Vector3 position = Vector3((float)curX, (float)curY, (float)curZ);
+		m_pickingInstance = ChunkManager::GetInstance()->GetInstanceByPosition(position);
+		if (m_pickingInstance) {
+			m_hasPickingObject = true;
+		}
+
+		m_pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(position);
+		if (m_pickingBlock && !Block::IsTransparency(m_pickingBlock->GetType()))
+		{
+			m_hasPickingObject = true;
+		}
+
+		if (m_hasPickingObject)
+		{
 			m_pickingObjectConstantData.world =
 				Matrix::CreateTranslation(Vector3((float)curX, (float)curY, (float)curZ));
 			m_pickingObjectConstantData.world = m_pickingObjectConstantData.world.Transpose();
-			
 			m_isOnConstantDirtyFlag = true;
-
-			m_hasPickingObject = true;
-
 			return;
 		}
-
 	}
-
-	m_hasPickingObject = false;
 }
 
 void Camera::RenderPickingBlock() 
