@@ -91,7 +91,7 @@ enum TEXTURE_INDEX : uint8_t {
 	TEXTURE_GOLD = 26,
 
 	// instance
-	TEXTURE_SHORT_GRASS = 129
+	TEXTURE_SHORT_GRASS = 128
 };
 
 enum INSTANCE_TYPE : uint8_t {

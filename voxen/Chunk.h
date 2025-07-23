@@ -25,6 +25,9 @@ public:
 	static const int CHUNK_SIZE_P = CHUNK_SIZE + 2;
 	static const int CHUNK_SIZE_P2 = CHUNK_SIZE_P * CHUNK_SIZE_P;
 
+	static const uint32_t INSTANCE_PLACE_SOLT = 226130351U;
+	static const uint32_t INSTANCE_PLACE_MAX_COUNT = CHUNK_SIZE2 / 4;
+
 	Chunk(UINT id);
 	~Chunk();
 
@@ -96,8 +99,13 @@ public:
 	}
 
 private:
-	void InitChunkData();
-	void InitInstanceInfoData();
+	void InitTerrainNoises(ChunkInitMemory* memory);
+
+	void InitBasicBlockType(ChunkInitMemory* memory);
+
+	void InitInstancePlace(ChunkInitMemory* memory);
+	bool CanPlaceAt(int x, int y, int z);
+
 	void InitWorldVerticesData(ChunkInitMemory* memory);
 
 	void MakeFaceSliceColumnBit(uint64_t cullColBit[Chunk::CHUNK_SIZE_P2 * 6],
@@ -138,10 +146,30 @@ struct ChunkInitMemory {
 	uint64_t tpCullColBit[Chunk::CHUNK_SIZE_P2 * 6];
 	uint64_t saCullColBit[Chunk::CHUNK_SIZE_P2 * 6];
 
+	float continentalinessNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float erosionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float peaksValleyNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float temperatureNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float humidityNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+
+	std::vector<std::pair<int, int>> instanceRandomPlace2D;
+
 	ChunkInitMemory()
-		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
-		  saCullColBit{ 0 }
+		: llColBit{ 0 }, 
+		  opColBit{ 0 }, 
+		  llCullColBit{ 0 }, 
+		  opCullColBit{ 0 }, 
+		  tpCullColBit{ 0 },
+		  saCullColBit{ 0 },
+		  continentalinessNoises{ { 0, }, },
+		  erosionNoises{ { 0, }, },
+		  peaksValleyNoises { { 0, }, },
+		  temperatureNoises{ { 0, }, },
+		  humidityNoises{ { 0, }, },
+		  distributionNoises{ { 0, }, }
 	{
+		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT);
 	}
 
 	void Clear()
@@ -153,5 +181,7 @@ struct ChunkInitMemory {
 		std::fill(std::begin(opCullColBit), std::end(opCullColBit), 0);
 		std::fill(std::begin(tpCullColBit), std::end(tpCullColBit), 0);
 		std::fill(std::begin(saCullColBit), std::end(saCullColBit), 0);
+
+		instanceRandomPlace2D.clear();
 	}
 };

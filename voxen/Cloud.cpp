@@ -101,7 +101,8 @@ bool Cloud::BuildCloud()
 	for (int i = 0; i < CLOUD_MAP_SIZE; ++i) {
 		for (int j = 0; j < CLOUD_MAP_SIZE; ++j) {
 			int x =
-				((int)(m_mapDataOffset.x / CLOUD_SCALE_SIZE) + i - (int)(CLOUD_MAP_SIZE * 0.5f)) % CLOUD_DATA_MAP_SIZE;
+				((int)(m_mapDataOffset.x / CLOUD_SCALE_SIZE) + i - (int)(CLOUD_MAP_SIZE * 0.5f)) %
+				CLOUD_DATA_MAP_SIZE;
 			int z =
 				((int)(m_mapDataOffset.z / CLOUD_SCALE_SIZE) + j - (int)(CLOUD_MAP_SIZE * 0.5f)) %
 				CLOUD_DATA_MAP_SIZE;

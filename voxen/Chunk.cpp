@@ -26,16 +26,19 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	m_isLoaded = false;
 	m_isUpdateRequired = false;
 
-	// 0. initialize chunk data
-	InitChunkData();
-		
-	// 1. intialize instance vertices data
-	InitInstanceInfoData();
+	// initialize noises for terrain
+	InitTerrainNoises(memory);
 
-	// 2. initialize world(opaque & water & semiAlpha) vertice data by greedy meshing
+	// initialize block type of basic block
+	InitBasicBlockType(memory);
+	
+	// initalize instance place by seed random
+	InitInstancePlace(memory);
+
+	// initialize world(opaque & water & semiAlpha) vertice data by greedy meshing
 	InitWorldVerticesData(memory);
 
-	// 3. initialize constant data
+	// initialize constant data
 	m_position = Vector3(m_offsetPosition.x, -2.0f * CHUNK_SIZE, m_offsetPosition.z);
 	m_constantData.world = Matrix::CreateTranslation(m_position);
 
@@ -80,67 +83,75 @@ void Chunk::Clear()
 	m_instanceMap.clear();
 }
 
-void Chunk::InitChunkData()
+void Chunk::InitTerrainNoises(ChunkInitMemory* memory)
 {
 	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
-		for (int z = 0; z < CHUNK_SIZE_P; ++z) {
+		for (int z = 0; z < CHUNK_SIZE_P; ++z)	{
 			int worldX = (int)m_offsetPosition.x + x - 1;
 			int worldZ = (int)m_offsetPosition.z + z - 1;
-			
-			float continentalness = Terrain::GetContinentalness(worldX, worldZ);
-			float erosion = Terrain::GetErosion(worldX, worldZ);
-			float peaksValley = Terrain::GetPeaksValley(worldX, worldZ);
-			float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
 
-			float temperature = Terrain::GetTemperature(worldX, worldZ);
-			float humidity = Terrain::GetHumidity(worldX, worldZ);
-			float distribution = Terrain::GetDistribution(worldX, worldZ);
+			memory->continentalinessNoises[x][z] = Terrain::GetContinentalness(worldX, worldZ);
+			memory->erosionNoises[x][z] = Terrain::GetErosion(worldX, worldZ);
+			memory->peaksValleyNoises[x][z] = Terrain::GetPeaksValley(worldX, worldZ);
+			memory->temperatureNoises[x][z] = Terrain::GetTemperature(worldX, worldZ);
+			memory->humidityNoises[x][z] = Terrain::GetHumidity(worldX, worldZ);
+			memory->distributionNoises[x][z] = Terrain::GetDistribution(worldX, worldZ);
+		}
+	}
+}
 
-			for (int y = 0; y < CHUNK_SIZE_P; ++y) {
+void Chunk::InitBasicBlockType(ChunkInitMemory* memory)
+{
+	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
+		for (int y = 0; y < CHUNK_SIZE_P; ++y) {
+			for (int z = 0; z < CHUNK_SIZE_P; ++z) {
+				int worldX = (int)m_offsetPosition.x + x - 1;
 				int worldY = (int)m_offsetPosition.y + y - 1;
+				int worldZ = (int)m_offsetPosition.z + z - 1;
 
-				BLOCK_TYPE blockType = Terrain::GetBlockType(worldX, worldY, worldZ, elevation,
-					temperature, humidity, continentalness, erosion, peaksValley, distribution);
+				BLOCK_TYPE blockType = Terrain::GetBlockType(worldX, worldY, worldZ,
+					memory->continentalinessNoises[x][z], memory->erosionNoises[x][z],
+					memory->peaksValleyNoises[x][z], memory->temperatureNoises[x][z],
+					memory->humidityNoises[x][z], memory->distributionNoises[x][z]);
 
 				m_blocks[x][y][z].SetType(blockType);
-
-				// instance test
-				if (1 <= x && x <= 3 && 1 <= z && z <= 3) {
-					if ((int)elevation + 1 == worldY &&
-						Block::IsTransparency(m_blocks[x][y][z].GetType())) {
-						
-						Instance instance;
-
-						instance.SetTextureIndex(Terrain::GetBlockTextureIndex(BLOCK_SHORT_GRASS));
-
-						Vector3 worldPosition =
-							m_offsetPosition +
-							Vector3((float)x - 0.5f, (float)y - 0.5f, (float)z - 0.5f);
-						instance.SetWorldPosition(worldPosition);
-
-						m_instanceMap.insert(std::pair(std::make_tuple(x - 1, y - 1, z - 1), instance));
-					}
-				}
-				
 			}
 		}
 	}
 }
 
-void Chunk::InitInstanceInfoData()
+void Chunk::InitInstancePlace(ChunkInitMemory* memory)
 {
-	for (int x = 0; x < CHUNK_SIZE; ++x) {
-		for (int z = 0; z < CHUNK_SIZE; ++z) {
-			for (int y = 0; y < CHUNK_SIZE; ++y) {
-				BLOCK_TYPE blockType = m_blocks[x + 1][y + 1][z + 1].GetType();
-				if (Block::IsInstance(blockType)) {
-					Instance instance;
+	Terrain::GenerateRandomPlace2D(m_offsetPosition, INSTANCE_PLACE_SOLT, INSTANCE_PLACE_MAX_COUNT,
+		CHUNK_SIZE, memory->instanceRandomPlace2D);
 
-					
-				}
+	for (int i = 0; i < INSTANCE_PLACE_MAX_COUNT; ++i) {
+		int x = memory->instanceRandomPlace2D[i].first;
+		int z = memory->instanceRandomPlace2D[i].second;
+
+		for (int y = 0; y < CHUNK_SIZE; ++y) {
+			if (CanPlaceAt(x, y, z)) {
+				Instance instance;
+				instance.SetTextureIndex(Terrain::GetBlockTextureIndex(BLOCK_SHORT_GRASS));
+				Vector3 instanceWorldPosition =
+					m_offsetPosition + Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
+				instance.SetWorldPosition(instanceWorldPosition);
+				m_instanceMap.insert(std::pair(std::make_tuple(x, y, z), instance));
 			}
 		}
 	}
+}
+
+bool Chunk::CanPlaceAt(int x, int y, int z) 
+{ 
+	BLOCK_TYPE currentPlaceBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+	BLOCK_TYPE placeBottomType = m_blocks[x + 1][y][z + 1].GetType();
+
+	if (Block::IsTransparency(currentPlaceBlockType) && !Block::IsTransparency(placeBottomType))
+	{
+		return true;
+	}
+	return false;
 }
 
 void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)

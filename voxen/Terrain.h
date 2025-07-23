@@ -12,65 +12,20 @@ using namespace DirectX::SimpleMath;
 
 namespace Terrain {
 
-	namespace {
-
-		class NoiseCache {
-		private:
-			static const size_t CAPACITY = 1024 * 1024;
-
-			std::map<std::pair<int, int>, float> m_map;
-			std::queue<std::pair<int, int>> m_queue;
-			std::mutex m_mutex;
-
-		public:
-			NoiseCache() {}
-			~NoiseCache() {}
-
-			bool IsIn(const std::pair<int, int>& key) { 
-				std::lock_guard<std::mutex> lock(m_mutex);
-
-				return (m_map.find(key) != m_map.end()); 
-			}
-
-			void Set(const std::pair<int, int>& key, float value)
-			{
-				if (IsIn(key))
-					return;
-
-				std::lock_guard<std::mutex> lock(m_mutex);
-				if (m_map.size() >= CAPACITY) {
-					std::pair<int, int> oldKey = m_queue.front();
-					m_queue.pop();
-
-					m_map.erase(oldKey);
-				}
-
-				m_queue.push(key);
-				m_map[key] = value;
-			}
-
-			float Get(const std::pair<int, int>& key)
-			{
-				if (!IsIn(key)) {
-					return FLT_MIN;
-				}
-
-				std::lock_guard<std::mutex> lock(m_mutex);
-				return m_map[key];
-			}
-		};
-
-		NoiseCache m_cacheContinentalness;
-		NoiseCache m_cacheErosion;
-		NoiseCache m_cachePeaksValley;
-		NoiseCache m_cacheTemperature;
-		NoiseCache m_cacheHumidity;
-		NoiseCache m_cacheDistribution;
-	}
-
 	static const int MAX_HEIGHT_LEVEL = 256;
 	static const int MIN_HEIGHT_LEVEL = 0;
 	static const int WATER_HEIGHT_LEVEL = 63;
+
+	static uint32_t HashInt(uint32_t seed, uint32_t solt)
+	{
+		uint32_t hash = (uint32_t)seed * 73856093 ^ (uint32_t)(solt) * 19349663;
+
+		hash ^= (hash >> 13);
+		hash *= 1597334673U;
+		hash ^= (hash >> 17);
+
+		return hash;
+	}
 
 	static Vector2 Hash(uint32_t x, uint32_t y)
 	{
@@ -299,9 +254,6 @@ namespace Terrain {
 
 	static float GetContinentalness(int x, int z)
 	{
-		if (m_cacheContinentalness.IsIn(std::make_pair(x, z))) {
-			return m_cacheContinentalness.Get(std::make_pair(x, z));
-		}
 
 		float scale = 1024.0f;
 		
@@ -313,32 +265,22 @@ namespace Terrain {
 		else
 			cValue = (cValue - 0.1f) / 0.9f; // [0.0f, 1.0f]
 		
-		m_cacheContinentalness.Set(std::make_pair(x, z), cValue);
 		return cValue;
 	}
 
 	static float GetErosion(int x, int z)
 	{
-		if (m_cacheErosion.IsIn(std::make_pair(x, z))) {
-			return m_cacheErosion.Get(std::make_pair(x, z));
-		}
-
 		float scale = 1024.0f;
 		float seed = 123.0f;
 
 		float eNoise = PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
 		float eValue = SplineErosion(eNoise);
 
-		m_cacheErosion.Set(std::make_pair(x, z), eValue);
 		return eValue;
 	}
 
 	static float GetPeaksValley(int x, int z)
 	{
-		if (m_cachePeaksValley.IsIn(std::make_pair(x, z))) {
-			return m_cachePeaksValley.Get(std::make_pair(x, z));
-		}
-
 		float scale = 512.0f;
 		float seed = 4.0f;
 
@@ -347,7 +289,6 @@ namespace Terrain {
 
 		pvValue = (pvValue - 0.5f) * 2.0f;
 
-		m_cachePeaksValley.Set(std::make_pair(x, z), pvValue);
 		return pvValue;
 	}
 
@@ -376,10 +317,6 @@ namespace Terrain {
 
 	static float GetTemperature(int x, int z)
 	{
-		if (m_cacheTemperature.IsIn(std::make_pair(x, z))) {
-			return m_cacheTemperature.Get(std::make_pair(x, z));
-		}
-
 		float scale = 1024.0f;
 		float seed = 157.0f;
 
@@ -387,17 +324,11 @@ namespace Terrain {
 		tNoise = std::clamp(tNoise * 1.5f, -1.0f, 1.0f);
 
 		float tValue = (tNoise + 1.0f) * 0.5f;
-
-		m_cacheTemperature.Set(std::make_pair(x, z), tValue);
 		return tValue;
 	}
 
 	static float GetHumidity(int x, int z)
 	{
-		if (m_cacheHumidity.IsIn(std::make_pair(x, z))) {
-			return m_cacheHumidity.Get(std::make_pair(x, z));
-		}
-
 		float scale = 2048.0f;
 		float seed = 653.0f;
 
@@ -405,17 +336,11 @@ namespace Terrain {
 		hNoise = std::clamp(hNoise * 1.5f, -1.0f, 1.0f);
 
 		float hValue = (hNoise + 1.0f) * 0.5f;
-
-		m_cacheHumidity.Set(std::make_pair(x, z), hValue);
 		return hValue;
 	}
 
 	static float GetDistribution(int x, int z)
 	{
-		if (m_cacheDistribution.IsIn(std::make_pair(x, z))) {
-			return m_cacheDistribution.Get(std::make_pair(x, z));
-		}
-
 		float scale = 24.0f;
 		float seed = 773.0f;
 
@@ -423,8 +348,6 @@ namespace Terrain {
 		dNoise = std::clamp(dNoise * 1.5f, -1.0f, 1.0f);
 
 		float dValue = (dNoise + 1.0f) * 0.5f;
-
-		m_cacheDistribution.Set(std::make_pair(x, z), dValue);
 		return dValue;
 	}
 
@@ -678,9 +601,11 @@ namespace Terrain {
 		}
 	}
 
-	static BLOCK_TYPE GetBlockType(int x, int y, int z, float elevation, float temperature,
-		float humidity, float continentalness, float erosion, float peaksValley, float distribution)
+	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
+		float peaksValley, float temperature, float humidity, float distribution)
 	{
+		float elevation = GetElevation(continentalness, erosion, peaksValley);
+
 		if (y == MIN_HEIGHT_LEVEL)
 			return BLOCK_BEDROCK;
 
@@ -804,6 +729,25 @@ namespace Terrain {
 
 		default:
 			return TEXTURE_STONE;
+		}
+	}
+
+	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t solt, int maxPlaceCount, int indexCount,
+		std::vector<std::pair<int, int>>& outRandomPlace2D)
+	{ 
+		uint32_t seedX = (uint32_t)floor(worldPosition.x);
+		uint32_t seedZ = (uint32_t)floor(worldPosition.z);
+
+		uint32_t soltY = (uint32_t)floor(worldPosition.y);
+
+		for (int i = 0; i < maxPlaceCount; ++i) {
+			seedX = HashInt(seedX, solt * soltY);
+			seedZ = HashInt(seedZ, solt * soltY);
+
+			int xIndex = seedX % indexCount;
+			int zIndex = seedZ % indexCount;
+
+			outRandomPlace2D.push_back(std::make_pair(xIndex, zIndex));
 		}
 	}
 }
