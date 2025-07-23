@@ -31,7 +31,7 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 
 	// initialize block type of basic block
 	InitBasicBlockType(memory);
-	
+
 	// initalize instance place by seed random
 	InitInstancePlace(memory);
 
@@ -122,21 +122,25 @@ void Chunk::InitBasicBlockType(ChunkInitMemory* memory)
 
 void Chunk::InitInstancePlace(ChunkInitMemory* memory)
 {
-	Terrain::GenerateRandomPlace2D(m_offsetPosition, INSTANCE_PLACE_SOLT, INSTANCE_PLACE_MAX_COUNT,
-		CHUNK_SIZE, memory->instanceRandomPlace2D);
+	Terrain::GenerateRandomPlace2D(m_offsetPosition, INSTANCE_PLACE_RANDOM_SOLT_X,
+		INSTANCE_PLACE_RANDOM_SOLT_Z, INSTANCE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
+		memory->instanceRandomPlace2D);
 
-	for (int i = 0; i < INSTANCE_PLACE_MAX_COUNT; ++i) {
+	for (int i = 0; i < INSTANCE_PLACE_MAX_COUNT_PER_CHUNK; ++i) {
 		int x = memory->instanceRandomPlace2D[i].first;
 		int z = memory->instanceRandomPlace2D[i].second;
 
 		for (int y = 0; y < CHUNK_SIZE; ++y) {
 			if (CanPlaceAt(x, y, z)) {
 				Instance instance;
+
 				instance.SetTextureIndex(Terrain::GetBlockTextureIndex(BLOCK_SHORT_GRASS));
 				Vector3 instanceWorldPosition =
 					m_offsetPosition + Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
 				instance.SetWorldPosition(instanceWorldPosition);
 				m_instanceMap.insert(std::pair(std::make_tuple(x, y, z), instance));
+
+				break;
 			}
 		}
 	}
@@ -147,7 +151,9 @@ bool Chunk::CanPlaceAt(int x, int y, int z)
 	BLOCK_TYPE currentPlaceBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
 	BLOCK_TYPE placeBottomType = m_blocks[x + 1][y][z + 1].GetType();
 
-	if (Block::IsTransparency(currentPlaceBlockType) && !Block::IsTransparency(placeBottomType))
+	if (Block::IsTransparency(currentPlaceBlockType) &&
+		!Block::IsTransparency(placeBottomType) &&
+		m_instanceMap.find(std::make_tuple(x, y, z)) == m_instanceMap.end())
 	{
 		return true;
 	}

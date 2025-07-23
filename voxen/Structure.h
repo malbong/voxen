@@ -56,8 +56,11 @@ enum BLOCK_TYPE : uint8_t {
 	BLOCK_ICE = 21,
 	BLOCK_GOLD = 22,
 
+	// tree
+	BLOCK_LOG_OAK = 23,
+
 	// instance
-	BLOCK_SHORT_GRASS = 128
+	BLOCK_SHORT_GRASS = 128,
 };
 
 enum TEXTURE_INDEX : uint8_t {
@@ -90,8 +93,12 @@ enum TEXTURE_INDEX : uint8_t {
 	TEXTURE_ICE = 25,
 	TEXTURE_GOLD = 26,
 
+	// tree
+	TEXTURE_LOG_OAK = 27,
+	TEXTURE_LOG_OAK_TOP = 28,
+
 	// instance
-	TEXTURE_SHORT_GRASS = 128
+	TEXTURE_SHORT_GRASS = 129,
 };
 
 enum INSTANCE_TYPE : uint8_t {

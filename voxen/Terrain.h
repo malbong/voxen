@@ -724,6 +724,12 @@ namespace Terrain {
 		case BLOCK_GOLD:
 			return TEXTURE_GOLD;
 
+		case BLOCK_LOG_OAK:
+			if (face == DIR::TOP || face == DIR::BOTTOM)
+				return TEXTURE_LOG_OAK_TOP;
+			else
+				return TEXTURE_LOG_OAK;
+
 		case BLOCK_SHORT_GRASS:
 			return TEXTURE_SHORT_GRASS;
 
@@ -732,17 +738,17 @@ namespace Terrain {
 		}
 	}
 
-	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t solt, int maxPlaceCount, int indexCount,
+	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_t soltZ, int maxPlaceCount, int indexCount,
 		std::vector<std::pair<int, int>>& outRandomPlace2D)
 	{ 
-		uint32_t seedX = (uint32_t)floor(worldPosition.x);
-		uint32_t seedZ = (uint32_t)floor(worldPosition.z);
+		uint32_t seedX = (uint32_t)floor(worldPosition.x) + soltX;
+		uint32_t seedZ = (uint32_t)floor(worldPosition.z) + soltZ;
 
 		uint32_t soltY = (uint32_t)floor(worldPosition.y);
 
 		for (int i = 0; i < maxPlaceCount; ++i) {
-			seedX = HashInt(seedX, solt * soltY);
-			seedZ = HashInt(seedZ, solt * soltY);
+			seedX = HashInt(seedX, soltX * soltY);
+			seedZ = HashInt(seedZ, soltZ * soltY);
 
 			int xIndex = seedX % indexCount;
 			int zIndex = seedZ % indexCount;

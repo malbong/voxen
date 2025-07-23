@@ -25,8 +25,12 @@ public:
 	static const int CHUNK_SIZE_P = CHUNK_SIZE + 2;
 	static const int CHUNK_SIZE_P2 = CHUNK_SIZE_P * CHUNK_SIZE_P;
 
-	static const uint32_t INSTANCE_PLACE_SOLT = 226130351U;
-	static const uint32_t INSTANCE_PLACE_MAX_COUNT = CHUNK_SIZE2 / 4;
+	static const uint32_t TREE_PLACE_RANDOM_SOLT = 763777711U;
+	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE2 / 16;
+
+	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
+	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;
+	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE2 / 16;
 
 	Chunk(UINT id);
 	~Chunk();
@@ -169,7 +173,7 @@ struct ChunkInitMemory {
 		  humidityNoises{ { 0, }, },
 		  distributionNoises{ { 0, }, }
 	{
-		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT);
+		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT_PER_CHUNK);
 	}
 
 	void Clear()
