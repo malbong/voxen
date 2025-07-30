@@ -12,7 +12,7 @@ using namespace DirectX::SimpleMath;
 class Camera {
 public:
 	static const int MAX_RENDER_DISTANCE = 260;
-	static const int LOD_RENDER_DISTANCE = 160;
+	static const int LOD_RENDER_DISTANCE = 120;
 
 	Camera();
 	~Camera();

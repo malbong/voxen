@@ -40,14 +40,14 @@ bool useDirtOverlay(uint texIndex)
 bool useFoliageColor(uint texIndex)
 {
     // TODO
-    return texIndex == 32;
+    return texIndex == 48;
 }
 
 float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
 {
     float4 albedo = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, texIndex));
     
-    if (useGrassColor(texIndex))
+    if (useGrassColor(texIndex) || useFoliageColor(texIndex))
     {
         float3 faceBiasPos = -normal * 1e-4; 
         // normal vector의 반대방향으로 shrink
@@ -64,19 +64,19 @@ float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
         
         float2 th = climateNoiseMap.SampleLevel(pointClampSS, climateTexcoord, 0.0).rg;
         
-        float3 grassColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
-        albedo.rgb *= grassColor;
+        float3 climateColor = float3(0.0, 0.0, 0.0);
+        if (useGrassColor(texIndex))
+            climateColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+        if (useFoliageColor(texIndex))
+            climateColor = foliageColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            
+        albedo.rgb *= climateColor;
     }
     
     if (useDirtOverlay(texIndex))
     {
         float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, 3));
         albedo = lerp(dirt, albedo, albedo.a);
-    }
-    
-    if (useFoliageColor(texIndex))
-    {
-        // TODO
     }
     
     return albedo;

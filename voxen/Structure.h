@@ -59,6 +59,9 @@ enum BLOCK_TYPE : uint8_t {
 	// tree
 	BLOCK_LOG_OAK = 23,
 
+	// leaves
+	BLOCK_LEAVES_OAK = 48,
+
 	// instance
 	BLOCK_SHORT_GRASS = 128,
 };
@@ -96,6 +99,9 @@ enum TEXTURE_INDEX : uint8_t {
 	// tree
 	TEXTURE_LOG_OAK = 27,
 	TEXTURE_LOG_OAK_TOP = 28,
+
+	// leaves
+	TEXTURE_LEAVES_OAK = 48,
 
 	// instance
 	TEXTURE_SHORT_GRASS = 129,

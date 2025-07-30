@@ -76,6 +76,10 @@ void ChunkManager::Update(float dt, Camera& camera, Light& light)
 		camera.m_isOnChunkDirtyFlag = false;
 	}
 
+	// Basic Block And Tree And Instance
+	// Modify
+	// Binary Greedy Meshing -> Load
+	// Unload Chunk
 	UpdateLoadChunkList(camera);
 	UpdateUnloadChunkList();
 	UpdateRenderChunkList(camera, light);

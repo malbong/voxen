@@ -32,6 +32,9 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	// initialize block type of basic block
 	InitBasicBlockType(memory);
 
+	// initialize tree place and make modified chunk
+	InitTreePlace(memory);
+
 	// initalize instance place by seed random
 	InitInstancePlace(memory);
 
@@ -59,11 +62,13 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 
 void Chunk::Update(float dt)
 {
-	m_position.y += 50.0f * dt;
-	if (m_position.y > m_offsetPosition.y) {
-		m_position.y = m_offsetPosition.y;
+	if (m_isUpdateRequired) {
+		m_position.y += 50.0f * dt;
+		if (m_position.y > m_offsetPosition.y) {
+			m_position.y = m_offsetPosition.y;
+		}
+		m_constantData.world = Matrix::CreateTranslation(m_position);
 	}
-	m_constantData.world = Matrix::CreateTranslation(m_position);
 }
 
 void Chunk::Clear()
@@ -120,18 +125,131 @@ void Chunk::InitBasicBlockType(ChunkInitMemory* memory)
 	}
 }
 
+void Chunk::InitTreePlace(ChunkInitMemory* memory) 
+{
+	Terrain::GenerateRandomPlace2D(m_offsetPosition, TREE_PLACE_RANDOM_SOLT_X,
+		TREE_PLACE_RANDOM_SOLT_Z, TREE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
+		memory->treeRandomPlace2D);
+
+	for (int i = 0; i < TREE_PLACE_MAX_COUNT_PER_CHUNK; ++i) {
+		int x = memory->treeRandomPlace2D[i].first;
+		int z = memory->treeRandomPlace2D[i].second;
+
+		for (int y = 0; y < CHUNK_SIZE; ++y) {
+			if (CanPlaceTreeAt(x, y, z)) {
+				m_blocks[x + 1][y + 1][z + 1].SetType(BLOCK_TYPE::BLOCK_DIRT);
+				PlaceTree(x, y, z, memory);
+				break;
+			}
+		}
+	}
+}
+
+bool Chunk::CanPlaceTreeAt(int x, int y, int z)
+{
+	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+
+	if (currentBlockType == BLOCK_TYPE::BLOCK_GRASS)
+		return true;
+
+	return false;
+}
+
+void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
+{ 
+	uint32_t tree[5][5][5] = {
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 1, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+		},
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 1, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+		},
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 2, 0, 0 },
+			{ 0, 2, 1, 2, 0 },
+			{ 0, 0, 2, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+		},
+		{
+			{ 0, 0, 2, 0, 0 },
+			{ 0, 2, 2, 2, 0 },
+			{ 2, 2, 1, 2, 2 },
+			{ 0, 2, 2, 2, 0 },
+			{ 0, 0, 2, 0, 0 },
+		},
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 2, 2, 2, 0 },
+			{ 0, 2, 2, 2, 0 },
+			{ 0, 2, 2, 2, 0 },
+			{ 0, 0, 0, 0, 0 },
+		},
+	};
+
+	for (int dy = 0; dy < 5; ++dy)
+	{
+		for (int dz = 0; dz < 5; ++dz)
+		{
+			for (int dx = 0; dx < 5; ++dx)
+			{
+				if (tree[dy][dz][dx] > 0)
+				{
+					int tx = x + dx - 2;
+					int ty = y + dy + 1;
+					int tz = z - dz + 2;
+
+					BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? BLOCK_TYPE::BLOCK_LOG_OAK
+																 : BLOCK_TYPE::BLOCK_LEAVES_OAK;
+					if (IsInsideChunk(tx, ty, tz))
+					{
+						
+						m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+					}
+					else
+					{
+						if (IsInsideChunk(tx, ty, tz, 1))
+						{
+							m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+						}
+						// modify
+					}
+				}
+			}
+		}
+	}
+}
+
+bool Chunk::IsInsideChunk(int x, int y, int z, int padding)
+{ 
+	if (0 - padding <= x && x < CHUNK_SIZE + padding &&
+		0 - padding <= y && y < CHUNK_SIZE + padding &&
+		0 - padding <= z && z < CHUNK_SIZE + padding)
+		return true;
+
+	return false;
+}
+
 void Chunk::InitInstancePlace(ChunkInitMemory* memory)
 {
 	Terrain::GenerateRandomPlace2D(m_offsetPosition, INSTANCE_PLACE_RANDOM_SOLT_X,
 		INSTANCE_PLACE_RANDOM_SOLT_Z, INSTANCE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
 		memory->instanceRandomPlace2D);
 
-	for (int i = 0; i < INSTANCE_PLACE_MAX_COUNT_PER_CHUNK; ++i) {
+	 for (int i = 0; i < INSTANCE_PLACE_MAX_COUNT_PER_CHUNK; ++i) {
 		int x = memory->instanceRandomPlace2D[i].first;
 		int z = memory->instanceRandomPlace2D[i].second;
 
 		for (int y = 0; y < CHUNK_SIZE; ++y) {
-			if (CanPlaceAt(x, y, z)) {
+			if (CanPlaceInstanceAt(x, y, z)) {
 				Instance instance;
 
 				instance.SetTextureIndex(Terrain::GetBlockTextureIndex(BLOCK_SHORT_GRASS));
@@ -146,18 +264,21 @@ void Chunk::InitInstancePlace(ChunkInitMemory* memory)
 	}
 }
 
-bool Chunk::CanPlaceAt(int x, int y, int z) 
+bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 { 
-	BLOCK_TYPE currentPlaceBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
-	BLOCK_TYPE placeBottomType = m_blocks[x + 1][y][z + 1].GetType();
+	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+	BLOCK_TYPE bottomBlockType = m_blocks[x + 1][y][z + 1].GetType();
 
-	if (Block::IsTransparency(currentPlaceBlockType) &&
-		!Block::IsTransparency(placeBottomType) &&
-		m_instanceMap.find(std::make_tuple(x, y, z)) == m_instanceMap.end())
-	{
-		return true;
-	}
-	return false;
+	if (!Block::IsTransparency(currentBlockType))
+		return false;
+
+	if (Block::IsTransparency(bottomBlockType))
+		return false;
+	
+	if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end())
+		return false;
+
+	return true;
 }
 
 void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)

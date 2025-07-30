@@ -25,13 +25,14 @@ public:
 	static const int CHUNK_SIZE_P = CHUNK_SIZE + 2;
 	static const int CHUNK_SIZE_P2 = CHUNK_SIZE_P * CHUNK_SIZE_P;
 
-	static const uint32_t TREE_PLACE_RANDOM_SOLT = 763777711U;
-	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE2 / 16;
+	static const uint32_t TREE_PLACE_RANDOM_SOLT_X = 763777711U;
+	static const uint32_t TREE_PLACE_RANDOM_SOLT_Z = 128200883U;
+	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 64;
 
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;
-	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE2 / 16;
-
+	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 8;
+	
 	Chunk(UINT id);
 	~Chunk();
 
@@ -107,8 +108,13 @@ private:
 
 	void InitBasicBlockType(ChunkInitMemory* memory);
 
+	void InitTreePlace(ChunkInitMemory* memory);
+	bool CanPlaceTreeAt(int x, int y, int z);
+	void PlaceTree(int x, int y, int z, ChunkInitMemory* memory);
+	bool IsInsideChunk(int x, int y, int z, int padding = 0);
+
 	void InitInstancePlace(ChunkInitMemory* memory);
-	bool CanPlaceAt(int x, int y, int z);
+	bool CanPlaceInstanceAt(int x, int y, int z);
 
 	void InitWorldVerticesData(ChunkInitMemory* memory);
 
@@ -157,7 +163,9 @@ struct ChunkInitMemory {
 	float humidityNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 
+	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
+
 
 	ChunkInitMemory()
 		: llColBit{ 0 }, 
@@ -174,6 +182,7 @@ struct ChunkInitMemory {
 		  distributionNoises{ { 0, }, }
 	{
 		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT_PER_CHUNK);
+		treeRandomPlace2D.reserve(Chunk::TREE_PLACE_MAX_COUNT_PER_CHUNK);
 	}
 
 	void Clear()
@@ -186,6 +195,7 @@ struct ChunkInitMemory {
 		std::fill(std::begin(tpCullColBit), std::end(tpCullColBit), 0);
 		std::fill(std::begin(saCullColBit), std::end(saCullColBit), 0);
 
+		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
 	}
 };

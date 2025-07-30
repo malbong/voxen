@@ -730,6 +730,9 @@ namespace Terrain {
 			else
 				return TEXTURE_LOG_OAK;
 
+		case BLOCK_LEAVES_OAK:
+			return TEXTURE_LEAVES_OAK;
+
 		case BLOCK_SHORT_GRASS:
 			return TEXTURE_SHORT_GRASS;
 
