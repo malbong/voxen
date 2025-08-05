@@ -147,6 +147,14 @@ private:
 	ChunkConstantData m_constantData;
 };
 
+struct ChunkPatchData {
+	Vector3 targetChunkPosition;
+	int localX;
+	int localY;
+	int localZ;
+	BLOCK_TYPE blockType;
+};
+
 struct ChunkInitMemory {
 	uint64_t llColBit[Chunk::CHUNK_SIZE_P2 * 3];
 	uint64_t opColBit[Chunk::CHUNK_SIZE_P2 * 3];
@@ -165,24 +173,45 @@ struct ChunkInitMemory {
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
-
+	std::vector<ChunkPatchData> chunkPatchDataList;
 
 	ChunkInitMemory()
-		: llColBit{ 0 }, 
-		  opColBit{ 0 }, 
-		  llCullColBit{ 0 }, 
-		  opCullColBit{ 0 }, 
-		  tpCullColBit{ 0 },
+		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
 		  saCullColBit{ 0 },
-		  continentalinessNoises{ { 0, }, },
-		  erosionNoises{ { 0, }, },
-		  peaksValleyNoises { { 0, }, },
-		  temperatureNoises{ { 0, }, },
-		  humidityNoises{ { 0, }, },
-		  distributionNoises{ { 0, }, }
+		  continentalinessNoises{
+			  {
+				  0,
+			  },
+		  },
+		  erosionNoises{
+			  {
+				  0,
+			  },
+		  },
+		  peaksValleyNoises{
+			  {
+				  0,
+			  },
+		  },
+		  temperatureNoises{
+			  {
+				  0,
+			  },
+		  },
+		  humidityNoises{
+			  {
+				  0,
+			  },
+		  },
+		  distributionNoises{
+			  {
+				  0,
+			  },
+		  }
 	{
 		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT_PER_CHUNK);
 		treeRandomPlace2D.reserve(Chunk::TREE_PLACE_MAX_COUNT_PER_CHUNK);
+		chunkPatchDataList.reserve(Chunk::CHUNK_SIZE2);
 	}
 
 	void Clear()
@@ -197,5 +226,6 @@ struct ChunkInitMemory {
 
 		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
+		chunkPatchDataList.clear();
 	}
 };

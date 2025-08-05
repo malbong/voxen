@@ -76,10 +76,16 @@ void ChunkManager::Update(float dt, Camera& camera, Light& light)
 		camera.m_isOnChunkDirtyFlag = false;
 	}
 
-	// Basic Block And Tree And Instance
-	// Modify
-	// Binary Greedy Meshing -> Load
-	// Unload Chunk
+	// Tree And ChunkManager Update
+	// - 로드는 그대로 하되, Rebuild 리스트를 구성할 것
+	// - Rebuild에 대한 데이터는 Load시에 받아서 ChunkManager가 가지고 있을 것
+	// - Loaded Chunk 대해서만 Rebuild할 것 -> 멀티쓰레딩 데이터 레이스 안정성을 위함
+	// - Rebuild 시 Block Type이 변경될 시(flag구성)에만 CPU버퍼와 GPU버퍼를 재구성할 것
+	// - 멀티쓰레드 안정성을 위해 Rebuild 중인 데이터를 플래그로 설정해놓기
+	// - Rebuild에 대한 데이터를 사용을 한 후에 어떻게 처리할 것인가에 대한 생각하기
+	//  -> Lagacy Rebuild 구성
+	//  -> 새로운 Load Chunk가 Lagacy Rebuild 에 매칭시키기
+	// 
 	UpdateLoadChunkList(camera);
 	UpdateUnloadChunkList();
 	UpdateRenderChunkList(camera, light);
@@ -215,7 +221,6 @@ void ChunkManager::RenderTransparency()
 	}
 }
 
-
 void ChunkManager::RenderBasicShadowMap()
 {
 	for (auto& c : m_renderShadowChunkList)
@@ -293,6 +298,8 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			chunk->SetUpdateRequired(true);
 			chunk->SetLoad(true);
 
+			chunkInitMemory->Clear();
+
 			it = m_futures.erase(it);
 		}
 		else {
@@ -351,7 +358,6 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 		if (FrustumCulling(mirrorChunkPos, camera, light, true, false)) {
 			m_renderMirrorChunkList.push_back(p.second);
 		}
-		
 	}
 }
 

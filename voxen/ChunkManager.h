@@ -106,3 +106,4 @@ private:
 	std::vector<std::pair<Chunk*, std::future<ChunkInitMemory*>>> m_futures;
 	std::vector<ChunkInitMemory*> m_chunkInitMemoryPool;
 };
+

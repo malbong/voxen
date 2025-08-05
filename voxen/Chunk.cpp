@@ -52,9 +52,9 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	sum += duration.count();
 	count++;
 
-	std::cout << "duration: " << duration.count() << " micro s"
-			  << " | "
-			  << "average: " << (float)sum / (float)count << " micro s" << std::endl;
+	//std::cout << "duration: " << duration.count() << " micro s"
+	//		  << " | "
+	//		  << "average: " << (float)sum / (float)count << " micro s" << std::endl;
 	////////////////////////////////////
 
 	return memory;
@@ -73,6 +73,8 @@ void Chunk::Update(float dt)
 
 void Chunk::Clear()
 {
+	m_instanceMap.clear();
+
 	m_lowLodVertices.clear();
 	m_lowLodIndices.clear();
 
@@ -84,8 +86,6 @@ void Chunk::Clear()
 
 	m_semiAlphaVertices.clear();
 	m_semiAlphaIndices.clear();
-
-	m_instanceMap.clear();
 }
 
 void Chunk::InitTerrainNoises(ChunkInitMemory* memory)
@@ -157,7 +157,7 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z)
 
 void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
 { 
-	uint32_t tree[5][5][5] = {
+	uint32_t tree[6][5][5] = {
 		{
 			{ 0, 0, 0, 0, 0 },
 			{ 0, 0, 0, 0, 0 },
@@ -193,9 +193,16 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
 			{ 0, 2, 2, 2, 0 },
 			{ 0, 0, 0, 0, 0 },
 		},
+		{
+			{ 0, 0, 0, 0, 0 },
+			{ 0, 0, 2, 0, 0 },
+			{ 0, 2, 2, 2, 0 },
+			{ 0, 0, 2, 0, 0 },
+			{ 0, 0, 0, 0, 0 },
+		},
 	};
 
-	for (int dy = 0; dy < 5; ++dy)
+	for (int dy = 0; dy < 6; ++dy)
 	{
 		for (int dz = 0; dz < 5; ++dz)
 		{
@@ -211,16 +218,20 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
 																 : BLOCK_TYPE::BLOCK_LEAVES_OAK;
 					if (IsInsideChunk(tx, ty, tz))
 					{
-						
 						m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
 					}
 					else
 					{
-						if (IsInsideChunk(tx, ty, tz, 1))
-						{
-							m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
-						}
-						// modify
+						// set patch data
+						ChunkPatchData patchData;
+						Vector3 targetChunkPosition =
+							Utils::CalcOffsetPos(m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz), CHUNK_SIZE);
+						patchData.targetChunkPosition = targetChunkPosition;
+						patchData.localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
+						patchData.localY = (ty + CHUNK_SIZE) % CHUNK_SIZE;
+						patchData.localZ = (tz + CHUNK_SIZE) % CHUNK_SIZE;
+						patchData.blockType = BLOCK_TYPE::BLOCK_DIAMOND_ORE;
+						memory->chunkPatchDataList.push_back(patchData);
 					}
 				}
 			}
@@ -283,8 +294,6 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 
 void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)
 {
-	memory->Clear();
-
 	// 1. make axis column bit data
 	std::unordered_map<BLOCK_TYPE, bool> llTypeMap;
 	std::unordered_map<BLOCK_TYPE, bool> opTypeMap;
