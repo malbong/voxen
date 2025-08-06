@@ -60,6 +60,15 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	return memory;
 }
 
+void Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkInitMemory* memory) 
+{ 
+	for (const ChunkPatchData& data : patchList) {
+		m_blocks[data.localX + 1][data.localY + 1][data.localZ + 1].SetType(data.blockType);
+	}
+
+	InitWorldVerticesData(memory);
+}
+
 void Chunk::Update(float dt)
 {
 	if (m_isUpdateRequired) {
@@ -75,6 +84,11 @@ void Chunk::Clear()
 {
 	m_instanceMap.clear();
 
+	ClearCpuVertices();
+}
+
+void Chunk::ClearCpuVertices() 
+{
 	m_lowLodVertices.clear();
 	m_lowLodIndices.clear();
 
@@ -224,14 +238,15 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
 					{
 						// set patch data
 						ChunkPatchData patchData;
-						Vector3 targetChunkPosition =
-							Utils::CalcOffsetPos(m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz), CHUNK_SIZE);
-						patchData.targetChunkPosition = targetChunkPosition;
 						patchData.localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
 						patchData.localY = (ty + CHUNK_SIZE) % CHUNK_SIZE;
 						patchData.localZ = (tz + CHUNK_SIZE) % CHUNK_SIZE;
-						patchData.blockType = BLOCK_TYPE::BLOCK_DIAMOND_ORE;
-						memory->chunkPatchDataList.push_back(patchData);
+						patchData.blockType = BLOCK_TYPE::BLOCK_ICE;
+
+						Vector3 targetOffsetPos = Utils::CalcOffsetPos(
+							m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz),
+							CHUNK_SIZE);
+						memory->chunkPatchDataMap[targetOffsetPos].push_back(patchData);
 					}
 				}
 			}
@@ -294,6 +309,8 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 
 void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)
 {
+	ClearCpuVertices();
+
 	// 1. make axis column bit data
 	std::unordered_map<BLOCK_TYPE, bool> llTypeMap;
 	std::unordered_map<BLOCK_TYPE, bool> opTypeMap;

@@ -76,18 +76,9 @@ void ChunkManager::Update(float dt, Camera& camera, Light& light)
 		camera.m_isOnChunkDirtyFlag = false;
 	}
 
-	// Tree And ChunkManager Update
-	// - 로드는 그대로 하되, Rebuild 리스트를 구성할 것
-	// - Rebuild에 대한 데이터는 Load시에 받아서 ChunkManager가 가지고 있을 것
-	// - Loaded Chunk 대해서만 Rebuild할 것 -> 멀티쓰레딩 데이터 레이스 안정성을 위함
-	// - Rebuild 시 Block Type이 변경될 시(flag구성)에만 CPU버퍼와 GPU버퍼를 재구성할 것
-	// - 멀티쓰레드 안정성을 위해 Rebuild 중인 데이터를 플래그로 설정해놓기
-	// - Rebuild에 대한 데이터를 사용을 한 후에 어떻게 처리할 것인가에 대한 생각하기
-	//  -> Lagacy Rebuild 구성
-	//  -> 새로운 Load Chunk가 Lagacy Rebuild 에 매칭시키기
-	// 
 	UpdateLoadChunkList(camera);
 	UpdateUnloadChunkList();
+	UpdatePatchChunkList();
 	UpdateRenderChunkList(camera, light);
 	UpdateInstanceInfoList(camera);
 	UpdateChunkConstant(dt);
@@ -290,15 +281,39 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 	for (auto it = m_futures.begin(); it != m_futures.end();) {
 		if (it->second.wait_for(std::chrono::microseconds(0)) == std::future_status::ready) {
 			ChunkInitMemory* chunkInitMemory = it->second.get();
-			m_chunkInitMemoryPool.push_back(chunkInitMemory);
-
 			Chunk* chunk = it->first;
+
+			// Dependency Map 구성
+			std::tuple<int, int, int> current = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
+			for (const auto& [targetPos, patchDataList] : chunkInitMemory->chunkPatchDataMap) {
+				std::tuple<int, int, int> target = Utils::VectorToIntTuple(targetPos);
+				for (const auto& patchData : patchDataList) {
+					m_patchChunkList[target].push_back(patchData);
+
+					m_dependencyMapList[current][target].push_back(patchData);
+				}
+				m_lookupDependencyMapList[target].push_back(current);
+			}
+
+			// 본인에 대한 Dependency Map 확인 후 있으면 List에 넣음
+			if (m_lookupDependencyMapList.find(current) != m_lookupDependencyMapList.end()) {
+				for (const auto& source : m_lookupDependencyMapList[current]) {
+					if (m_dependencyMapList.find(source) != m_dependencyMapList.end() && 
+						m_dependencyMapList[source].find(current) != m_dependencyMapList[source].end()) {
+						for (const auto& patchData : m_dependencyMapList[source][current]) {
+							m_patchChunkList[current].push_back(patchData);
+						}
+					}
+				}
+			}
+			
 			InitChunkBuffer(chunk);
 
 			chunk->SetUpdateRequired(true);
 			chunk->SetLoad(true);
 
 			chunkInitMemory->Clear();
+			m_chunkInitMemoryPool.push_back(chunkInitMemory);
 
 			it = m_futures.erase(it);
 		}
@@ -314,11 +329,10 @@ void ChunkManager::UpdateUnloadChunkList()
 		Chunk* chunk = m_unloadChunkList.back();
 		m_unloadChunkList.pop_back();
 
-		Vector3 pos = chunk->GetOffsetPosition();
-		int x = (int)pos.x;
-		int y = (int)pos.y;
-		int z = (int)pos.z;
-		m_chunkMap.erase(std::make_tuple(x, y, z));
+		std::tuple<int, int, int> chunkPos = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
+		m_chunkMap.erase(chunkPos);
+		m_dependencyMapList.erase(chunkPos);
+		m_lookupDependencyMapList.erase(chunkPos);
 
 		ReleaseChunkToPool(chunk);
 
@@ -327,6 +341,24 @@ void ChunkManager::UpdateUnloadChunkList()
 		chunk->SetUpdateRequired(false);
 		chunk->SetLoad(false);
 	}
+}
+
+void ChunkManager::UpdatePatchChunkList()
+{
+	for (const auto& [chunkPos, patchDataList] : m_patchChunkList) {
+		if (m_chunkMap.find(chunkPos) != m_chunkMap.end()) {
+			Chunk* chunk = m_chunkMap[chunkPos];
+			if (chunk->IsLoaded()) {
+				ChunkInitMemory* memory = new ChunkInitMemory();
+				chunk->Patch(patchDataList, memory);
+				delete memory;
+
+				InitChunkBuffer(chunk);
+			}
+		}
+	}
+
+	m_patchChunkList.clear(); 
 }
 
 void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)

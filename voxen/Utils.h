@@ -120,4 +120,9 @@ namespace Utils {
 	{
 		return (int)log2((num & ~(num + 1)) + 1); // __builtin_ctzll or _BitScanForward64}
 	}
+
+	static inline std::tuple<int, int, int> VectorToIntTuple(Vector3 v)
+	{
+		return std::make_tuple((int)v.x, (int)v.y, (int)v.z);
+	}
 };

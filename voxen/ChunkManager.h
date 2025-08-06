@@ -58,6 +58,7 @@ private:
 	void UpdateChunkList(Vector3 cameraChunkPos);
 	void UpdateLoadChunkList(Camera& camera);
 	void UpdateUnloadChunkList();
+	void UpdatePatchChunkList();
 	void UpdateRenderChunkList(Camera& camera, Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
@@ -75,6 +76,11 @@ private:
 
 	std::vector<Chunk*> m_chunkPool;
 	std::map<std::tuple<int, int, int>, Chunk*> m_chunkMap;
+
+	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_patchChunkList;
+	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
+		m_dependencyMapList;
+	std::map<std::tuple<int, int, int>, std::vector<std::tuple<int, int, int>>> m_lookupDependencyMapList;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;

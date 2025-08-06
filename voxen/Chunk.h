@@ -15,6 +15,7 @@
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
 
+struct ChunkPatchData;
 struct ChunkInitMemory;
 
 class Chunk {
@@ -37,8 +38,10 @@ public:
 	~Chunk();
 
 	ChunkInitMemory* Initialize(ChunkInitMemory* memory);
+	void Patch(const std::vector<ChunkPatchData>& patchList, ChunkInitMemory* memory);
 	void Update(float dt);
 	void Clear();
+	void ClearCpuVertices();
 
 	inline UINT GetID() { return m_id; }
 
@@ -103,6 +106,7 @@ public:
 			return &iter->second;
 	}
 
+
 private:
 	void InitTerrainNoises(ChunkInitMemory* memory);
 
@@ -147,13 +151,14 @@ private:
 	ChunkConstantData m_constantData;
 };
 
+
 struct ChunkPatchData {
-	Vector3 targetChunkPosition;
 	int localX;
 	int localY;
 	int localZ;
 	BLOCK_TYPE blockType;
 };
+
 
 struct ChunkInitMemory {
 	uint64_t llColBit[Chunk::CHUNK_SIZE_P2 * 3];
@@ -173,7 +178,7 @@ struct ChunkInitMemory {
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
-	std::vector<ChunkPatchData> chunkPatchDataList;
+	std::map<Vector3, std::vector<ChunkPatchData>> chunkPatchDataMap;
 
 	ChunkInitMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
@@ -211,7 +216,6 @@ struct ChunkInitMemory {
 	{
 		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT_PER_CHUNK);
 		treeRandomPlace2D.reserve(Chunk::TREE_PLACE_MAX_COUNT_PER_CHUNK);
-		chunkPatchDataList.reserve(Chunk::CHUNK_SIZE2);
 	}
 
 	void Clear()
@@ -226,6 +230,6 @@ struct ChunkInitMemory {
 
 		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
-		chunkPatchDataList.clear();
+		chunkPatchDataMap.clear();
 	}
 };
