@@ -371,10 +371,11 @@ void ChunkManager::UpdateUnloadChunkList()
 
 void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
-	// TODO
-	// Sort
-	// IsPatching 상태
-	// Update Flag 상태
+	// TODO::
+		// Sort
+		// IsPatching 상태
+		// Update Flag 상태
+		// Mouse Picking을 PatchData로
 
 	// thread
 	for (auto it = m_patchChunkMap.begin(); it != m_patchChunkMap.end();) {
@@ -396,7 +397,7 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 			}
 		}
 		
-		m_patchChunkMap.erase(it);
+		it = m_patchChunkMap.erase(it);
 	}
 
 	// update gpu buffer
