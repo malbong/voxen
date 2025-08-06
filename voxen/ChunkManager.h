@@ -3,6 +3,7 @@
 #include <map>
 #include <queue>
 #include <future>
+#include <set>
 
 #include "Chunk.h"
 #include "Camera.h"
@@ -66,7 +67,7 @@ private:
 	bool FrustumCulling(
 		Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index = 0);
 
-	void InitChunkBuffer(Chunk* chunk);
+	void UpdateChunkBuffer(Chunk* chunk);
 	
 	Chunk* GetChunkFromPool();
 	void ReleaseChunkToPool(Chunk* chunk);
@@ -80,7 +81,7 @@ private:
 	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_patchChunkList;
 	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
 		m_dependencyMapList;
-	std::map<std::tuple<int, int, int>, std::vector<std::tuple<int, int, int>>> m_lookupDependencyMapList;
+	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_lookupDependencySet;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;
@@ -108,8 +109,9 @@ private:
 	std::vector<std::vector<InstanceInfoVertex>> m_instanceInfoList;
 	std::vector<UINT> m_instanceIndexCount;
 	
-	unsigned int m_initThreadCount;
-	std::vector<std::pair<Chunk*, std::future<ChunkInitMemory*>>> m_futures;
-	std::vector<ChunkInitMemory*> m_chunkInitMemoryPool;
+	uint32_t m_loadThreadCount;
+	uint32_t m_patchThreadCount;
+	std::vector<ChunkLoadMemory*> m_chunkLoadMemoryPool;
+	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_futures;
 };
 

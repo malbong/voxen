@@ -16,7 +16,7 @@ using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
 
 struct ChunkPatchData;
-struct ChunkInitMemory;
+struct ChunkLoadMemory;
 
 class Chunk {
 
@@ -37,8 +37,8 @@ public:
 	Chunk(UINT id);
 	~Chunk();
 
-	ChunkInitMemory* Initialize(ChunkInitMemory* memory);
-	void Patch(const std::vector<ChunkPatchData>& patchList, ChunkInitMemory* memory);
+	ChunkLoadMemory* Initialize(ChunkLoadMemory* memory);
+	void Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
 	void ClearCpuVertices();
@@ -108,19 +108,19 @@ public:
 
 
 private:
-	void InitTerrainNoises(ChunkInitMemory* memory);
+	void InitTerrainNoises(ChunkLoadMemory* memory);
 
-	void InitBasicBlockType(ChunkInitMemory* memory);
+	void InitBasicBlockType(ChunkLoadMemory* memory);
 
-	void InitTreePlace(ChunkInitMemory* memory);
+	void InitTreePlace(ChunkLoadMemory* memory);
 	bool CanPlaceTreeAt(int x, int y, int z);
-	void PlaceTree(int x, int y, int z, ChunkInitMemory* memory);
+	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory);
 	bool IsInsideChunk(int x, int y, int z, int padding = 0);
 
-	void InitInstancePlace(ChunkInitMemory* memory);
+	void InitInstancePlace(ChunkLoadMemory* memory);
 	bool CanPlaceInstanceAt(int x, int y, int z);
 
-	void InitWorldVerticesData(ChunkInitMemory* memory);
+	void InitWorldVerticesData(ChunkLoadMemory* memory);
 
 	void MakeFaceSliceColumnBit(uint64_t cullColBit[Chunk::CHUNK_SIZE_P2 * 6],
 		std::unordered_map<BLOCK_TYPE, std::vector<uint64_t>>& sliceColBit);
@@ -160,7 +160,7 @@ struct ChunkPatchData {
 };
 
 
-struct ChunkInitMemory {
+struct ChunkLoadMemory {
 	uint64_t llColBit[Chunk::CHUNK_SIZE_P2 * 3];
 	uint64_t opColBit[Chunk::CHUNK_SIZE_P2 * 3];
 
@@ -180,7 +180,7 @@ struct ChunkInitMemory {
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
 	std::map<Vector3, std::vector<ChunkPatchData>> chunkPatchDataMap;
 
-	ChunkInitMemory()
+	ChunkLoadMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
 		  saCullColBit{ 0 },
 		  continentalinessNoises{

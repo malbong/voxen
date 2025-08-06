@@ -14,7 +14,7 @@ Chunk::Chunk(UINT id)
 
 Chunk::~Chunk() { Clear(); }
 
-ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
+ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 {
 	////////////////////////////////////
 	// check start time
@@ -60,10 +60,18 @@ ChunkInitMemory* Chunk::Initialize(ChunkInitMemory* memory)
 	return memory;
 }
 
-void Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkInitMemory* memory) 
+void Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
 { 
 	for (const ChunkPatchData& data : patchList) {
-		m_blocks[data.localX + 1][data.localY + 1][data.localZ + 1].SetType(data.blockType);
+		int x = data.localX;
+		int y = data.localY;
+		int z = data.localZ;
+
+		m_blocks[x + 1][y + 1][z + 1].SetType(data.blockType);
+
+		if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end()) {
+			m_instanceMap.erase(std::make_tuple(x, y, z));
+		}
 	}
 
 	InitWorldVerticesData(memory);
@@ -102,7 +110,7 @@ void Chunk::ClearCpuVertices()
 	m_semiAlphaIndices.clear();
 }
 
-void Chunk::InitTerrainNoises(ChunkInitMemory* memory)
+void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 {
 	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
 		for (int z = 0; z < CHUNK_SIZE_P; ++z)	{
@@ -119,7 +127,7 @@ void Chunk::InitTerrainNoises(ChunkInitMemory* memory)
 	}
 }
 
-void Chunk::InitBasicBlockType(ChunkInitMemory* memory)
+void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 {
 	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
 		for (int y = 0; y < CHUNK_SIZE_P; ++y) {
@@ -139,7 +147,7 @@ void Chunk::InitBasicBlockType(ChunkInitMemory* memory)
 	}
 }
 
-void Chunk::InitTreePlace(ChunkInitMemory* memory) 
+void Chunk::InitTreePlace(ChunkLoadMemory* memory) 
 {
 	Terrain::GenerateRandomPlace2D(m_offsetPosition, TREE_PLACE_RANDOM_SOLT_X,
 		TREE_PLACE_RANDOM_SOLT_Z, TREE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
@@ -169,7 +177,7 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z)
 	return false;
 }
 
-void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
+void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 { 
 	uint32_t tree[6][5][5] = {
 		{
@@ -216,26 +224,21 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkInitMemory* memory)
 		},
 	};
 
-	for (int dy = 0; dy < 6; ++dy)
-	{
-		for (int dz = 0; dz < 5; ++dz)
-		{
-			for (int dx = 0; dx < 5; ++dx)
-			{
-				if (tree[dy][dz][dx] > 0)
-				{
+	for (int dy = 0; dy < 6; ++dy) {
+		for (int dz = 0; dz < 5; ++dz) {
+			for (int dx = 0; dx < 5; ++dx) {
+				if (tree[dy][dz][dx] > 0) {
 					int tx = x + dx - 2;
 					int ty = y + dy + 1;
 					int tz = z - dz + 2;
 
 					BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? BLOCK_TYPE::BLOCK_LOG_OAK
 																 : BLOCK_TYPE::BLOCK_LEAVES_OAK;
-					if (IsInsideChunk(tx, ty, tz))
-					{
+					if (IsInsideChunk(tx, ty, tz)) {
 						m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
 					}
-					else
-					{
+					else {
+						
 						// set patch data
 						ChunkPatchData patchData;
 						patchData.localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
@@ -264,7 +267,7 @@ bool Chunk::IsInsideChunk(int x, int y, int z, int padding)
 	return false;
 }
 
-void Chunk::InitInstancePlace(ChunkInitMemory* memory)
+void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 {
 	Terrain::GenerateRandomPlace2D(m_offsetPosition, INSTANCE_PLACE_RANDOM_SOLT_X,
 		INSTANCE_PLACE_RANDOM_SOLT_Z, INSTANCE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
@@ -307,7 +310,7 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 	return true;
 }
 
-void Chunk::InitWorldVerticesData(ChunkInitMemory* memory)
+void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 {
 	ClearCpuVertices();
 
