@@ -30,8 +30,12 @@ void ChunkManager::operator=(const ChunkManager& rhs) {}
 
 bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 {
-	m_loadThreadCount = std::clamp(std::thread::hardware_concurrency() - 2, 2u, 4u);
-	for (unsigned int i = 0; i < m_loadThreadCount; ++i) {
+	uint32_t maxThreads = min(6u, std::thread::hardware_concurrency());
+	uint32_t usableThreads = (maxThreads > 1) ? maxThreads - 1 : 1;
+	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 4u);
+	m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u);
+
+	for (unsigned int i = 0; i < m_initThreadCount + m_patchThreadCount; ++i) {
 		m_chunkLoadMemoryPool.push_back(new ChunkLoadMemory());
 	}
 
@@ -78,7 +82,7 @@ void ChunkManager::Update(float dt, Camera& camera, Light& light)
 
 	UpdateLoadChunkList(camera);
 	UpdateUnloadChunkList();
-	UpdatePatchChunkList();
+	UpdatePatchChunkMap(camera);
 	UpdateRenderChunkList(camera, light);
 	UpdateInstanceInfoList(camera);
 	UpdateChunkConstant(dt);
@@ -267,28 +271,31 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 		return aDiffLengthXZ > bDiffLengthXZ;
 	});
 	
-	while (!m_loadChunkList.empty() && m_futures.size() < m_loadThreadCount) {
+	while (!m_loadChunkList.empty() && m_initFutures.size() < m_initThreadCount) {
 		Chunk* chunk = m_loadChunkList.back();
 		m_loadChunkList.pop_back();
 
 		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
 		m_chunkLoadMemoryPool.pop_back();
 
-		m_futures.push_back(std::make_pair(
+		m_initFutures.push_back(std::make_pair(
 			chunk, std::async(std::launch::async, &Chunk::Initialize, chunk, chunkLoadMemory)));
 	}
 
-	for (auto it = m_futures.begin(); it != m_futures.end();) {
+	for (auto it = m_initFutures.begin(); it != m_initFutures.end();) {
 		if (it->second.wait_for(std::chrono::microseconds(0)) == std::future_status::ready) {
-			ChunkLoadMemory* chunkLoadMemory = it->second.get();
 			Chunk* chunk = it->first;
+			ChunkLoadMemory* chunkLoadMemory = it->second.get();
 
 			// Dependency Map 구성
 			std::tuple<int, int, int> current = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
 			for (const auto& [targetPos, patchDataList] : chunkLoadMemory->chunkPatchDataMap) {
 				std::tuple<int, int, int> target = Utils::VectorToIntTuple(targetPos);
 				for (const auto& patchData : patchDataList) {
-					m_patchChunkList[target].push_back(patchData);
+					if (m_chunkMap.find(target) != m_chunkMap.end() &&
+						m_chunkMap[target]->IsLoaded()) {
+						m_patchChunkMap[target].push_back(patchData);
+					}
 
 					m_dependencyMapList[current][target].push_back(patchData);
 				}
@@ -301,7 +308,7 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 					if (m_dependencyMapList.find(source) != m_dependencyMapList.end() && 
 						m_dependencyMapList[source].find(current) != m_dependencyMapList[source].end()) {
 						for (const auto& patchData : m_dependencyMapList[source][current]) {
-							m_patchChunkList[current].push_back(patchData);
+							m_patchChunkMap[current].push_back(patchData);
 						}
 					}
 				}
@@ -315,7 +322,7 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			chunkLoadMemory->Clear();
 			m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
 
-			it = m_futures.erase(it);
+			it = m_initFutures.erase(it);
 		}
 		else {
 			++it;
@@ -330,7 +337,12 @@ void ChunkManager::UpdateUnloadChunkList()
 		m_unloadChunkList.pop_back();
 
 		std::tuple<int, int, int> chunkPos = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
-		m_chunkMap.erase(chunkPos);
+
+		if (m_chunkMap.find(chunkPos) != m_chunkMap.end())
+			m_chunkMap.erase(chunkPos);
+
+		if (m_patchChunkMap.find(chunkPos) != m_patchChunkMap.end())
+			m_patchChunkMap.erase(chunkPos);
 
 		if (m_dependencyMapList.find(chunkPos) != m_dependencyMapList.end()) {
 			const auto& patchedChunkMapList = m_dependencyMapList[chunkPos];
@@ -349,31 +361,63 @@ void ChunkManager::UpdateUnloadChunkList()
 			m_dependencyMapList.erase(chunkPos);
 		}
 
-		ReleaseChunkToPool(chunk);
-
 		chunk->Clear();
-
 		chunk->SetUpdateRequired(false);
 		chunk->SetLoad(false);
+
+		ReleaseChunkToPool(chunk);
 	}
 }
 
-void ChunkManager::UpdatePatchChunkList()
+void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
-	for (const auto& [chunkPos, patchDataList] : m_patchChunkList) {
+	// TODO
+	// Sort
+	// IsPatching 상태
+	// Update Flag 상태
+
+	// thread
+	for (auto it = m_patchChunkMap.begin(); it != m_patchChunkMap.end();) {
+		if (m_patchFutures.size() == m_patchThreadCount)
+			break;
+
+		std::tuple<int, int, int> chunkPos = it->first;
 		if (m_chunkMap.find(chunkPos) != m_chunkMap.end()) {
 			Chunk* chunk = m_chunkMap[chunkPos];
-			if (chunk->IsLoaded()) {
-				//ChunkLoadMemory* memory = new ChunkLoadMemory();
-				//chunk->Patch(patchDataList, memory);
-				//delete memory;
+			if (chunk && chunk->IsLoaded()) { // isPatching
+				const std::vector<ChunkPatchData>& chunkPatchDataList = it->second;
 
-				//UpdateChunkBuffer(chunk);
+				ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
+				m_chunkLoadMemoryPool.pop_back();
+
+				m_patchFutures.push_back(
+					std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
+											  chunkPatchDataList, chunkLoadMemory)));
 			}
 		}
+		
+		m_patchChunkMap.erase(it);
 	}
 
-	m_patchChunkList.clear(); 
+	// update gpu buffer
+	for (auto it = m_patchFutures.begin(); it != m_patchFutures.end();) {
+		if (it->second.wait_for(std::chrono::microseconds(0)) == std::future_status::ready) {
+			Chunk* chunk = it->first;
+			ChunkLoadMemory* chunkLoadMemory = it->second.get();
+
+			UpdateChunkBuffer(chunk);
+
+			// chunk->SetIsPatching(false);
+
+			chunkLoadMemory->Clear();
+			m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
+
+			it = m_patchFutures.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 
 void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)

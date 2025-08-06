@@ -59,7 +59,7 @@ private:
 	void UpdateChunkList(Vector3 cameraChunkPos);
 	void UpdateLoadChunkList(Camera& camera);
 	void UpdateUnloadChunkList();
-	void UpdatePatchChunkList();
+	void UpdatePatchChunkMap(Camera& camera);
 	void UpdateRenderChunkList(Camera& camera, Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
@@ -78,7 +78,6 @@ private:
 	std::vector<Chunk*> m_chunkPool;
 	std::map<std::tuple<int, int, int>, Chunk*> m_chunkMap;
 
-	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_patchChunkList;
 	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
 		m_dependencyMapList;
 	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_lookupDependencySet;
@@ -88,6 +87,7 @@ private:
 	std::vector<Chunk*> m_renderChunkList;
 	std::vector<Chunk*> m_renderMirrorChunkList;
 	std::vector<Chunk*> m_renderShadowChunkList;
+	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_patchChunkMap;
 
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodVertexBuffers;
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodIndexBuffers;
@@ -109,9 +109,12 @@ private:
 	std::vector<std::vector<InstanceInfoVertex>> m_instanceInfoList;
 	std::vector<UINT> m_instanceIndexCount;
 	
-	uint32_t m_loadThreadCount;
-	uint32_t m_patchThreadCount;
 	std::vector<ChunkLoadMemory*> m_chunkLoadMemoryPool;
-	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_futures;
+
+	uint32_t m_initThreadCount;
+	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_initFutures;
+
+	uint32_t m_patchThreadCount;
+	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_patchFutures;
 };
 

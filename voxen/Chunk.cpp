@@ -60,7 +60,7 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	return memory;
 }
 
-void Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
+ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
 { 
 	for (const ChunkPatchData& data : patchList) {
 		int x = data.localX;
@@ -75,6 +75,8 @@ void Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory*
 	}
 
 	InitWorldVerticesData(memory);
+
+	return memory;
 }
 
 void Chunk::Update(float dt)

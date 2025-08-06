@@ -38,7 +38,7 @@ public:
 	~Chunk();
 
 	ChunkLoadMemory* Initialize(ChunkLoadMemory* memory);
-	void Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory);
+	ChunkLoadMemory* Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
 	void ClearCpuVertices();
