@@ -24,6 +24,7 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	////////////////////////////////////
 
 	m_isLoaded = false;
+	m_isPatching = false;
 	m_isUpdateRequired = false;
 
 	// initialize noises for terrain

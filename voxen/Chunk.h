@@ -47,6 +47,10 @@ public:
 
 	inline void SetLoad(bool isLoaded) { m_isLoaded = isLoaded; }
 	inline bool IsLoaded() const { return m_isLoaded; }
+
+	inline void SetIsPatching(bool isPatching) { m_isPatching = isPatching; }
+	inline bool IsPatching() const { return m_isPatching; }
+
 	inline bool IsEmpty() const { return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha(); }
 
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
@@ -132,6 +136,7 @@ private:
 
 	UINT m_id;
 	bool m_isLoaded;
+	bool m_isPatching;
 	bool m_isUpdateRequired;
 	Vector3 m_offsetPosition;
 	Vector3 m_position;

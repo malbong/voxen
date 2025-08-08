@@ -32,7 +32,7 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 {
 	uint32_t maxThreads = min(6u, std::thread::hardware_concurrency());
 	uint32_t usableThreads = (maxThreads > 1) ? maxThreads - 1 : 1;
-	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 4u);
+	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 3u);
 	m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u);
 
 	for (unsigned int i = 0; i < m_initThreadCount + m_patchThreadCount; ++i) {
@@ -363,6 +363,7 @@ void ChunkManager::UpdateUnloadChunkList()
 
 		chunk->Clear();
 		chunk->SetUpdateRequired(false);
+		chunk->SetIsPatching(false);
 		chunk->SetLoad(false);
 
 		ReleaseChunkToPool(chunk);
@@ -373,7 +374,6 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
 	// TODO::
 		// Sort
-		// IsPatching 상태
 		// Update Flag 상태
 		// Mouse Picking을 PatchData로
 
@@ -383,20 +383,37 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 			break;
 
 		std::tuple<int, int, int> chunkPos = it->first;
-		if (m_chunkMap.find(chunkPos) != m_chunkMap.end()) {
-			Chunk* chunk = m_chunkMap[chunkPos];
-			if (chunk && chunk->IsLoaded()) { // isPatching
-				const std::vector<ChunkPatchData>& chunkPatchDataList = it->second;
+		if (m_chunkMap.find(chunkPos) == m_chunkMap.end()) {
+			it = m_patchChunkMap.erase(it);
+			continue;
+		}
 
-				ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
-				m_chunkLoadMemoryPool.pop_back();
+		Chunk* chunk = m_chunkMap[chunkPos];
+		if (!chunk) {
+			it = m_patchChunkMap.erase(it);
+			continue;
+		}
 
-				m_patchFutures.push_back(
-					std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
-											  chunkPatchDataList, chunkLoadMemory)));
-			}
+		if (!chunk->IsLoaded()) {
+			it = m_patchChunkMap.erase(it);
+			continue;
 		}
 		
+		if (chunk->IsPatching()) {
+			++it;
+			continue;
+		}
+
+		const std::vector<ChunkPatchData>& chunkPatchDataList = it->second;
+
+		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
+		m_chunkLoadMemoryPool.pop_back();
+
+		chunk->SetIsPatching(true);
+
+		m_patchFutures.push_back(
+			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
+									  chunkPatchDataList, chunkLoadMemory)));
 		it = m_patchChunkMap.erase(it);
 	}
 
@@ -408,7 +425,7 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 
 			UpdateChunkBuffer(chunk);
 
-			// chunk->SetIsPatching(false);
+			chunk->SetIsPatching(false);
 
 			chunkLoadMemory->Clear();
 			m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
