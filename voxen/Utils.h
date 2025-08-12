@@ -125,4 +125,9 @@ namespace Utils {
 	{
 		return std::make_tuple((int)v.x, (int)v.y, (int)v.z);
 	}
+
+	static inline Vector3 IntTupleToVector(std::tuple<int, int, int> t) 
+	{ 
+		return Vector3((float)std::get<0>(t), (float)std::get<1>(t), (float)std::get<2>(t));
+	}
 };

@@ -373,38 +373,52 @@ void ChunkManager::UpdateUnloadChunkList()
 void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
 	// TODO::
-		// Sort
-		// Update Flag 상태
-		// Mouse Picking을 PatchData로
+	// Update Flag 상태
+	// Binary Greedy Meshing
+	// Mouse Picking을 PatchData로
 
-	// thread
-	for (auto it = m_patchChunkMap.begin(); it != m_patchChunkMap.end();) {
-		if (m_patchFutures.size() == m_patchThreadCount)
-			break;
+	// move patch chunk to temp container for sort by camera distance
+	std::vector<std::tuple<int, int, int>> tempPatchChunkPositionList;
+	for (auto it = m_patchChunkMap.begin(); it != m_patchChunkMap.end(); ++it) {
+		tempPatchChunkPositionList.push_back(it->first);
+	}
 
-		std::tuple<int, int, int> chunkPos = it->first;
+	// sort temp container
+	std::sort(tempPatchChunkPositionList.begin(), tempPatchChunkPositionList.end(),
+		[&camera](auto& a, auto& b) {
+			Vector3 aDiff = Utils::IntTupleToVector(a) - camera.GetPosition();
+			Vector3 bDiff = Utils::IntTupleToVector(b) - camera.GetPosition();
+
+			return aDiff.Length() < bDiff.Length();
+		});
+
+	// update patch chunk map, run patch thread
+	for (auto& chunkPos : tempPatchChunkPositionList) {
 		if (m_chunkMap.find(chunkPos) == m_chunkMap.end()) {
-			it = m_patchChunkMap.erase(it);
+			m_patchChunkMap.erase(chunkPos);
 			continue;
 		}
 
 		Chunk* chunk = m_chunkMap[chunkPos];
 		if (!chunk) {
-			it = m_patchChunkMap.erase(it);
+			m_patchChunkMap.erase(chunkPos);
 			continue;
 		}
 
 		if (!chunk->IsLoaded()) {
-			it = m_patchChunkMap.erase(it);
-			continue;
-		}
-		
-		if (chunk->IsPatching()) {
-			++it;
+			m_patchChunkMap.erase(chunkPos);
 			continue;
 		}
 
-		const std::vector<ChunkPatchData>& chunkPatchDataList = it->second;
+		if (chunk->IsPatching()) {
+			continue;
+		}
+
+		if (m_patchFutures.size() == m_patchThreadCount) {
+			continue;
+		}
+
+		const std::vector<ChunkPatchData>& chunkPatchDataList = m_patchChunkMap[chunkPos];
 
 		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
 		m_chunkLoadMemoryPool.pop_back();
@@ -414,10 +428,11 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 		m_patchFutures.push_back(
 			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
 									  chunkPatchDataList, chunkLoadMemory)));
-		it = m_patchChunkMap.erase(it);
+		
+		m_patchChunkMap.erase(chunkPos);
 	}
 
-	// update gpu buffer
+	// update gpu buffer for update
 	for (auto it = m_patchFutures.begin(); it != m_patchFutures.end();) {
 		if (it->second.wait_for(std::chrono::microseconds(0)) == std::future_status::ready) {
 			Chunk* chunk = it->first;
