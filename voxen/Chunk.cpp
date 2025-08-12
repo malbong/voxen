@@ -26,6 +26,7 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	m_isLoaded = false;
 	m_isPatching = false;
 	m_isUpdateRequired = false;
+	m_onPatchDirtyFlag = false;
 
 	// initialize noises for terrain
 	InitTerrainNoises(memory);
@@ -62,13 +63,19 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 }
 
 ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
-{ 
+{
+	m_onPatchDirtyFlag = false;
+
 	for (const ChunkPatchData& data : patchList) {
 		int x = data.localX;
 		int y = data.localY;
 		int z = data.localZ;
 
-		m_blocks[x + 1][y + 1][z + 1].SetType(data.blockType);
+		if (data.blockType != m_blocks[x + 1][y + 1][z + 1].GetType()) {
+			m_blocks[x + 1][y + 1][z + 1].SetType(data.blockType);
+			m_onPatchDirtyFlag = true;
+		}
+		
 
 		if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end()) {
 			m_instanceMap.erase(std::make_tuple(x, y, z));

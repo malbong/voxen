@@ -51,14 +51,17 @@ public:
 	inline void SetIsPatching(bool isPatching) { m_isPatching = isPatching; }
 	inline bool IsPatching() const { return m_isPatching; }
 
+	inline void SetUpdateRequired(bool isRequired) { m_isUpdateRequired = isRequired; }
+	inline bool IsUpdateRequired() const { return m_isUpdateRequired; }
+
+	inline bool OnPatchDirtyFlag() { return m_onPatchDirtyFlag; }
+
 	inline bool IsEmpty() const { return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha(); }
 
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
 	inline void SetOffsetPosition(Vector3 offsetPosition) { m_offsetPosition = offsetPosition; }
 	inline Vector3 GetPosition() const { return m_position; }
-	inline void SetUpdateRequired(bool isRequired) { m_isUpdateRequired = isRequired; }
-	inline bool IsUpdateRequired() const { return m_isUpdateRequired; }
-
+	
 	inline bool IsEmptyLowLod() const { return m_lowLodVertices.empty(); }
 	inline bool IsEmptyOpaque() const { return m_opaqueVertices.empty(); }
 	inline bool IsEmptyTransparency() const { return m_transparencyVertices.empty(); }
@@ -138,6 +141,8 @@ private:
 	bool m_isLoaded;
 	bool m_isPatching;
 	bool m_isUpdateRequired;
+	bool m_onPatchDirtyFlag;
+
 	Vector3 m_offsetPosition;
 	Vector3 m_position;
 

@@ -438,8 +438,10 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 			Chunk* chunk = it->first;
 			ChunkLoadMemory* chunkLoadMemory = it->second.get();
 
-			UpdateChunkBuffer(chunk);
-
+			if (chunk->OnPatchDirtyFlag()) {
+				UpdateChunkBuffer(chunk);
+			}
+			
 			chunk->SetIsPatching(false);
 
 			chunkLoadMemory->Clear();
