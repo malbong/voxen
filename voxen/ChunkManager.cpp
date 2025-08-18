@@ -73,11 +73,20 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 	return true;
 }
 
-void ChunkManager::Update(float dt, Camera& camera, Light& light)
+void ChunkManager::Update(float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown)
 {
 	if (camera.m_isOnChunkDirtyFlag) {
 		UpdateChunkList(camera.GetChunkPosition());
 		camera.m_isOnChunkDirtyFlag = false;
+	}
+
+	if (camera.HasPickingObject()) {
+		if (mouseLeftDown) {
+			RemoveBlockPatchAt(camera.GetPickingObjectPosition());
+		}
+		if (mouseRightDown) {
+			AddBlockPatchAt(camera.GetPickingObjectPosition(), camera.GetPickingObjectFace());
+		}
 	}
 
 	UpdateLoadChunkList(camera);
@@ -373,9 +382,8 @@ void ChunkManager::UpdateUnloadChunkList()
 void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
 	// TODO::
-	// Update Flag 상태
-	// Binary Greedy Meshing
 	// Mouse Picking을 PatchData로
+	// Binary Greedy Meshing
 
 	// move patch chunk to temp container for sort by camera distance
 	std::vector<std::tuple<int, int, int>> tempPatchChunkPositionList;
@@ -465,7 +473,7 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 		if (!p.second->IsLoaded())
 			continue;
 
-		if (p.second->IsEmpty())
+		if (!p.second->IsPatching() && p.second->IsEmpty())
 			continue;
 
 		Vector3 chunkPos = p.second->GetPosition();
@@ -745,11 +753,26 @@ bool ChunkManager::MakeInstanceInfoBuffer()
 	return true;
 }
 
+bool ChunkManager::HasObjectAt(Vector3 position)
+{
+	const Instance* pickingInstance = ChunkManager::GetInstance()->GetInstanceByPosition(position);
+	if (pickingInstance) {
+		return true;
+	}
+
+	const Block* pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(position);
+	if (pickingBlock && !Block::IsTransparency(pickingBlock->GetType())) {
+		return true;
+	}
+
+	return false;
+}
+
 const Chunk* ChunkManager::GetChunkByPosition(Vector3 position)
 {
 	Vector3 chunkPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
 
-	auto iter = m_chunkMap.find(std::make_tuple((int)chunkPos.x, (int)chunkPos.y, (int)chunkPos.z));
+	auto iter = m_chunkMap.find(Utils::VectorToIntTuple(chunkPos));
 
 	if (iter == m_chunkMap.end())
 		return nullptr;
@@ -781,3 +804,29 @@ const Instance* ChunkManager::GetInstanceByPosition(Vector3 position)
 
 	return nullptr;
 }
+
+void ChunkManager::RemoveBlockPatchAt(Vector3 position) 
+{
+	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
+	std::tuple<int, int, int> chunkOffsetPosTuple = Utils::VectorToIntTuple(chunkOffsetPos);
+
+	Vector3 blockLocalPos = position - chunkOffsetPos;
+
+	ChunkPatchData patchData;
+	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
+	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
+	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
+	patchData.blockType =
+		position.y <= Terrain::WATER_HEIGHT_LEVEL ? BLOCK_TYPE::BLOCK_WATER : BLOCK_TYPE::BLOCK_AIR;
+	
+	m_cameraPatchDataListMap[chunkOffsetPosTuple].push_back(patchData);
+
+	if (m_chunkMap.find(chunkOffsetPosTuple) != m_chunkMap.end() &&
+		m_chunkMap[chunkOffsetPosTuple]->IsLoaded()) {
+		m_patchChunkMap[chunkOffsetPosTuple].push_back(patchData);
+	}
+
+	// 새로 로드할 때 m_cameraPatchDataListMap 살펴보기
+}
+
+void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face) { std::cout << "add" << std::endl; }

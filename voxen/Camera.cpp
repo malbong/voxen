@@ -10,8 +10,7 @@ Camera::Camera()
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(20.0f), m_isUnderWater(false),
 	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
-	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false),
-	  m_pickingBlock(nullptr), m_pickingInstance(nullptr)
+	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
 {
 }
 
@@ -83,25 +82,6 @@ void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouse
 	UpdateViewDirection(mouseDeltaX, mouseDeltaY);
 
 	DDAPickingBlock();
-
-	/////////////////////////////
-	if (keyPressed['R']) {
-		m_constantData.dummy.x = 0.0f;
-		m_isOnConstantDirtyFlag = true;
-	}
-	else {
-		m_constantData.dummy.x = 1.0f;
-		m_isOnConstantDirtyFlag = true;
-	}
-	if (keyPressed['Q']) {
-		m_constantData.dummy.z = 0.0f;
-		m_isOnConstantDirtyFlag = true;
-	}
-	else {
-		m_constantData.dummy.z = 1.0f;
-		m_isOnConstantDirtyFlag = true;
-	}
-	/////////////////////////////
 
 	if (m_isOnConstantDirtyFlag) {
 		m_constantData.view = GetViewMatrix().Transpose();
@@ -209,8 +189,6 @@ void Camera::DDAPickingBlock()
 {
 	// Picking 관련 멤버 초기화
 	m_hasPickingObject = false;
-	m_pickingBlock = nullptr;
-	m_pickingInstance = nullptr;
 
 	// 현재 월드 위치
 	int curX = (int)floorf(m_eyePos.x);
@@ -221,6 +199,11 @@ void Camera::DDAPickingBlock()
 	int stepX = (m_forward.x > 0) ? 1 : -1;
 	int stepY = (m_forward.y > 0) ? 1 : -1;
 	int stepZ = (m_forward.z > 0) ? 1 : -1;
+
+	// 마주친 면
+	DIR faceX = (stepX > 0) ? DIR::LEFT : DIR::RIGHT;
+	DIR faceY = (stepY > 0) ? DIR::BOTTOM : DIR::TOP;
+	DIR faceZ = (stepZ > 0) ? DIR::FRONT : DIR::BACK;
 
 	// deltaX는 x가 1만큼 이동할 때의 벡터의 이동거리
 	// 방향벡터와의 닮은비로 구함 -> 1 : deltaX == dirX : 1
@@ -239,40 +222,37 @@ void Camera::DDAPickingBlock()
 	float sideZ = (stepZ > 0) ? (floorf(m_eyePos.z + 1) - m_eyePos.z) * deltaZ
 							  : (m_eyePos.z - floorf(m_eyePos.z)) * deltaZ;
 
+	DIR curFace = ANY;
 	while (min(min(sideX, sideY), sideZ) < 4.0f) {
 		// 가장 가까운 side 찾기
 		if (sideX < sideY && sideX < sideZ) {
 			curX += stepX;
 			sideX += deltaX;
+			curFace = faceX;
 		}
 		else if (sideY < sideZ) {
 			curY += stepY;
 			sideY += deltaY;
+			curFace = faceY;
 		}
 		else {
 			curZ += stepZ;
 			sideZ += deltaZ;
+			curFace = faceZ;
 		}
 
 		Vector3 position = Vector3((float)curX, (float)curY, (float)curZ);
-		m_pickingInstance = ChunkManager::GetInstance()->GetInstanceByPosition(position);
-		if (m_pickingInstance) {
+		if (ChunkManager::GetInstance()->HasObjectAt(position)) {
 			m_hasPickingObject = true;
-		}
+			m_pickingObjectPosition = position;
+			m_pickingObjectFace = curFace;
 
-		m_pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(position);
-		if (m_pickingBlock && !Block::IsTransparency(m_pickingBlock->GetType()))
-		{
-			m_hasPickingObject = true;
-		}
-
-		if (m_hasPickingObject)
-		{
 			m_pickingObjectConstantData.world =
-				Matrix::CreateTranslation(Vector3((float)curX, (float)curY, (float)curZ));
-			m_pickingObjectConstantData.world = m_pickingObjectConstantData.world.Transpose();
+				Matrix::CreateTranslation(m_pickingObjectPosition).Transpose();
+
 			m_isOnConstantDirtyFlag = true;
-			return;
+			
+			break;
 		}
 	}
 }

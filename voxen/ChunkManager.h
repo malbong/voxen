@@ -30,7 +30,7 @@ public:
 	static ChunkManager* GetInstance();
 
 	bool Initialize(Vector3 cameraChunkPos);
-	void Update(float dt, Camera& camera, Light& light);
+	void Update(float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown);
 
 	void RenderOpaqueChunk(Chunk* chunk);
 	void RenderSemiAlphaChunk(Chunk* chunk);
@@ -46,6 +46,10 @@ public:
 	const Chunk* GetChunkByPosition(Vector3 position);
 	const Block* GetBlockByPosition(Vector3 position);
 	const Instance* GetInstanceByPosition(Vector3 position);
+
+	bool HasObjectAt(Vector3 position);
+	void RemoveBlockPatchAt(Vector3 position);
+	void AddBlockPatchAt(Vector3 position, DIR face);
 	
 
 private:
@@ -81,6 +85,7 @@ private:
 	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
 		m_dependencyMapList;
 	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_lookupDependencySet;
+	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;

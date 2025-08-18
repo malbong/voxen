@@ -108,9 +108,14 @@ LRESULT App::EventHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) ==
 			dwSize) {
 			RAWINPUT* raw = (RAWINPUT*)lpb;
+
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				m_mouseDeltaX += raw->data.mouse.lLastX;
 				m_mouseDeltaY += raw->data.mouse.lLastY;
+
+				USHORT mouseButtonFlags = raw->data.mouse.usButtonFlags;
+				m_mouseLeftDown = (mouseButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN);
+				m_mouseRightDown = (mouseButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN);
 			}
 		}
 		delete[] lpb;
@@ -146,75 +151,6 @@ void App::Run()
 			float worldZ = m_camera.GetPosition().z;
 			ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
 
-			float c = Terrain::GetContinentalness((int)worldX, (int)worldZ);
-			float e = Terrain::GetErosion((int)worldX, (int)worldZ);
-			float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
-			ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
-
-			float b = Terrain::GetElevation(c, e, pv);
-			float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
-			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
-			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
-
-			float r = 32.0f * pv * powf((1.0f - e), 1.25f);
-			BIOME_TYPE biomeType = Terrain::GetBiomeType(b - r, t, h);
-			const char* biomeString = nullptr;
-			switch (biomeType) {
-			case BIOME_TYPE::BIOME_OCEAN:
-				biomeString = "BIOME_OCEAN";
-				break;
-
-			case BIOME_TYPE::BIOME_BEACH:
-				biomeString = "BIOME_BEACH";
-				break;
-
-			case BIOME_TYPE::BIOME_TUNDRA:
-				biomeString = "BIOME_TUNDRA";
-				break;
-
-			case BIOME_TYPE::BIOME_TAIGA:
-				biomeString = "BIOME_TAIGA";
-				break;
-
-			case BIOME_TYPE::BIOME_PLAINS:
-				biomeString = "BIOME_PLAINS";
-				break;
-
-			case BIOME_TYPE::BIOME_SWAMP:
-				biomeString = "BIOME_SWAMP";
-				break;
-
-			case BIOME_TYPE::BIOME_FOREST:
-				biomeString = "BIOME_FOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SHRUBLAND:
-				biomeString = "BIOME_SHRUBLAND";
-				break;
-
-			case BIOME_TYPE::BIOME_DESERT:
-				biomeString = "BIOME_DESERT";
-				break;
-
-			case BIOME_TYPE::BIOME_RAINFOREST:
-				biomeString = "BIOME_RAINFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SEASONFOREST:
-				biomeString = "BIOME_SEASONFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SAVANA:
-				biomeString = "BIOME_SAVANA";
-				break;
-
-			default:
-				biomeString = "BIOME_NONE";
-				break;
-			}
-			ImGui::Text("BIOME: %s", biomeString);
-
-
 			ImGui::End();
 			ImGui::Render(); // 렌더링할 것들 기록 끝
 
@@ -241,7 +177,7 @@ void App::Update(float dt)
 
 	m_postEffect.Update(dt, m_camera.IsUnderWater());
 
-	ChunkManager::GetInstance()->Update(dt, m_camera, m_light);
+	ChunkManager::GetInstance()->Update(dt, m_camera, m_light, m_mouseLeftDown, m_mouseRightDown);
 
 	m_worldMap.Update(m_camera.GetPosition());
 
@@ -253,6 +189,8 @@ void App::Update(float dt)
 
 	m_mouseDeltaX = 0;
 	m_mouseDeltaY = 0;
+	m_mouseLeftDown = false;
+	m_mouseRightDown = false;
 }
 
 void App::Render()
@@ -308,7 +246,7 @@ void App::Render()
 		else {
 			RenderMirrorWorld();
 			RenderWaterPlane();
-			RenderFogFilter();
+			//RenderFogFilter();
 			RenderSkybox();
 			RenderCloud();
 		}

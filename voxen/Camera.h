@@ -32,7 +32,10 @@ public:
 	}
 	inline Matrix GetMirrorPlaneMatrix() { return m_mirrorPlaneMatrix; }
 	inline bool IsUnderWater() { return m_isUnderWater; }
+
 	inline bool HasPickingObject() { return m_hasPickingObject; }
+	inline Vector3 GetPickingObjectPosition() { return m_pickingObjectPosition; }
+	inline DIR GetPickingObjectFace() { return m_pickingObjectFace;}
 
 	bool m_isOnConstantDirtyFlag;
 	bool m_isOnChunkDirtyFlag;
@@ -70,8 +73,8 @@ private:
 	bool m_isUnderWater;
 
 	bool m_hasPickingObject;
-	const Block* m_pickingBlock;
-	const Instance* m_pickingInstance;
+	Vector3 m_pickingObjectPosition;
+	DIR m_pickingObjectFace;
 
 	float m_mouseSensitiveX;
 	float m_mouseSensitiveY;

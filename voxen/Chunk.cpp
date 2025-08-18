@@ -76,7 +76,6 @@ ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, Chun
 			m_onPatchDirtyFlag = true;
 		}
 		
-
 		if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end()) {
 			m_instanceMap.erase(std::make_tuple(x, y, z));
 		}
