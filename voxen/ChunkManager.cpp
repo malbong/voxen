@@ -111,12 +111,12 @@ void ChunkManager::RenderOpaqueChunk(Chunk* chunk)
 		0, 1, m_opaqueVertexBuffers[id].GetAddressOf(), &stride, &offset);
 	Graphics::context->VSSetConstantBuffers(0, 1, m_constantBuffers[id].GetAddressOf());
 
-	Graphics::context->DrawIndexed((UINT)chunk->GetOpaqueIndices().size(), 0, 0);
+	Graphics::context->DrawIndexed(chunk->GetOpaqueIndexCount(), 0, 0);
 }
 
 void ChunkManager::RenderSemiAlphaChunk(Chunk* chunk)
 {
-	if (chunk->IsEmptySemiAlpha())
+	if (chunk->IsEmptySemiAlpha()) 
 		return;
 
 	UINT id = chunk->GetID();
@@ -128,12 +128,12 @@ void ChunkManager::RenderSemiAlphaChunk(Chunk* chunk)
 		0, 1, m_semiAlphaVertexBuffers[id].GetAddressOf(), &stride, &offset);
 	Graphics::context->VSSetConstantBuffers(0, 1, m_constantBuffers[id].GetAddressOf());
 
-	Graphics::context->DrawIndexed((UINT)chunk->GetSemiAlphaIndices().size(), 0, 0);
+	Graphics::context->DrawIndexed(chunk->GetSemiAlphaIndexCount(), 0, 0);
 }
 
 void ChunkManager::RenderLowLodChunk(Chunk* chunk)
 {
-	if (chunk->IsEmptyLowLod())
+	if (chunk->IsEmptyLowLod()) 
 		return;
 
 	UINT id = chunk->GetID();
@@ -145,7 +145,7 @@ void ChunkManager::RenderLowLodChunk(Chunk* chunk)
 		0, 1, m_lowLodVertexBuffers[id].GetAddressOf(), &stride, &offset);
 	Graphics::context->VSSetConstantBuffers(0, 1, m_constantBuffers[id].GetAddressOf());
 
-	Graphics::context->DrawIndexed((UINT)chunk->GetLowLodIndices().size(), 0, 0);
+	Graphics::context->DrawIndexed(chunk->GetLowLodIndexCount(), 0, 0);
 }
 
 void ChunkManager::RenderTransparencyChunk(Chunk* chunk)
@@ -163,7 +163,7 @@ void ChunkManager::RenderTransparencyChunk(Chunk* chunk)
 		0, 1, m_transparencyVertexBuffers[id].GetAddressOf(), &stride, &offset);
 	Graphics::context->VSSetConstantBuffers(0, 1, m_constantBuffers[id].GetAddressOf());
 
-	Graphics::context->DrawIndexed((UINT)chunk->GetTransparencyIndices().size(), 0, 0);
+	Graphics::context->DrawIndexed(chunk->GetTransparencyIndexCount(), 0, 0);
 }
 
 void ChunkManager::RenderInstance()
@@ -325,6 +325,9 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			
 			UpdateChunkBuffer(chunk);
 
+			// update vertex and index count value for multi threading
+			chunk->UpdateCpuBufferCount();
+
 			chunk->SetUpdateRequired(true);
 			chunk->SetLoad(true);
 
@@ -371,9 +374,6 @@ void ChunkManager::UpdateUnloadChunkList()
 		}
 
 		chunk->Clear();
-		chunk->SetUpdateRequired(false);
-		chunk->SetIsPatching(false);
-		chunk->SetLoad(false);
 
 		ReleaseChunkToPool(chunk);
 	}
@@ -431,8 +431,6 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
 		m_chunkLoadMemoryPool.pop_back();
 
-		chunk->SetIsPatching(true);
-
 		m_patchFutures.push_back(
 			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
 									  chunkPatchDataList, chunkLoadMemory)));
@@ -450,6 +448,8 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 				UpdateChunkBuffer(chunk);
 			}
 			
+			chunk->UpdateCpuBufferCount();
+
 			chunk->SetIsPatching(false);
 
 			chunkLoadMemory->Clear();
@@ -472,10 +472,11 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 	for (auto& p : m_chunkMap) {
 		if (!p.second->IsLoaded())
 			continue;
-
-		if (!p.second->IsPatching() && p.second->IsEmpty())
+		
+		if (p.second->IsEmpty() && !p.second->IsPatching()) {
 			continue;
-
+		}
+		
 		Vector3 chunkPos = p.second->GetPosition();
 		if (FrustumCulling(chunkPos, camera, light, false, false)) {
 			m_renderChunkList.push_back(p.second);
@@ -827,6 +828,7 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 position)
 	}
 
 	// 새로 로드할 때 m_cameraPatchDataListMap 살펴보기
+	// greedy meshing 으로 인한 청크 경계에서 매쉬가 없는 문제도 존재
 }
 
 void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face) { std::cout << "add" << std::endl; }

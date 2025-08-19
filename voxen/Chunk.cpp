@@ -7,9 +7,10 @@
 #include <unordered_map>
 
 Chunk::Chunk(UINT id)
-	: m_id(id), m_isLoaded(false), m_offsetPosition(0.0f, 0.0f, 0.0f), m_position(0.0f, 0.0f, 0.0f),
-	  m_isUpdateRequired(true)
+	: m_id(id), m_isLoaded(false), m_isPatching(false), m_offsetPosition(0.0f, 0.0f, 0.0f), m_position(0.0f, 0.0f, 0.0f),
+	m_isUpdateRequired(true)
 {
+
 }
 
 Chunk::~Chunk() { Clear(); }
@@ -22,11 +23,6 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	static long long count = 0;
 	auto start_time = std::chrono::steady_clock::now();
 	////////////////////////////////////
-
-	m_isLoaded = false;
-	m_isPatching = false;
-	m_isUpdateRequired = false;
-	m_onPatchDirtyFlag = false;
 
 	// initialize noises for terrain
 	InitTerrainNoises(memory);
@@ -64,6 +60,7 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 
 ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
 {
+	m_isPatching = true;
 	m_onPatchDirtyFlag = false;
 
 	for (const ChunkPatchData& data : patchList) {
@@ -99,9 +96,16 @@ void Chunk::Update(float dt)
 
 void Chunk::Clear()
 {
+	m_isLoaded = false;
+	m_isPatching = false;
+	m_isUpdateRequired = false;
+	m_onPatchDirtyFlag = false;
+
 	m_instanceMap.clear();
 
 	ClearCpuVertices();
+
+	UpdateCpuBufferCount();
 }
 
 void Chunk::ClearCpuVertices() 
@@ -117,6 +121,23 @@ void Chunk::ClearCpuVertices()
 
 	m_semiAlphaVertices.clear();
 	m_semiAlphaIndices.clear();
+}
+
+void Chunk::UpdateCpuBufferCount() 
+{ 
+	// patching 멀티쓰레드로 인한 Count 값 업데이트
+	// 직접 vector에 접근하여 size를 가져와 사용하는 건 멀티쓰레드의 데이터레이스를 피할 수 없음
+	m_lowLodVertexCount = (uint32_t)m_lowLodVertices.size();
+	m_lowLodIndexCount = (uint32_t)m_lowLodIndices.size();
+
+	m_opaqueVertexCount = (uint32_t)m_opaqueVertices.size();
+	m_opaqueIndexCount = (uint32_t)m_opaqueIndices.size();
+
+	m_transparencyVertexCount = (uint32_t)m_transparencyVertices.size();
+	m_transparencyIndexCount = (uint32_t)m_transparencyIndices.size();
+
+	m_semiAlphaVertexCount = (uint32_t)m_semiAlphaVertices.size();
+	m_semiAlphaIndexCount = (uint32_t)m_semiAlphaIndices.size();
 }
 
 void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
@@ -321,8 +342,6 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 
 void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 {
-	ClearCpuVertices();
-
 	// 1. make axis column bit data
 	std::unordered_map<BLOCK_TYPE, bool> llTypeMap;
 	std::unordered_map<BLOCK_TYPE, bool> opTypeMap;
@@ -468,6 +487,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 
 
 	// 5. make vertices by bit slices column (greedy meshing)
+	ClearCpuVertices();
 	for (const auto& t : llTypeMap) {
 		if (llSliceColBit.find(t.first) != llSliceColBit.end()) {
 			GreedyMeshing(llSliceColBit[t.first], m_lowLodVertices, m_lowLodIndices, t.first);

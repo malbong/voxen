@@ -41,7 +41,7 @@ public:
 	ChunkLoadMemory* Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
-	void ClearCpuVertices();
+	void UpdateCpuBufferCount();
 
 	inline UINT GetID() { return m_id; }
 
@@ -56,23 +56,20 @@ public:
 
 	inline bool OnPatchDirtyFlag() { return m_onPatchDirtyFlag; }
 
-	inline bool IsEmpty() const { return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha(); }
-
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
 	inline void SetOffsetPosition(Vector3 offsetPosition) { m_offsetPosition = offsetPosition; }
 	inline Vector3 GetPosition() const { return m_position; }
 	
-	inline bool IsEmptyLowLod() const { return m_lowLodVertices.empty(); }
-	inline bool IsEmptyOpaque() const { return m_opaqueVertices.empty(); }
-	inline bool IsEmptyTransparency() const { return m_transparencyVertices.empty(); }
-	inline bool IsEmptySemiAlpha() const { return m_semiAlphaVertices.empty(); }
+	inline bool IsEmpty() const { return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha(); }
+	inline bool IsEmptyLowLod() const { return m_lowLodVertexCount == 0; }
+	inline bool IsEmptyOpaque() const { return m_opaqueVertexCount == 0; }
+	inline bool IsEmptyTransparency() const { return m_transparencyVertexCount == 0; }
+	inline bool IsEmptySemiAlpha() const { return m_semiAlphaVertexCount == 0; }
 
 	inline const std::vector<VoxelVertex>& GetLowLodVertices() const { return m_lowLodVertices; }
 	inline const std::vector<uint32_t>& GetLowLodIndices() const { return m_lowLodIndices; }
-
 	inline const std::vector<VoxelVertex>& GetOpaqueVertices() const { return m_opaqueVertices; }
 	inline const std::vector<uint32_t>& GetOpaqueIndices() const { return m_opaqueIndices; }
-
 	inline const std::vector<VoxelVertex>& GetTransparencyVertices() const
 	{
 		return m_transparencyVertices;
@@ -92,6 +89,15 @@ public:
 	{
 		return m_instanceMap;
 	}
+
+	inline uint32_t GetLowLodVertexCount() const { return m_lowLodVertexCount; }
+	inline uint32_t GetLowLodIndexCount() const { return m_lowLodIndexCount; }
+	inline uint32_t GetOpaqueVertexCount() const { return m_opaqueVertexCount; }
+	inline uint32_t GetOpaqueIndexCount() const { return m_opaqueIndexCount; }
+	inline uint32_t GetTransparencyVertexCount() const { return m_transparencyVertexCount; }
+	inline uint32_t GetTransparencyIndexCount() const { return m_transparencyIndexCount; }
+	inline uint32_t GetSemiAlphaVertexCount() const { return m_semiAlphaVertexCount; }
+	inline uint32_t GetSemiAlphaIndexCount() const { return m_semiAlphaIndexCount; }
 
 	inline const ChunkConstantData& GetConstantData() const { return m_constantData; }
 
@@ -115,6 +121,8 @@ public:
 
 
 private:
+	void ClearCpuVertices();
+
 	void InitTerrainNoises(ChunkLoadMemory* memory);
 
 	void InitBasicBlockType(ChunkLoadMemory* memory);
@@ -128,7 +136,6 @@ private:
 	bool CanPlaceInstanceAt(int x, int y, int z);
 
 	void InitWorldVerticesData(ChunkLoadMemory* memory);
-
 	void MakeFaceSliceColumnBit(uint64_t cullColBit[Chunk::CHUNK_SIZE_P2 * 6],
 		std::unordered_map<BLOCK_TYPE, std::vector<uint64_t>>& sliceColBit);
 	void GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVertex>& vertices,
@@ -148,15 +155,23 @@ private:
 
 	std::vector<VoxelVertex> m_lowLodVertices;
 	std::vector<uint32_t> m_lowLodIndices;
+	uint32_t m_lowLodVertexCount;
+	uint32_t m_lowLodIndexCount;
 
 	std::vector<VoxelVertex> m_opaqueVertices;
 	std::vector<uint32_t> m_opaqueIndices;
+	uint32_t m_opaqueVertexCount;
+	uint32_t m_opaqueIndexCount;
 
 	std::vector<VoxelVertex> m_transparencyVertices;
 	std::vector<uint32_t> m_transparencyIndices;
+	uint32_t m_transparencyVertexCount;
+	uint32_t m_transparencyIndexCount;
 
 	std::vector<VoxelVertex> m_semiAlphaVertices;
 	std::vector<uint32_t> m_semiAlphaIndices;
+	uint32_t m_semiAlphaVertexCount;
+	uint32_t m_semiAlphaIndexCount;
 
 	ChunkConstantData m_constantData;
 };
