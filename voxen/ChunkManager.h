@@ -85,6 +85,7 @@ private:
 	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
 		m_dependencyMapList;
 	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_lookupDependencySet;
+	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_patchedChunkSet;
 	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
 
 	std::vector<Chunk*> m_loadChunkList;
