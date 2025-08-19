@@ -863,4 +863,45 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 position)
 	}
 }
 
-void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face) { std::cout << "add" << std::endl; }
+void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face) 
+{
+	Vector3 faceOffset = Vector3(0.0f);
+	if (face == DIR::LEFT) {
+		faceOffset.x--;
+	}
+	else if (face == DIR::RIGHT) {
+		faceOffset.x++;
+	}
+	else if (face == DIR::BOTTOM) {
+		faceOffset.y--;
+	}
+	else if (face == DIR::TOP) {
+		faceOffset.y++;
+	}
+	else if (face == DIR::FRONT) {
+		faceOffset.z--;
+	}
+	else if (face == DIR::BACK) {
+		faceOffset.z++;
+	}
+
+	Vector3 facePosition = position + faceOffset;
+	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(facePosition, Chunk::CHUNK_SIZE);
+	std::tuple<int, int, int> chunkOffsetPosTuple = Utils::VectorToIntTuple(chunkOffsetPos);
+
+	Vector3 blockLocalPos = facePosition - chunkOffsetPos;
+
+	ChunkPatchData patchData;
+	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
+	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
+	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
+	patchData.blockType = BLOCK_TYPE::BLOCK_GOLD;
+
+	m_cameraPatchDataListMap[chunkOffsetPosTuple].push_back(patchData);
+
+	if (m_chunkMap.find(chunkOffsetPosTuple) != m_chunkMap.end() &&
+		m_chunkMap[chunkOffsetPosTuple]->IsLoaded()) {
+		m_patchChunkMap[chunkOffsetPosTuple].push_back(patchData);
+	}
+
+}
