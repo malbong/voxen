@@ -323,10 +323,10 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 				}
 			}
 			
-			UpdateChunkBuffer(chunk);
-
 			// update vertex and index count value for multi threading
 			chunk->UpdateCpuBufferCount();
+
+			UpdateChunkBuffer(chunk);
 
 			chunk->SetUpdateRequired(true);
 			chunk->SetLoad(true);
@@ -444,12 +444,12 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 			Chunk* chunk = it->first;
 			ChunkLoadMemory* chunkLoadMemory = it->second.get();
 
+			chunk->UpdateCpuBufferCount();
+
 			if (chunk->OnPatchDirtyFlag()) {
 				UpdateChunkBuffer(chunk);
 			}
 			
-			chunk->UpdateCpuBufferCount();
-
 			chunk->SetIsPatching(false);
 
 			chunkLoadMemory->Clear();
@@ -473,7 +473,7 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 		if (!p.second->IsLoaded())
 			continue;
 		
-		if (p.second->IsEmpty() && !p.second->IsPatching()) {
+		if (p.second->IsEmpty()) {
 			continue;
 		}
 		
