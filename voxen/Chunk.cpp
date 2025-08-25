@@ -58,18 +58,18 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	return memory;
 }
 
-ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory) 
+ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory)
 {
 	m_isPatching = true;
 	m_onPatchDirtyFlag = false;
 
-	for (const ChunkPatchData& data : patchList) {
-		int x = data.localX;
-		int y = data.localY;
-		int z = data.localZ;
+	for (const PatchData& patchData : patchDataSet) {
+		int x = patchData.localX;
+		int y = patchData.localY;
+		int z = patchData.localZ;
 
-		if (data.blockType != m_blocks[x + 1][y + 1][z + 1].GetType()) {
-			m_blocks[x + 1][y + 1][z + 1].SetType(data.blockType);
+		if (patchData.blockType != m_blocks[x + 1][y + 1][z + 1].GetType()) {
+			m_blocks[x + 1][y + 1][z + 1].SetType(patchData.blockType);
 			m_onPatchDirtyFlag = true;
 		}
 		
@@ -270,7 +270,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 					else {
 						
 						// set patch data
-						ChunkPatchData patchData;
+						PatchData patchData;
 						patchData.localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
 						patchData.localY = (ty + CHUNK_SIZE) % CHUNK_SIZE;
 						patchData.localZ = (tz + CHUNK_SIZE) % CHUNK_SIZE;
@@ -282,7 +282,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 
 						PosInt3 targetOffsetPosInt3 = Utils::VectorToPosInt3(targetOffsetPos);
 
-						memory->chunkPatchDataMap[targetOffsetPosInt3].push_back(patchData);
+						memory->chunkPatchDataMap[targetOffsetPosInt3].insert(patchData);
 					}
 				}
 			}

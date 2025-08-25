@@ -9,7 +9,6 @@
 #include <wrl.h>
 #include <directxtk/SimpleMath.h>
 #include <vector>
-#include <tuple>
 
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
@@ -37,7 +36,7 @@ public:
 	~Chunk();
 
 	ChunkLoadMemory* Initialize(ChunkLoadMemory* memory);
-	ChunkLoadMemory* Patch(const std::vector<ChunkPatchData>& patchList, ChunkLoadMemory* memory);
+	ChunkLoadMemory* Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
 	void UpdateCpuBufferCount();
@@ -84,7 +83,7 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const PosMap<Instance>& GetInstanceMap() const
+	inline const PosHashMap<Instance>& GetInstanceMap() const
 	{
 		return m_instanceMap;
 	}
@@ -141,7 +140,7 @@ private:
 		std::vector<uint32_t>& indices, BLOCK_TYPE types);
 
 	Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
-	PosMap<Instance> m_instanceMap; // instance -> instance* TODO
+	PosHashMap<Instance> m_instanceMap; // instance -> instance* TODO
 
 	UINT m_id;
 	bool m_isLoaded;
@@ -175,15 +174,6 @@ private:
 	ChunkConstantData m_constantData;
 };
 
-
-struct ChunkPatchData {
-	int localX;
-	int localY;
-	int localZ;
-	BLOCK_TYPE blockType;
-};
-
-
 struct ChunkLoadMemory {
 	uint64_t llColBit[Chunk::CHUNK_SIZE_P2 * 3];
 	uint64_t opColBit[Chunk::CHUNK_SIZE_P2 * 3];
@@ -202,7 +192,7 @@ struct ChunkLoadMemory {
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
-	PosMap<std::vector<ChunkPatchData>> chunkPatchDataMap;
+	PosHashMap<PatchDataHashSet> chunkPatchDataMap;
 
 	ChunkLoadMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },

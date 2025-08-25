@@ -233,7 +233,7 @@ void ChunkManager::RenderBasicShadowMap()
 
 void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 {
-	PosMap<bool> renderableChunkMap;
+	PosHashMap<bool> renderableChunkMap;
 	for (int i = 0; i < MAX_HEIGHT_CHUNK_COUNT; ++i) {
 		for (int j = 0; j < CHUNK_COUNT; ++j) {
 			for (int k = 0; k < CHUNK_COUNT; ++k) {
@@ -298,10 +298,10 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 
 			// Dependency Map 구성
 			PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
-			for (const auto& [target, patchDataList] : chunkLoadMemory->chunkPatchDataMap) {
+			for (const auto& [target, patchDataSet] : chunkLoadMemory->chunkPatchDataMap) {
 
 				bool patchFlag = false;
-				for (const auto& patchData : patchDataList) {
+				for (const auto& patchData : patchDataSet) {
 					if (m_chunkMap.find(target) == m_chunkMap.end())
 						continue;
 
@@ -312,12 +312,12 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 					if (m_patchedChunkSet.find(target) == m_patchedChunkSet.end() ||
 						m_patchedChunkSet[target].find(current) == m_patchedChunkSet[target].end()) {
 
-						m_patchChunkMap[target].push_back(patchData);
+						m_patchChunkMap[target].insert(patchData);
 
 						patchFlag = true;
 					}
 
-					m_dependencyMapList[current][target].push_back(patchData);
+					m_patchDependencyMap[current][target].insert(patchData);
 				}
 
 				m_lookupDependencySet[target].insert(current);
@@ -326,9 +326,9 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 				if (patchFlag) {
 					m_patchedChunkSet[target].insert(current);
 
-					if (m_cameraPatchDataListMap.find(target) != m_cameraPatchDataListMap.end()) {
-						for (const auto& patchData : m_cameraPatchDataListMap[target]) {
-							m_patchChunkMap[target].push_back(patchData);
+					if (m_cameraPatchChunkMap.find(target) != m_cameraPatchChunkMap.end()) {
+						for (const auto& patchData : m_cameraPatchChunkMap[target]) {
+							m_patchChunkMap[target].insert(patchData);
 						}
 					}
 				}
@@ -337,10 +337,10 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			// 월드: 본인 청크에 대한 패치정보가 담긴 Dependency Map 확인 후 있으면 List에 넣음
 			if (m_lookupDependencySet.find(current) != m_lookupDependencySet.end()) {
 				for (const auto& source : m_lookupDependencySet[current]) {
-					if (m_dependencyMapList.find(source) != m_dependencyMapList.end() && 
-						m_dependencyMapList[source].find(current) != m_dependencyMapList[source].end()) {
-						for (const auto& patchData : m_dependencyMapList[source][current]) {
-							m_patchChunkMap[current].push_back(patchData);
+					if (m_patchDependencyMap.find(source) != m_patchDependencyMap.end() && 
+						m_patchDependencyMap[source].find(current) != m_patchDependencyMap[source].end()) {
+						for (const auto& patchData : m_patchDependencyMap[source][current]) {
+							m_patchChunkMap[current].insert(patchData);
 							m_patchedChunkSet[current].insert(source);
 						}
 					}
@@ -348,9 +348,9 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			}
 
 			// 액션: 플레이어에 의해서 수정된 정보를 담음
-			if (m_cameraPatchDataListMap.find(current) != m_cameraPatchDataListMap.end()) {
-				for (const auto& patchData : m_cameraPatchDataListMap[current]) {
-					m_patchChunkMap[current].push_back(patchData);
+			if (m_cameraPatchChunkMap.find(current) != m_cameraPatchChunkMap.end()) {
+				for (const auto& patchData : m_cameraPatchChunkMap[current]) {
+					m_patchChunkMap[current].insert(patchData);
 				}
 			}
 			
@@ -387,8 +387,8 @@ void ChunkManager::UpdateUnloadChunkList()
 		if (m_patchChunkMap.find(chunkPos) != m_patchChunkMap.end())
 			m_patchChunkMap.erase(chunkPos);
 
-		if (m_dependencyMapList.find(chunkPos) != m_dependencyMapList.end()) {
-			const auto& patchedChunkMapList = m_dependencyMapList[chunkPos];
+		if (m_patchDependencyMap.find(chunkPos) != m_patchDependencyMap.end()) {
+			const auto& patchedChunkMapList = m_patchDependencyMap[chunkPos];
 			for (const auto& destChunk : patchedChunkMapList) {
 				PosInt3 destChunkPos = destChunk.first;
 
@@ -401,7 +401,7 @@ void ChunkManager::UpdateUnloadChunkList()
 				}
 			}
 
-			m_dependencyMapList.erase(chunkPos);
+			m_patchDependencyMap.erase(chunkPos);
 		}
 
 		if (m_patchedChunkSet.find(chunkPos) != m_patchedChunkSet.end())
@@ -460,14 +460,14 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 			continue;
 		}
 
-		const std::vector<ChunkPatchData>& chunkPatchDataList = m_patchChunkMap[chunkPos];
+		const PatchDataHashSet& chunkPatchDataSet = m_patchChunkMap[chunkPos];
 
 		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
 		m_chunkLoadMemoryPool.pop_back();
 
 		m_patchFutures.push_back(
 			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
-									  chunkPatchDataList, chunkLoadMemory)));
+									  chunkPatchDataSet, chunkLoadMemory)));
 		
 		m_patchChunkMap.erase(chunkPos);
 	}
@@ -549,7 +549,7 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const PosMap<Instance>& instanceMap = c->GetInstanceMap();
+		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
 
@@ -843,22 +843,22 @@ const Instance* ChunkManager::GetInstanceByPosition(Vector3 position)
 void ChunkManager::RemoveBlockPatchAt(Vector3 position) 
 {
 	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
-	PosInt3 chunkOffsetPosTuple = Utils::VectorToPosInt3(chunkOffsetPos);
+	PosInt3 chunkOffsetPosInt3 = Utils::VectorToPosInt3(chunkOffsetPos);
 
 	Vector3 blockLocalPos = position - chunkOffsetPos;
 
-	ChunkPatchData patchData;
+	PatchData patchData;
 	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
 	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
 	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
 	patchData.blockType =
 		position.y <= Terrain::WATER_HEIGHT_LEVEL ? BLOCK_TYPE::BLOCK_WATER : BLOCK_TYPE::BLOCK_AIR;
 	
-	m_cameraPatchDataListMap[chunkOffsetPosTuple].push_back(patchData);
+	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 
-	if (m_chunkMap.find(chunkOffsetPosTuple) != m_chunkMap.end() &&
-		m_chunkMap[chunkOffsetPosTuple]->IsLoaded()) {
-		m_patchChunkMap[chunkOffsetPosTuple].push_back(patchData);
+	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
+		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
+		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	}
 }
 
@@ -886,20 +886,20 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 
 	Vector3 facePosition = position + faceOffset;
 	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(facePosition, Chunk::CHUNK_SIZE);
-	PosInt3 chunkOffsetPosTuple = Utils::VectorToPosInt3(chunkOffsetPos);
+	PosInt3 chunkOffsetPosInt3 = Utils::VectorToPosInt3(chunkOffsetPos);
 
 	Vector3 blockLocalPos = facePosition - chunkOffsetPos;
 
-	ChunkPatchData patchData;
+	PatchData patchData;
 	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
 	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
 	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
 	patchData.blockType = BLOCK_TYPE::BLOCK_GOLD;
 
-	m_cameraPatchDataListMap[chunkOffsetPosTuple].push_back(patchData);
+	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 
-	if (m_chunkMap.find(chunkOffsetPosTuple) != m_chunkMap.end() &&
-		m_chunkMap[chunkOffsetPosTuple]->IsLoaded()) {
-		m_patchChunkMap[chunkOffsetPosTuple].push_back(patchData);
+	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
+		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
+		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	}
 }

@@ -78,13 +78,13 @@ private:
 	bool MakeInstanceInfoBuffer();
 
 	std::vector<Chunk*> m_chunkPool;
-	PosMap<Chunk*> m_chunkMap;
+	PosHashMap<Chunk*> m_chunkMap;
 
-	PosMap<PosMap<std::vector<ChunkPatchData>>> m_dependencyMapList;
-	PosMap<PosSet> m_lookupDependencySet;
-	PosMap<PosSet> m_patchedChunkSet;
-	PosMap<std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
-	PosMap<std::vector<ChunkPatchData>> m_patchChunkMap;
+	PosHashMap<PosHashMap<PatchDataHashSet>> m_patchDependencyMap;
+	PosHashMap<PosHashSet> m_lookupDependencySet;
+	PosHashMap<PosHashSet> m_patchedChunkSet;
+	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
+	PosHashMap<PatchDataHashSet> m_patchChunkMap;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;
