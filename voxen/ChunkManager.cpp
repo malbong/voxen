@@ -233,7 +233,7 @@ void ChunkManager::RenderBasicShadowMap()
 
 void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 {
-	std::map<std::tuple<int, int, int>, bool> renderableChunkMap;
+	std::map<PosInt3, bool> renderableChunkMap;
 	for (int i = 0; i < MAX_HEIGHT_CHUNK_COUNT; ++i) {
 		for (int j = 0; j < CHUNK_COUNT; ++j) {
 			for (int k = 0; k < CHUNK_COUNT; ++k) {
@@ -297,9 +297,9 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 			ChunkLoadMemory* chunkLoadMemory = it->second.get();
 
 			// Dependency Map 备己
-			std::tuple<int, int, int> current = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
+			PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 			for (const auto& [targetPos, patchDataList] : chunkLoadMemory->chunkPatchDataMap) {
-				std::tuple<int, int, int> target = Utils::VectorToIntTuple(targetPos);
+				PosInt3 target = Utils::VectorToPosInt3(targetPos);
 
 				bool patchFlag = false;
 				for (const auto& patchData : patchDataList) {
@@ -380,7 +380,7 @@ void ChunkManager::UpdateUnloadChunkList()
 		Chunk* chunk = m_unloadChunkList.back();
 		m_unloadChunkList.pop_back();
 
-		std::tuple<int, int, int> chunkPos = Utils::VectorToIntTuple(chunk->GetOffsetPosition());
+		PosInt3 chunkPos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 
 		if (m_chunkMap.find(chunkPos) != m_chunkMap.end())
 			m_chunkMap.erase(chunkPos);
@@ -391,7 +391,7 @@ void ChunkManager::UpdateUnloadChunkList()
 		if (m_dependencyMapList.find(chunkPos) != m_dependencyMapList.end()) {
 			const auto& patchedChunkMapList = m_dependencyMapList[chunkPos];
 			for (const auto& destChunk : patchedChunkMapList) {
-				std::tuple<int, int, int> destChunkPos = destChunk.first;
+				PosInt3 destChunkPos = destChunk.first;
 
 				if (m_lookupDependencySet.find(destChunkPos) != m_lookupDependencySet.end()) {
 					m_lookupDependencySet[destChunkPos].erase(chunkPos);
@@ -417,11 +417,11 @@ void ChunkManager::UpdateUnloadChunkList()
 void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 {
 	// TODO::
-	// Mouse Picking阑 PatchData肺
+	// Patch Data 吝汗贸府
 	// Binary Greedy Meshing
 
 	// move patch chunk to temp container for sort by camera distance
-	std::vector<std::tuple<int, int, int>> tempPatchChunkPositionList;
+	std::vector<PosInt3> tempPatchChunkPositionList;
 	for (auto it = m_patchChunkMap.begin(); it != m_patchChunkMap.end(); ++it) {
 		tempPatchChunkPositionList.push_back(it->first);
 	}
@@ -429,8 +429,8 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 	// sort temp container
 	std::sort(tempPatchChunkPositionList.begin(), tempPatchChunkPositionList.end(),
 		[&camera](auto& a, auto& b) {
-			Vector3 aDiff = Utils::IntTupleToVector(a) - camera.GetPosition();
-			Vector3 bDiff = Utils::IntTupleToVector(b) - camera.GetPosition();
+			Vector3 aDiff = Utils::PosInt3ToVector(a) - camera.GetPosition();
+			Vector3 bDiff = Utils::PosInt3ToVector(b) - camera.GetPosition();
 
 			return aDiff.Length() < bDiff.Length();
 		});
@@ -550,7 +550,7 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const std::map<std::tuple<int, int, int>, Instance>& instanceMap = c->GetInstanceMap();
+		const std::map<PosInt3, Instance>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
 
@@ -808,7 +808,7 @@ const Chunk* ChunkManager::GetChunkByPosition(Vector3 position)
 {
 	Vector3 chunkPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
 
-	auto iter = m_chunkMap.find(Utils::VectorToIntTuple(chunkPos));
+	auto iter = m_chunkMap.find(Utils::VectorToPosInt3(chunkPos));
 
 	if (iter == m_chunkMap.end())
 		return nullptr;
@@ -844,7 +844,7 @@ const Instance* ChunkManager::GetInstanceByPosition(Vector3 position)
 void ChunkManager::RemoveBlockPatchAt(Vector3 position) 
 {
 	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
-	std::tuple<int, int, int> chunkOffsetPosTuple = Utils::VectorToIntTuple(chunkOffsetPos);
+	PosInt3 chunkOffsetPosTuple = Utils::VectorToPosInt3(chunkOffsetPos);
 
 	Vector3 blockLocalPos = position - chunkOffsetPos;
 
@@ -887,7 +887,7 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 
 	Vector3 facePosition = position + faceOffset;
 	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(facePosition, Chunk::CHUNK_SIZE);
-	std::tuple<int, int, int> chunkOffsetPosTuple = Utils::VectorToIntTuple(chunkOffsetPos);
+	PosInt3 chunkOffsetPosTuple = Utils::VectorToPosInt3(chunkOffsetPos);
 
 	Vector3 blockLocalPos = facePosition - chunkOffsetPos;
 
@@ -903,5 +903,4 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 		m_chunkMap[chunkOffsetPosTuple]->IsLoaded()) {
 		m_patchChunkMap[chunkOffsetPosTuple].push_back(patchData);
 	}
-
 }

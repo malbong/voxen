@@ -4,6 +4,8 @@
 
 using namespace DirectX::SimpleMath;
 
+typedef std::tuple<int, int, int> PosInt3;
+
 enum DIR : uint8_t {
 	LEFT = 0,
 	RIGHT = 1, 

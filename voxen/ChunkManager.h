@@ -80,20 +80,19 @@ private:
 	bool MakeInstanceInfoBuffer();
 
 	std::vector<Chunk*> m_chunkPool;
-	std::map<std::tuple<int, int, int>, Chunk*> m_chunkMap;
+	std::map<PosInt3, Chunk*> m_chunkMap;
 
-	std::map<std::tuple<int, int, int>, std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>>>
-		m_dependencyMapList;
-	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_lookupDependencySet;
-	std::map<std::tuple<int, int, int>, std::set<std::tuple<int, int, int>>> m_patchedChunkSet;
-	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
+	std::map<PosInt3, std::map<PosInt3, std::vector<ChunkPatchData>>> m_dependencyMapList;
+	std::map<PosInt3, std::set<PosInt3>> m_lookupDependencySet;
+	std::map<PosInt3, std::set<PosInt3>> m_patchedChunkSet;
+	std::map<PosInt3, std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;
 	std::vector<Chunk*> m_renderChunkList;
 	std::vector<Chunk*> m_renderMirrorChunkList;
 	std::vector<Chunk*> m_renderShadowChunkList;
-	std::map<std::tuple<int, int, int>, std::vector<ChunkPatchData>> m_patchChunkMap;
+	std::map<PosInt3, std::vector<ChunkPatchData>> m_patchChunkMap;
 
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodVertexBuffers;
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodIndexBuffers;

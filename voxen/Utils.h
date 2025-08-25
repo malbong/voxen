@@ -121,12 +121,12 @@ namespace Utils {
 		return (int)log2((num & ~(num + 1)) + 1); // __builtin_ctzll or _BitScanForward64}
 	}
 
-	static inline std::tuple<int, int, int> VectorToIntTuple(Vector3 v)
+	static inline PosInt3 VectorToPosInt3(Vector3 v)
 	{
 		return std::make_tuple((int)v.x, (int)v.y, (int)v.z);
 	}
 
-	static inline Vector3 IntTupleToVector(std::tuple<int, int, int> t) 
+	static inline Vector3 PosInt3ToVector(PosInt3 t) 
 	{ 
 		return Vector3((float)std::get<0>(t), (float)std::get<1>(t), (float)std::get<2>(t));
 	}
