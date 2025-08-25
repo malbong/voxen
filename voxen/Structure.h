@@ -6,6 +6,23 @@ using namespace DirectX::SimpleMath;
 
 typedef std::tuple<int, int, int> PosInt3;
 
+struct PosInt3Hash {
+	std::size_t operator()(const PosInt3& t) const noexcept
+	{
+		std::size_t h1 = std::hash<int>{}(std::get<0>(t));
+		std::size_t h2 = std::hash<int>{}(std::get<1>(t));
+		std::size_t h3 = std::hash<int>{}(std::get<2>(t));
+
+		return h1 ^ (h2 << 1) ^ (h3 << 2);
+	}
+};
+
+struct PosInt3Equal {
+	bool operator()(const PosInt3& a, const PosInt3& b) const noexcept { return a == b; }
+};
+
+template <typename T> using PosMap = std::unordered_map<PosInt3, T, PosInt3Hash, PosInt3Equal>;
+
 enum DIR : uint8_t {
 	LEFT = 0,
 	RIGHT = 1, 

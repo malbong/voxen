@@ -233,7 +233,7 @@ void ChunkManager::RenderBasicShadowMap()
 
 void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 {
-	std::map<PosInt3, bool> renderableChunkMap;
+	PosMap<bool> renderableChunkMap;
 	for (int i = 0; i < MAX_HEIGHT_CHUNK_COUNT; ++i) {
 		for (int j = 0; j < CHUNK_COUNT; ++j) {
 			for (int k = 0; k < CHUNK_COUNT; ++k) {
@@ -241,18 +241,18 @@ void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 				int x = (int)cameraChunkPos.x + Chunk::CHUNK_SIZE * (j - CHUNK_COUNT / 2);
 				int z = (int)cameraChunkPos.z + Chunk::CHUNK_SIZE * (k - CHUNK_COUNT / 2);
 
-				if (m_chunkMap.find(std::make_tuple(x, y, z)) ==
+				if (m_chunkMap.find(PosInt3(x, y, z)) ==
 					m_chunkMap.end()) { // found chunk to be loaded
 					Chunk* chunk = GetChunkFromPool();
 					if (chunk) {
 						chunk->SetOffsetPosition(Vector3((float)x, (float)y, (float)z));
 
-						m_chunkMap[std::make_tuple(x, y, z)] = chunk;
+						m_chunkMap[PosInt3(x, y, z)] = chunk;
 						m_loadChunkList.push_back(chunk);
 					}
 				}
 				else
-					renderableChunkMap[std::make_tuple(x, y, z)] = true;
+					renderableChunkMap[PosInt3(x, y, z)] = true;
 			}
 		}
 	}
@@ -298,8 +298,7 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 
 			// Dependency Map ±¸¼º
 			PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
-			for (const auto& [targetPos, patchDataList] : chunkLoadMemory->chunkPatchDataMap) {
-				PosInt3 target = Utils::VectorToPosInt3(targetPos);
+			for (const auto& [target, patchDataList] : chunkLoadMemory->chunkPatchDataMap) {
 
 				bool patchFlag = false;
 				for (const auto& patchData : patchDataList) {
@@ -550,7 +549,7 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const std::map<PosInt3, Instance>& instanceMap = c->GetInstanceMap();
+		const PosMap<Instance>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
 

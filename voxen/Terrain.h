@@ -4,7 +4,6 @@
 
 #include <directxtk/SimpleMath.h>
 
-#include <map>
 #include <queue>
 #include <mutex>
 

@@ -123,7 +123,7 @@ namespace Utils {
 
 	static inline PosInt3 VectorToPosInt3(Vector3 v)
 	{
-		return std::make_tuple((int)v.x, (int)v.y, (int)v.z);
+		return PosInt3((int)v.x, (int)v.y, (int)v.z);
 	}
 
 	static inline Vector3 PosInt3ToVector(PosInt3 t) 

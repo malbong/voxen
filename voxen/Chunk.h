@@ -9,7 +9,6 @@
 #include <wrl.h>
 #include <directxtk/SimpleMath.h>
 #include <vector>
-#include <map>
 #include <tuple>
 
 using namespace Microsoft::WRL;
@@ -85,7 +84,7 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const std::map<PosInt3, Instance>& GetInstanceMap() const
+	inline const PosMap<Instance>& GetInstanceMap() const
 	{
 		return m_instanceMap;
 	}
@@ -110,7 +109,7 @@ public:
 
 	inline const Instance* GetInstance(Vector3 pos) const
 	{
-		auto iter = m_instanceMap.find(std::make_tuple(
+		auto iter = m_instanceMap.find(PosInt3(
 			(int)std::floor(pos.x) % CHUNK_SIZE, (int)std::floor(pos.y) % CHUNK_SIZE, (int)std::floor(pos.z) % CHUNK_SIZE));
 		
 		if (iter == m_instanceMap.end())
@@ -142,7 +141,7 @@ private:
 		std::vector<uint32_t>& indices, BLOCK_TYPE types);
 
 	Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
-	std::map<PosInt3, Instance> m_instanceMap; // instance -> instance* TODO
+	PosMap<Instance> m_instanceMap; // instance -> instance* TODO
 
 	UINT m_id;
 	bool m_isLoaded;
@@ -203,7 +202,7 @@ struct ChunkLoadMemory {
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
-	std::map<Vector3, std::vector<ChunkPatchData>> chunkPatchDataMap;
+	PosMap<std::vector<ChunkPatchData>> chunkPatchDataMap;
 
 	ChunkLoadMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },

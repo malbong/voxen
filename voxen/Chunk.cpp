@@ -73,8 +73,8 @@ ChunkLoadMemory* Chunk::Patch(const std::vector<ChunkPatchData>& patchList, Chun
 			m_onPatchDirtyFlag = true;
 		}
 		
-		if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end()) {
-			m_instanceMap.erase(std::make_tuple(x, y, z));
+		if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
+			m_instanceMap.erase(PosInt3(x, y, z));
 		}
 	}
 
@@ -279,7 +279,10 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 						Vector3 targetOffsetPos = Utils::CalcOffsetPos(
 							m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz),
 							CHUNK_SIZE);
-						memory->chunkPatchDataMap[targetOffsetPos].push_back(patchData);
+
+						PosInt3 targetOffsetPosInt3 = Utils::VectorToPosInt3(targetOffsetPos);
+
+						memory->chunkPatchDataMap[targetOffsetPosInt3].push_back(patchData);
 					}
 				}
 			}
@@ -315,7 +318,7 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 				Vector3 instanceWorldPosition =
 					m_offsetPosition + Vector3((float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f);
 				instance.SetWorldPosition(instanceWorldPosition);
-				m_instanceMap.insert(std::pair(std::make_tuple(x, y, z), instance));
+				m_instanceMap.insert(std::pair(PosInt3(x, y, z), instance));
 
 				break;
 			}
@@ -334,7 +337,7 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 	if (Block::IsTransparency(bottomBlockType))
 		return false;
 	
-	if (m_instanceMap.find(std::make_tuple(x, y, z)) != m_instanceMap.end())
+	if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end())
 		return false;
 
 	return true;

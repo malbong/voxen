@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <queue>
 #include <future>
 #include <set>
@@ -80,19 +79,19 @@ private:
 	bool MakeInstanceInfoBuffer();
 
 	std::vector<Chunk*> m_chunkPool;
-	std::map<PosInt3, Chunk*> m_chunkMap;
+	PosMap<Chunk*> m_chunkMap;
 
-	std::map<PosInt3, std::map<PosInt3, std::vector<ChunkPatchData>>> m_dependencyMapList;
-	std::map<PosInt3, std::set<PosInt3>> m_lookupDependencySet;
-	std::map<PosInt3, std::set<PosInt3>> m_patchedChunkSet;
-	std::map<PosInt3, std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
+	PosMap<PosMap<std::vector<ChunkPatchData>>> m_dependencyMapList;
+	PosMap<std::set<PosInt3>> m_lookupDependencySet;
+	PosMap<std::set<PosInt3>> m_patchedChunkSet;
+	PosMap<std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
+	PosMap<std::vector<ChunkPatchData>> m_patchChunkMap;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;
 	std::vector<Chunk*> m_renderChunkList;
 	std::vector<Chunk*> m_renderMirrorChunkList;
 	std::vector<Chunk*> m_renderShadowChunkList;
-	std::map<PosInt3, std::vector<ChunkPatchData>> m_patchChunkMap;
 
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodVertexBuffers;
 	std::vector<ComPtr<ID3D11Buffer>> m_lowLodIndexBuffers;
