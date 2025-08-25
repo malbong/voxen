@@ -1,6 +1,8 @@
 #pragma once
 
 #include <directxtk/SimpleMath.h>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace DirectX::SimpleMath;
 
@@ -21,7 +23,10 @@ struct PosInt3Equal {
 	bool operator()(const PosInt3& a, const PosInt3& b) const noexcept { return a == b; }
 };
 
-template <typename T> using PosMap = std::unordered_map<PosInt3, T, PosInt3Hash, PosInt3Equal>;
+template <typename T> 
+using PosMap = std::unordered_map<PosInt3, T, PosInt3Hash, PosInt3Equal>;
+
+using PosSet = std::unordered_set<PosInt3, PosInt3Hash, PosInt3Equal>;
 
 enum DIR : uint8_t {
 	LEFT = 0,

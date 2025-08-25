@@ -2,7 +2,6 @@
 
 #include <queue>
 #include <future>
-#include <set>
 
 #include "Chunk.h"
 #include "Camera.h"
@@ -82,8 +81,8 @@ private:
 	PosMap<Chunk*> m_chunkMap;
 
 	PosMap<PosMap<std::vector<ChunkPatchData>>> m_dependencyMapList;
-	PosMap<std::set<PosInt3>> m_lookupDependencySet;
-	PosMap<std::set<PosInt3>> m_patchedChunkSet;
+	PosMap<PosSet> m_lookupDependencySet;
+	PosMap<PosSet> m_patchedChunkSet;
 	PosMap<std::vector<ChunkPatchData>> m_cameraPatchDataListMap;
 	PosMap<std::vector<ChunkPatchData>> m_patchChunkMap;
 
