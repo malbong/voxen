@@ -302,6 +302,8 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 
 				bool patchFlag = false;
 				for (const auto& patchData : patchDataSet) {
+					m_patchDependencyMap[current][target].insert(patchData);
+
 					if (m_chunkMap.find(target) == m_chunkMap.end())
 						continue;
 
@@ -316,8 +318,6 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 
 						patchFlag = true;
 					}
-
-					m_patchDependencyMap[current][target].insert(patchData);
 				}
 
 				m_lookupDependencySet[target].insert(current);

@@ -126,9 +126,12 @@ private:
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
 	void InitTreePlace(ChunkLoadMemory* memory);
+	bool IsInsideChunk(int x, int y, int z);
+	bool IsInsideChunkWithPadding(int x, int y, int z);
+	bool IsInnerEdge(int x, int y, int z);
+	bool IsOuterEdge(int x, int y, int z);
 	bool CanPlaceTreeAt(int x, int y, int z);
 	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory);
-	bool IsInsideChunk(int x, int y, int z, int padding = 0);
 
 	void InitInstancePlace(ChunkLoadMemory* memory);
 	bool CanPlaceInstanceAt(int x, int y, int z);
