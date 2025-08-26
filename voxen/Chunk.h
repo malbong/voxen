@@ -101,16 +101,18 @@ public:
 
 	inline const Block* GetBlock(Vector3 pos) const
 	{
-		return &m_blocks[(int)std::floor(pos.x) % CHUNK_SIZE + 1]
-						[(int)std::floor(pos.y) % CHUNK_SIZE + 1]
-						[(int)std::floor(pos.z) % CHUNK_SIZE + 1];
+		return &m_blocks[Utils::WrapToBase((int)std::floor(pos.x), CHUNK_SIZE) + 1]
+						[Utils::WrapToBase((int)std::floor(pos.y), CHUNK_SIZE) + 1]
+						[Utils::WrapToBase((int)std::floor(pos.z), CHUNK_SIZE) + 1];
 	}
 
 	inline const Instance* GetInstance(Vector3 pos) const
 	{
-		auto iter = m_instanceMap.find(PosInt3(
-			(int)std::floor(pos.x) % CHUNK_SIZE, (int)std::floor(pos.y) % CHUNK_SIZE, (int)std::floor(pos.z) % CHUNK_SIZE));
-		
+		auto iter = m_instanceMap.find(
+			PosInt3(Utils::WrapToBase((int)std::floor(pos.x), CHUNK_SIZE), 
+					Utils::WrapToBase((int)std::floor(pos.y), CHUNK_SIZE),
+					Utils::WrapToBase((int)std::floor(pos.z), CHUNK_SIZE)));
+			
 		if (iter == m_instanceMap.end())
 			return nullptr;
 		else
@@ -195,6 +197,7 @@ struct ChunkLoadMemory {
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
+
 	PosHashMap<PatchDataHashSet> chunkPatchDataMap;
 
 	ChunkLoadMemory()

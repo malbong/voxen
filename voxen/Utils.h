@@ -13,9 +13,9 @@ namespace Utils {
 	static const float PI = 3.14159265f;
 	static const float invPI = 1.0f / PI;
 
-	inline static int Signf(float x) { return (x > 0) - (x < 0); }
+	static inline int Signf(float x) { return (x > 0) - (x < 0); }
 
-	inline static float Sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
+	static inline float Sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
 
 	static Vector3 SRGB2Linear(Vector3 color)
 	{
@@ -26,15 +26,20 @@ namespace Utils {
 		return Vector3(r, g, b);
 	}
 
+	static inline int WrapToBase(int x, int baseSize)
+	{ 
+		return ((x % baseSize) + baseSize) % baseSize;
+	}
+
 	static Vector3 CalcOffsetPos(Vector3 pos, int baseSize)
 	{
 		int floorX = (int)floor(pos.x);
 		int floorY = (int)floor(pos.y);
 		int floorZ = (int)floor(pos.z);
 
-		int modX = ((floorX % baseSize) + baseSize) % baseSize;
-		int modY = ((floorY % baseSize) + baseSize) % baseSize;
-		int modZ = ((floorZ % baseSize) + baseSize) % baseSize;
+		int modX = WrapToBase(floorX, baseSize);
+		int modY = WrapToBase(floorY, baseSize);
+		int modZ = WrapToBase(floorZ, baseSize);
 
 		return Vector3((float)(floorX - modX), (float)(floorY - modY), (float)(floorZ - modZ));
 	}

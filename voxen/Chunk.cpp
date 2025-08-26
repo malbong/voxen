@@ -1,6 +1,7 @@
 #include "Chunk.h"
 #include "DXUtils.h"
 #include "MeshGenerator.h"
+#include "ChunkManager.h"
 
 #include <future>
 #include <algorithm>
@@ -257,117 +258,61 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 	for (int dy = 0; dy < 6; ++dy) {
 		for (int dz = 0; dz < 5; ++dz) {
 			for (int dx = 0; dx < 5; ++dx) {
-				if (tree[dy][dz][dx] > 0) {
-					int tx = x + dx - 2;
-					int ty = y + dy + 1;
-					int tz = z - dz + 2;
+				if (tree[dy][dz][dx] <= 0)
+					continue;
+				
+				int tx = x + dx - 2;
+				int ty = y + dy + 1;
+				int tz = z - dz + 2;
 
-					BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? BLOCK_TYPE::BLOCK_LOG_OAK
-																 : BLOCK_TYPE::BLOCK_LEAVES_OAK;
+				BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? BLOCK_TYPE::BLOCK_LOG_OAK
+																: BLOCK_TYPE::BLOCK_LEAVES_OAK;
 
-					// Making chunk patch data to neighbor chunk
-					if (!IsInsideChunk(tx, ty, tz)) {
-						Vector3 blockPos =
-							m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
-						Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
-						PosInt3 blockOwnerOffsetPosInt3 =
-							Utils::VectorToPosInt3(blockOwnerOffsetPos);
+				// Making chunk patch data to neighbor chunk
+				if (!IsInsideChunk(tx, ty, tz)) {
+					treeBlock = BLOCK_TYPE::BLOCK_ICE;
+					PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+						tx, ty, tz, treeBlock, CHUNK_SIZE, true);
 
-						int localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
-						int localY = (ty + CHUNK_SIZE) % CHUNK_SIZE;
-						int localZ = (tz + CHUNK_SIZE) % CHUNK_SIZE;
-						
-						treeBlock = BLOCK_TYPE::BLOCK_ICE;
+					Vector3 blockPos =
+						m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
+					Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
+					PosInt3 blockOwnerOffsetPosInt3 =
+						Utils::VectorToPosInt3(blockOwnerOffsetPos);
 
-						PatchData patchData;
-						patchData.localX = localX;
-						patchData.localY = localY;
-						patchData.localZ = localZ;
-						patchData.blockType = treeBlock;
+					memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
+				}
 
-						memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
-					}
-
-					// Set chunk tree block
-					if (IsInsideChunkWithPadding(tx, ty, tz)) {
-						// -1 <= tx <= 32
-						m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
-					}
+				// Set chunk tree block
+				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32
+					m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+				}
 					
-					// Propagation patch for greedy mesh
-					if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
-						Vector3 blockPos =
-							m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
-						Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
-						PosInt3 blockOwnerOffsetPosInt3 =
-							Utils::VectorToPosInt3(blockOwnerOffsetPos);
+				// Propagation patch for greedy mesh
+				
+				if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
+					Vector3 blockPos =
+						m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
+					Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
+					PosInt3 blockOwnerOffsetPosInt3 =
+						Utils::VectorToPosInt3(blockOwnerOffsetPos);
 
-						int localX = (tx + CHUNK_SIZE) % CHUNK_SIZE;
-						int localY = (ty + CHUNK_SIZE) % CHUNK_SIZE;
-						int localZ = (tz + CHUNK_SIZE) % CHUNK_SIZE;
+					int localX = Utils::WrapToBase(tx, CHUNK_SIZE);
+					int localY = Utils::WrapToBase(ty, CHUNK_SIZE);
+					int localZ = Utils::WrapToBase(tz, CHUNK_SIZE);
 
-						int xEdgeDir = (localX == 0) ? -1 : ((localX == CHUNK_SIZE - 1) ? 1 : 0);
-						int yEdgeDir = (localY == 0) ? -1 : ((localY == CHUNK_SIZE - 1) ? 1 : 0);
-						int zEdgeDir = (localZ == 0) ? -1 : ((localZ == CHUNK_SIZE - 1) ? 1 : 0);
+					std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
+					int outEdgePatchEntryCount = 0;
+					ChunkManager::GetInstance()->GenerateEdgePatchEntry(localX, localY, localZ,
+						blockOwnerOffsetPos, treeBlock, outEdgePatchEntry, outEdgePatchEntryCount);
 
-						if (xEdgeDir) {
-							Vector3 patchChunkOffsetPos = blockOwnerOffsetPos;
-							patchChunkOffsetPos.x += xEdgeDir * CHUNK_SIZE;
+					PosInt3 myOffsetPosInt3 = Utils::VectorToPosInt3(m_offsetPosition);
+					for (int i = 0; i < outEdgePatchEntryCount; ++i) {
+						PosInt3 patchChunkPosInt3 = outEdgePatchEntry[i].first;
+						PatchData& patchData = outEdgePatchEntry[i].second;
 
-							PosInt3 patchChunkOffsetPosInt3 =
-								Utils::VectorToPosInt3(patchChunkOffsetPos);
-
-							PatchData patchData;
-							patchData.localX = xEdgeDir == -1 ? CHUNK_SIZE : -1;
-							patchData.localY = localY;
-							patchData.localZ = localZ;
-							patchData.blockType = treeBlock;
-
-							if (patchChunkOffsetPosInt3 !=
-								Utils::VectorToPosInt3(m_offsetPosition)) {
-								memory->chunkPatchDataMap[patchChunkOffsetPosInt3].insert(
-									patchData);
-							}
-						}
-
-						if (yEdgeDir) {
-							Vector3 patchChunkOffsetPos = blockOwnerOffsetPos;
-							patchChunkOffsetPos.y += yEdgeDir * CHUNK_SIZE;
-
-							PosInt3 patchChunkOffsetPosInt3 =
-								Utils::VectorToPosInt3(patchChunkOffsetPos);
-
-							PatchData patchData;
-							patchData.localX = localX;
-							patchData.localY = yEdgeDir == -1 ? CHUNK_SIZE : -1;
-							patchData.localZ = localZ;
-							patchData.blockType = treeBlock;
-
-							if (patchChunkOffsetPosInt3 !=
-								Utils::VectorToPosInt3(m_offsetPosition)) {
-								memory->chunkPatchDataMap[patchChunkOffsetPosInt3].insert(
-									patchData);
-							}
-						}
-
-						if (zEdgeDir) {
-							Vector3 patchChunkOffsetPos = blockOwnerOffsetPos;
-							patchChunkOffsetPos.z += zEdgeDir * CHUNK_SIZE;
-
-							PosInt3 patchChunkOffsetPosInt3 =
-								Utils::VectorToPosInt3(patchChunkOffsetPos);
-
-							PatchData patchData;
-							patchData.localX = localX;
-							patchData.localY = localY;
-							patchData.localZ = zEdgeDir == -1 ? CHUNK_SIZE : -1;
-							patchData.blockType = treeBlock;
-
-							if (patchChunkOffsetPosInt3 !=
-								Utils::VectorToPosInt3(m_offsetPosition)) {
-								memory->chunkPatchDataMap[patchChunkOffsetPosInt3].insert(
-									patchData);
-							}
+						if (patchChunkPosInt3 != myOffsetPosInt3) {
+							memory->chunkPatchDataMap[patchChunkPosInt3].insert(patchData);
 						}
 					}
 				}

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <queue>
+#include <unordered_map>
+#include <unordered_set>
 #include <future>
 
 #include "Chunk.h"
@@ -48,6 +49,13 @@ public:
 	bool HasObjectAt(Vector3 position);
 	void RemoveBlockPatchAt(Vector3 position);
 	void AddBlockPatchAt(Vector3 position, DIR face);
+
+	PatchData MakePatchData(int x, int y, int z, BLOCK_TYPE blockType, int baseSize, bool needWrap);
+	PatchData MakePatchData(Vector3 position, BLOCK_TYPE blockType, int baseSize, bool needWrap);
+	void GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition, BLOCK_TYPE blockType,
+		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
+	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
+		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
 	
 
 private:

@@ -847,18 +847,31 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 position)
 
 	Vector3 blockLocalPos = position - chunkOffsetPos;
 
-	PatchData patchData;
-	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
-	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
-	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
-	patchData.blockType =
+	BLOCK_TYPE blockType =
 		position.y <= Terrain::WATER_HEIGHT_LEVEL ? BLOCK_TYPE::BLOCK_WATER : BLOCK_TYPE::BLOCK_AIR;
 	
+	PatchData patchData = MakePatchData(blockLocalPos, blockType, Chunk::CHUNK_SIZE, false);
+	
 	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
-
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
 		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
 		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
+	}
+
+	std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
+	int outEdgePatchEntryCount = 0;
+	GenerateEdgePatchEntry(
+		blockLocalPos, chunkOffsetPos, blockType, outEdgePatchEntry, outEdgePatchEntryCount);
+
+	for (int i = 0; i < outEdgePatchEntryCount; ++i) {
+		PosInt3 patchChunkPosInt3 = outEdgePatchEntry[i].first;
+		PatchData& patchData = outEdgePatchEntry[i].second;
+
+		m_cameraPatchChunkMap[patchChunkPosInt3].insert(patchData);
+		if (m_chunkMap.find(patchChunkPosInt3) != m_chunkMap.end() &&
+			m_chunkMap[patchChunkPosInt3]->IsLoaded()) {
+			m_patchChunkMap[patchChunkPosInt3].insert(patchData);
+		}
 	}
 }
 
@@ -890,16 +903,109 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 
 	Vector3 blockLocalPos = facePosition - chunkOffsetPos;
 
-	PatchData patchData;
-	patchData.localX = (int)blockLocalPos.x % Chunk::CHUNK_SIZE;
-	patchData.localY = (int)blockLocalPos.y % Chunk::CHUNK_SIZE;
-	patchData.localZ = (int)blockLocalPos.z % Chunk::CHUNK_SIZE;
-	patchData.blockType = BLOCK_TYPE::BLOCK_GOLD;
+	BLOCK_TYPE blockType = BLOCK_TYPE::BLOCK_GOLD;
 
+	PatchData patchData = MakePatchData(blockLocalPos, blockType, Chunk::CHUNK_SIZE, false);
+	
 	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
-
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
 		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
 		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	}
+
+	std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
+	int outEdgePatchEntryCount = 0;
+	GenerateEdgePatchEntry(
+		blockLocalPos, chunkOffsetPos, blockType, outEdgePatchEntry, outEdgePatchEntryCount);
+
+	for (int i = 0; i < outEdgePatchEntryCount; ++i) {
+		PosInt3 patchChunkPosInt3 = outEdgePatchEntry[i].first;
+		PatchData& patchData = outEdgePatchEntry[i].second;
+
+		m_cameraPatchChunkMap[patchChunkPosInt3].insert(patchData);
+		if (m_chunkMap.find(patchChunkPosInt3) != m_chunkMap.end() &&
+			m_chunkMap[patchChunkPosInt3]->IsLoaded()) {
+			m_patchChunkMap[patchChunkPosInt3].insert(patchData);
+		}
+	}
+}
+
+PatchData ChunkManager::MakePatchData(int x, int y, int z, BLOCK_TYPE blockType, int baseSize, bool needWrap)
+{
+	PatchData patchData;
+
+	patchData.localX = needWrap ? Utils::WrapToBase(x, baseSize) : x;
+	patchData.localY = needWrap ? Utils::WrapToBase(y, baseSize) : y;
+	patchData.localZ = needWrap ? Utils::WrapToBase(z, baseSize) : z;
+
+	patchData.blockType = blockType;
+
+	return patchData;
+}
+
+PatchData ChunkManager::MakePatchData(
+	Vector3 position, BLOCK_TYPE blockType, int baseSize, bool needWrap)
+{
+	return MakePatchData((int)position.x, (int)position.y, (int)position.z, blockType, baseSize, needWrap);
+}
+
+void ChunkManager::GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition,
+	BLOCK_TYPE blockType, std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount)
+{
+	outEdgePatchEntryCount = 0;
+
+	int xEdgeDir = (x == 0) ? -1 : ((x == Chunk::CHUNK_SIZE - 1) ? 1 : 0);
+	if (xEdgeDir) {
+		Vector3 patchChunkOffsetPos = chunkPosition;
+		patchChunkOffsetPos.x += xEdgeDir * Chunk::CHUNK_SIZE;
+
+		PosInt3 patchChunkOffsetPosInt3 = Utils::VectorToPosInt3(patchChunkOffsetPos);
+
+		int newX = xEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
+
+		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+			newX, y, z, blockType, Chunk::CHUNK_SIZE, false);
+
+		outEdgePatchEntry[outEdgePatchEntryCount++] =
+			std::make_pair(patchChunkOffsetPosInt3, patchData);
+	}
+
+	int yEdgeDir = (y == 0) ? -1 : ((y == Chunk::CHUNK_SIZE - 1) ? 1 : 0);
+	if (yEdgeDir) {
+		Vector3 patchChunkOffsetPos = chunkPosition;
+		patchChunkOffsetPos.y += yEdgeDir * Chunk::CHUNK_SIZE;
+
+		PosInt3 patchChunkOffsetPosInt3 = Utils::VectorToPosInt3(patchChunkOffsetPos);
+
+		int newY = yEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
+
+		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+			x, newY, z, blockType, Chunk::CHUNK_SIZE, false);
+
+		outEdgePatchEntry[outEdgePatchEntryCount++] =
+			std::make_pair(patchChunkOffsetPosInt3, patchData);
+	}
+
+	int zEdgeDir = (z == 0) ? -1 : ((z == Chunk::CHUNK_SIZE - 1) ? 1 : 0);
+	if (zEdgeDir) {
+		Vector3 patchChunkOffsetPos = chunkPosition;
+		patchChunkOffsetPos.z += zEdgeDir * Chunk::CHUNK_SIZE;
+
+		PosInt3 patchChunkOffsetPosInt3 = Utils::VectorToPosInt3(patchChunkOffsetPos);
+
+		int newZ = zEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
+
+		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+			x, y, newZ, blockType, Chunk::CHUNK_SIZE, false);
+
+		outEdgePatchEntry[outEdgePatchEntryCount++] =
+			std::make_pair(patchChunkOffsetPosInt3, patchData);
+	}
+}
+
+void ChunkManager::GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
+	std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount)
+{
+	return GenerateEdgePatchEntry((int)position.x, (int)position.y, (int)position.z, chunkPosition,
+		blockType, outEdgePatchEntry, outEdgePatchEntryCount);
 }

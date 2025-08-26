@@ -219,7 +219,7 @@ void App::Render()
 	{
 		FillGBuffer();
 		MaskMSAAEdge();
-		RenderSSAO();
+		//RenderSSAO();
 		ShadingBasic();
 	}
 
