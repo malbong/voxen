@@ -268,9 +268,13 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 				BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? BLOCK_TYPE::BLOCK_LOG_OAK
 																: BLOCK_TYPE::BLOCK_LEAVES_OAK;
 
+				// Set chunk tree block
+				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32
+					m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+				}
+
 				// Making chunk patch data to neighbor chunk
 				if (!IsInsideChunk(tx, ty, tz)) {
-					treeBlock = BLOCK_TYPE::BLOCK_ICE;
 					PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
 						tx, ty, tz, treeBlock, CHUNK_SIZE, true);
 
@@ -283,13 +287,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 					memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
 				}
 
-				// Set chunk tree block
-				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32
-					m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
-				}
-					
 				// Propagation patch for greedy mesh
-				
 				if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
 					Vector3 blockPos =
 						m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
@@ -308,7 +306,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory)
 
 					PosInt3 myOffsetPosInt3 = Utils::VectorToPosInt3(m_offsetPosition);
 					for (int i = 0; i < outEdgePatchEntryCount; ++i) {
-						PosInt3 patchChunkPosInt3 = outEdgePatchEntry[i].first;
+						PosInt3& patchChunkPosInt3 = outEdgePatchEntry[i].first;
 						PatchData& patchData = outEdgePatchEntry[i].second;
 
 						if (patchChunkPosInt3 != myOffsetPosInt3) {

@@ -56,6 +56,8 @@ public:
 		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
 	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
 		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
+	void PropagatePatchByEdgeBlock(
+		Vector3 localPosition, Vector3 chunkOffsetPos, BLOCK_TYPE blockType);
 	
 
 private:
