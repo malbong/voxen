@@ -194,6 +194,7 @@ struct ChunkLoadMemory {
 	float temperatureNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float humidityNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	float elevationNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
@@ -229,6 +230,11 @@ struct ChunkLoadMemory {
 			  },
 		  },
 		  distributionNoises{
+			  {
+				  0,
+			  },
+		  },
+		  elevationNoises{
 			  {
 				  0,
 			  },

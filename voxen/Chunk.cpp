@@ -154,6 +154,9 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 			memory->temperatureNoises[x][z] = Terrain::GetTemperature(worldX, worldZ);
 			memory->humidityNoises[x][z] = Terrain::GetHumidity(worldX, worldZ);
 			memory->distributionNoises[x][z] = Terrain::GetDistribution(worldX, worldZ);
+			memory->elevationNoises[x][z] =
+				Terrain::GetElevation(memory->continentalinessNoises[x][z],
+					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z]);
 		}
 	}
 }
@@ -170,7 +173,8 @@ void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 				BLOCK_TYPE blockType = Terrain::GetBlockType(worldX, worldY, worldZ,
 					memory->continentalinessNoises[x][z], memory->erosionNoises[x][z],
 					memory->peaksValleyNoises[x][z], memory->temperatureNoises[x][z],
-					memory->humidityNoises[x][z], memory->distributionNoises[x][z]);
+					memory->humidityNoises[x][z], memory->distributionNoises[x][z],
+					memory->elevationNoises[x][z]);
 
 				m_blocks[x][y][z].SetType(blockType);
 			}

@@ -362,12 +362,16 @@ namespace Terrain {
 		return (dNoise + 1.0f) * 0.5f;
 	}
 
-	static BIOME_TYPE GetBiomeType(float elevation, float temperature, float humidity)
+	static BIOME_TYPE GetBiomeType(float elevation, float temperature, float humidity, float peaksValley, float erosion)
 	{
-		if (elevation < 64.0f) {
+		// Biome Block
+		float pvRange = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
+		float newElevation = elevation - pvRange;
+
+		if (newElevation < 64.0f) {
 			return BIOME_OCEAN;
 		}
-		else if (elevation < 68.0f) {
+		else if (newElevation < 68.0f) {
 			return BIOME_BEACH;
 		}
 
@@ -601,10 +605,8 @@ namespace Terrain {
 	}
 
 	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
-		float peaksValley, float temperature, float humidity, float distribution)
+		float peaksValley, float temperature, float humidity, float distribution, float elevation)
 	{
-		float elevation = GetElevation(continentalness, erosion, peaksValley);
-
 		if (y == MIN_HEIGHT_LEVEL)
 			return BLOCK_BEDROCK;
 
@@ -622,10 +624,7 @@ namespace Terrain {
 				blockType = GetBlockTypeForInner(x, y, z, distribution);
 			}
 			else {
-				// Biome Block
-				float r = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
-
-				BIOME_TYPE biomeType = GetBiomeType(elevation - r, temperature, humidity);
+				BIOME_TYPE biomeType = GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
 				blockType = GetBlockTypeForBiome(biomeType, y, elevation, distribution);
 			}
 		}

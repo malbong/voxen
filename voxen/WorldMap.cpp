@@ -158,16 +158,16 @@ RGBA_UINT WorldMap::GetBiomeMapColor(int x, int z)
 	float erosion = Terrain::GetErosion(worldX, worldZ);
 	float peaksValley = Terrain::GetPeaksValley(worldX, worldZ);
 
-	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
 	float temperature = Terrain::GetTemperature(worldX, worldZ);
 	float humidity = Terrain::GetHumidity(worldX, worldZ);
+
+	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
 
 	if (elevation < 64.0f) {
 		return RGBA_UINT(91, 89, 255, 255);
 	}
 
-	float r = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
-	BIOME_TYPE biomeType = Terrain::GetBiomeType(elevation - r, temperature, humidity);
+	BIOME_TYPE biomeType = Terrain::GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
 
 	return GetColorByBiome(biomeType);
 }
