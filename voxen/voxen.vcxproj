@@ -168,6 +168,7 @@
     <ClInclude Include="Chunk.h" />
     <ClInclude Include="Cloud.h" />
     <ClInclude Include="Date.h" />
+    <ClInclude Include="Enums.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="PostEffect.h" />

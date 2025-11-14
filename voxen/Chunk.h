@@ -83,7 +83,7 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const PosHashMap<Instance>& GetInstanceMap() const
+	inline const PosHashMap<const Instance*>& GetInstanceMap() const
 	{
 		return m_instanceMap;
 	}
@@ -116,7 +116,7 @@ public:
 		if (iter == m_instanceMap.end())
 			return nullptr;
 		else
-			return &iter->second;
+			return iter->second;
 	}
 
 
@@ -145,7 +145,7 @@ private:
 		std::vector<uint32_t>& indices, BLOCK_TYPE types);
 
 	Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
-	PosHashMap<Instance> m_instanceMap; // instance -> instance* TODO
+	PosHashMap<const Instance*> m_instanceMap;
 
 	UINT m_id;
 	bool m_isLoaded;

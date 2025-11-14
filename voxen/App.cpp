@@ -219,7 +219,7 @@ void App::Render()
 	{
 		FillGBuffer();
 		MaskMSAAEdge();
-		//RenderSSAO();
+		RenderSSAO();
 		ShadingBasic();
 	}
 
@@ -246,7 +246,7 @@ void App::Render()
 		else {
 			RenderMirrorWorld();
 			RenderWaterPlane();
-			//RenderFogFilter();
+			RenderFogFilter();
 			RenderSkybox();
 			RenderCloud();
 		}

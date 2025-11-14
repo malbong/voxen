@@ -59,10 +59,10 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 
 	m_constantBuffers.resize(CHUNK_POOL_SIZE, nullptr);
 
-	m_instanceVertexBuffers.resize(Instance::INSTANCE_TYPE_COUNT, nullptr);
-	m_instanceIndexBuffers.resize(Instance::INSTANCE_TYPE_COUNT, nullptr);
-	m_instanceInfoBuffers.resize(Instance::INSTANCE_TYPE_COUNT, nullptr);
-	m_instanceInfoList.resize(Instance::INSTANCE_TYPE_COUNT);
+	m_instanceVertexBuffers.resize(INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT, nullptr);
+	m_instanceIndexBuffers.resize(INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT, nullptr);
+	m_instanceInfoBuffers.resize(INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT, nullptr);
+	m_instanceInfoList.resize(INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT);
 	if (!MakeInstanceVertexBuffer())
 		return false;
 	if (!MakeInstanceInfoBuffer())
@@ -170,7 +170,7 @@ void ChunkManager::RenderInstance()
 {
 	UINT indexCountPerInstance[3] = { 12, 24, 6 };
 
-	for (int i = 0; i < Instance::INSTANCE_TYPE_COUNT; ++i) {
+	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i) {
 		Graphics::context->IASetIndexBuffer(
 			m_instanceIndexBuffers[i].Get(), DXGI_FORMAT_R32_UINT, 0);
 
@@ -529,7 +529,7 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 {
 	// clear all info
-	for (int i = 0; i < Instance::INSTANCE_TYPE_COUNT; ++i)
+	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i)
 		m_instanceInfoList[i].clear();
 
 	// check instance in chunk managerList
@@ -545,19 +545,21 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
+		const PosHashMap<const Instance*>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
 
-			info.texIndex = p.second.GetTextureIndex();
+			info.texIndex = p.second->GetTextureIndex();
 
-			info.instanceWorld = Matrix::CreateTranslation(p.second.GetWorldPosition()).Transpose();
+			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + Vector3(0.5f);
+			Vector3 instanceWorldPosition = instanceLocalPosition + c->GetOffsetPosition();
+			info.instanceWorld = Matrix::CreateTranslation(instanceWorldPosition).Transpose();
 
-			m_instanceInfoList[Instance::GetInstanceType(info.texIndex)].push_back(info);
+			m_instanceInfoList[p.second->GetShape()].push_back(info);
 		}
 	}
 
-	for (int i = 0; i < Instance::INSTANCE_TYPE_COUNT; ++i) {
+	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i) {
 		DXUtils::ResizeBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i],
 			(UINT)D3D11_BIND_VERTEX_BUFFER, m_instanceInfoList[i].size() + 1024);
 		DXUtils::UpdateBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i]);
@@ -725,12 +727,12 @@ bool ChunkManager::MakeInstanceVertexBuffer()
 	// Instance Type 0 : CROSS
 	MeshGenerator::CreateCrossInstanceMesh(instanceVertices, instanceIndices);
 	if (!DXUtils::CreateVertexBuffer(
-			m_instanceVertexBuffers[INSTANCE_TYPE::INSTANCE_CROSS], instanceVertices)) {
+			m_instanceVertexBuffers[INSTANCE_SHAPE::INSTANCE_CROSS], instanceVertices)) {
 		std::cout << "failed create cross instance vertex buffer in chunk manager" << std::endl;
 		return false;
 	}
 	if (!DXUtils::CreateIndexBuffer(
-			m_instanceIndexBuffers[INSTANCE_TYPE::INSTANCE_CROSS], instanceIndices)) {
+			m_instanceIndexBuffers[INSTANCE_SHAPE::INSTANCE_CROSS], instanceIndices)) {
 		std::cout << "failed create cross instance index buffer in chunk manager" << std::endl;
 		return false;
 	}
@@ -741,12 +743,12 @@ bool ChunkManager::MakeInstanceVertexBuffer()
 	// Instance Type 1 : FENCE
 	MeshGenerator::CreateFenceInstanceMesh(instanceVertices, instanceIndices);
 	if (!DXUtils::CreateVertexBuffer(
-			m_instanceVertexBuffers[INSTANCE_TYPE::INSTANCE_FENCE], instanceVertices)) {
+			m_instanceVertexBuffers[INSTANCE_SHAPE::INSTANCE_FENCE], instanceVertices)) {
 		std::cout << "failed create fence instance vertex buffer in chunk manager" << std::endl;
 		return false;
 	}
 	if (!DXUtils::CreateIndexBuffer(
-			m_instanceIndexBuffers[INSTANCE_TYPE::INSTANCE_FENCE], instanceIndices)) {
+			m_instanceIndexBuffers[INSTANCE_SHAPE::INSTANCE_FENCE], instanceIndices)) {
 		std::cout << "failed create fence instance index buffer in chunk manager" << std::endl;
 		return false;
 	}
@@ -757,12 +759,12 @@ bool ChunkManager::MakeInstanceVertexBuffer()
 	// Instance Type 2 : SQUARE
 	MeshGenerator::CreateSquareInstanceMesh(instanceVertices, instanceIndices);
 	if (!DXUtils::CreateVertexBuffer(
-			m_instanceVertexBuffers[INSTANCE_TYPE::INSTANCE_SQUARE], instanceVertices)) {
+			m_instanceVertexBuffers[INSTANCE_SHAPE::INSTANCE_SQUARE], instanceVertices)) {
 		std::cout << "failed create SQUARE instance vertex buffer in chunk manager" << std::endl;
 		return false;
 	}
 	if (!DXUtils::CreateIndexBuffer(
-			m_instanceIndexBuffers[INSTANCE_TYPE::INSTANCE_SQUARE], instanceIndices)) {
+			m_instanceIndexBuffers[INSTANCE_SHAPE::INSTANCE_SQUARE], instanceIndices)) {
 		std::cout << "failed create SQUARE instance index buffer in chunk manager" << std::endl;
 		return false;
 	}

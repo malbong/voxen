@@ -106,14 +106,14 @@ namespace Terrain {
 		float n5 = Hash(x1, y0, z1).Dot(p - Vector3((float)x1, (float)y0, (float)z1));
 		float n6 = Hash(x1, y1, z0).Dot(p - Vector3((float)x1, (float)y1, (float)z0));
 		float n7 = Hash(x1, y1, z1).Dot(p - Vector3((float)x1, (float)y1, (float)z1));
-		
+
 		float i0 = Utils::CubicLerp(n0, n1, p.z - z0);
 		float i1 = Utils::CubicLerp(n2, n3, p.z - z0);
 		float i2 = Utils::CubicLerp(i0, i1, p.y - y0);
 		float i3 = Utils::CubicLerp(n4, n5, p.z - z0);
 		float i4 = Utils::CubicLerp(n6, n7, p.z - z0);
 		float i5 = Utils::CubicLerp(i3, i4, p.y - y0);
-		
+
 		return Utils::CubicLerp(i2, i5, p.x - x0);
 	}
 
@@ -255,7 +255,7 @@ namespace Terrain {
 	{
 
 		float scale = 1024.0f;
-		
+
 		float cNoise = PerlinFbm(x / scale, z / scale, 2.0f, 6);
 		float cValue = SplineContinentalness(cNoise);
 
@@ -263,7 +263,7 @@ namespace Terrain {
 			cValue = cValue / 0.1f - 1.0f; // [-1.0f, 0.0f]
 		else
 			cValue = (cValue - 0.1f) / 0.9f; // [0.0f, 1.0f]
-		
+
 		return cValue;
 	}
 
@@ -362,7 +362,8 @@ namespace Terrain {
 		return (dNoise + 1.0f) * 0.5f;
 	}
 
-	static BIOME_TYPE GetBiomeType(float elevation, float temperature, float humidity, float peaksValley, float erosion)
+	static BIOME_TYPE GetBiomeType(
+		float elevation, float temperature, float humidity, float peaksValley, float erosion)
 	{
 		// Biome Block
 		float pvRange = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
@@ -581,13 +582,12 @@ namespace Terrain {
 		case BIOME_SEASONFOREST:
 		case BIOME_SAVANA:
 			if (y == baseHeight) {
-				if (d <= 0.95f){
+				if (d <= 0.95f) {
 					return BLOCK_GRASS;
 				}
 				else {
 					return BLOCK_DIRT;
 				}
-
 			}
 			else if (y == baseHeight - 1) {
 				if (d <= 0.25f)
@@ -624,7 +624,8 @@ namespace Terrain {
 				blockType = GetBlockTypeForInner(x, y, z, distribution);
 			}
 			else {
-				BIOME_TYPE biomeType = GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
+				BIOME_TYPE biomeType =
+					GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
 				blockType = GetBlockTypeForBiome(biomeType, y, elevation, distribution);
 			}
 		}
@@ -731,17 +732,14 @@ namespace Terrain {
 		case BLOCK_LEAVES_OAK:
 			return TEXTURE_LEAVES_OAK;
 
-		case BLOCK_SHORT_GRASS:
-			return TEXTURE_SHORT_GRASS;
-
 		default:
 			return TEXTURE_STONE;
 		}
 	}
 
-	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_t soltZ, int maxPlaceCount, int indexCount,
-		std::vector<std::pair<int, int>>& outRandomPlace2D)
-	{ 
+	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_t soltZ,
+		int maxPlaceCount, int indexCount, std::vector<std::pair<int, int>>& outRandomPlace2D)
+	{
 		uint32_t seedX = (uint32_t)floor(worldPosition.x) + soltX;
 		uint32_t seedZ = (uint32_t)floor(worldPosition.z) + soltZ;
 
@@ -756,5 +754,90 @@ namespace Terrain {
 
 			outRandomPlace2D.push_back(std::make_pair(xIndex, zIndex));
 		}
+	}
+
+	static BIOME_INSTANCE_COUNT_PER_CHUNK GetBiomeInstanceCountPerChunk(BIOME_TYPE biomeType)
+	{
+		switch (biomeType) {
+		case BIOME_TYPE::BIOME_OCEAN:
+			return BIOME_OCEAN_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_BEACH:
+			return BIOME_BEACH_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_TUNDRA:
+			return BIOME_TUNDRA_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_TAIGA:
+			return BIOME_TAIGA_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_PLAINS:
+			return BIOME_PLAINS_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_SWAMP:
+			return BIOME_SWAMP_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_FOREST:
+			return BIOME_FOREST_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_SHRUBLAND:
+			return BIOME_SHRUBLAND_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_DESERT:
+			return BIOME_DESERT_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_RAINFOREST:
+			return BIOME_RAINFOREST_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_SEASONFOREST:
+			return BIOME_SEASONFOREST_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_SAVANA:
+			return BIOME_SAVANA_INSTANCE_COUNT;
+
+		case BIOME_TYPE::BIOME_SNOWY_TAIGA:
+			return BIOME_SNOWY_TAIGA_INSTANCE_COUNT;
+
+		default:
+			return BIOME_NONE_INSTANCE_COUNT;
+		}
+	}
+
+	static const Instance* GetBiomeInstance(BIOME_TYPE biomeType, int worldX, int worldZ, int solt) 
+	{
+		static InstanceGroup instanceGroup;
+
+		switch (biomeType) {
+		case BIOME_TYPE::BIOME_OCEAN:
+			
+		case BIOME_TYPE::BIOME_BEACH:
+
+		case BIOME_TYPE::BIOME_TUNDRA:
+
+		case BIOME_TYPE::BIOME_TAIGA:
+
+		case BIOME_TYPE::BIOME_PLAINS:
+
+		case BIOME_TYPE::BIOME_SWAMP:
+
+		case BIOME_TYPE::BIOME_FOREST:
+
+		case BIOME_TYPE::BIOME_SHRUBLAND:
+
+		case BIOME_TYPE::BIOME_DESERT:
+
+		case BIOME_TYPE::BIOME_RAINFOREST:
+
+		case BIOME_TYPE::BIOME_SEASONFOREST:
+
+		case BIOME_TYPE::BIOME_SAVANA:
+
+		case BIOME_TYPE::BIOME_SNOWY_TAIGA:
+
+		default:
+			return instanceGroup.GetShortGrass();
+		}
+
+		return instanceGroup.GetShortGrass();
 	}
 }
