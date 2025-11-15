@@ -545,17 +545,19 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			continue;
 
 		// set info
-		const PosHashMap<const Instance*>& instanceMap = c->GetInstanceMap();
+		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
 			InstanceInfoVertex info;
 
-			info.texIndex = p.second->GetTextureIndex();
+			INSTANCE_TYPE type = p.second.GetType();
+			info.texIndex = Instance::GetTextureIndex(type);
 
 			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + Vector3(0.5f);
 			Vector3 instanceWorldPosition = instanceLocalPosition + c->GetOffsetPosition();
 			info.instanceWorld = Matrix::CreateTranslation(instanceWorldPosition).Transpose();
 
-			m_instanceInfoList[p.second->GetShape()].push_back(info);
+			INSTANCE_SHAPE shapeType = p.second.GetShape(type);
+			m_instanceInfoList[shapeType].push_back(info);
 		}
 	}
 

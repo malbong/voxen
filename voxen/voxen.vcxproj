@@ -147,11 +147,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="Block.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Chunk.cpp" />
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="Cloud.cpp" />
     <ClCompile Include="Date.cpp" />
+    <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="PostEffect.cpp" />
     <ClCompile Include="Graphics.cpp" />

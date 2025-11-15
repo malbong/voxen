@@ -633,110 +633,6 @@ namespace Terrain {
 		return blockType;
 	}
 
-	static TEXTURE_INDEX GetBlockTextureIndex(BLOCK_TYPE blockType, uint8_t face = DIR::ANY)
-	{
-		switch (blockType) {
-
-		case BLOCK_WATER:
-			return TEXTURE_WATER;
-
-		case BLOCK_BEDROCK:
-			return TEXTURE_BEDROCK;
-
-		case BLOCK_GRASS:
-			if (face == DIR::TOP)
-				return TEXTURE_GRASS_TOP;
-			else if (face == DIR::BOTTOM)
-				return TEXTURE_DIRT;
-			else
-				return TEXTURE_GRASS_OVERLAY;
-
-		case BLOCK_SNOW_GRASS:
-			if (face == DIR::TOP)
-				return TEXTURE_SNOW_GRASS_TOP;
-			else if (face == DIR::BOTTOM)
-				return TEXTURE_DIRT;
-			else
-				return TEXTURE_SNOW_GRASS_SIDE;
-
-		case BLOCK_DIRT:
-			return TEXTURE_DIRT;
-
-		case BLOCK_STONE:
-			return TEXTURE_STONE;
-
-		case BLOCK_SAND:
-			return TEXTURE_SAND;
-
-		case BLOCK_SNOW:
-			return TEXTURE_SNOW;
-
-		case BLOCK_GRAVEL:
-			return TEXTURE_GRAVEL;
-
-		case BLOCK_SANDSTONE:
-			if (face == DIR::TOP)
-				return TEXTURE_SANDSTONE_TOP;
-			else if (face == DIR::BOTTOM)
-				return TEXTURE_SANDSTONE_BOTTOM;
-			else
-				return TEXTURE_SANDSTONE_SIDE;
-
-		case BLOCK_CLAY:
-			return TEXTURE_CLAY;
-
-		case BLOCK_ANDESITE:
-			return TEXTURE_ANDESITE;
-
-		case BLOCK_COAL_ORE:
-			return TEXTURE_COAL_ORE;
-
-		case BLOCK_GOLD_ORE:
-			return TEXTURE_GOLD_ORE;
-
-		case BLOCK_REDSTONE_ORE:
-			return TEXTURE_REDSTONE_ORE;
-
-		case BLOCK_DIAMOND_ORE:
-			return TEXTURE_DIAMOND_ORE;
-
-		case BLOCK_COPPER_ORE:
-			return TEXTURE_COPPER_ORE;
-
-		case BLOCK_IRON_ORE:
-			return TEXTURE_IRON_ORE;
-
-		case BLOCK_COARSE:
-			return TEXTURE_COARSE;
-
-		case BLOCK_PODZOL:
-			if (face == DIR::TOP)
-				return TEXTURE_PODZOL_TOP;
-			else if (face == DIR::BOTTOM)
-				return TEXTURE_DIRT;
-			else
-				return TEXTURE_PODZOL_SIDE;
-
-		case BLOCK_ICE:
-			return TEXTURE_ICE;
-
-		case BLOCK_GOLD:
-			return TEXTURE_GOLD;
-
-		case BLOCK_LOG_OAK:
-			if (face == DIR::TOP || face == DIR::BOTTOM)
-				return TEXTURE_LOG_OAK_TOP;
-			else
-				return TEXTURE_LOG_OAK;
-
-		case BLOCK_LEAVES_OAK:
-			return TEXTURE_LEAVES_OAK;
-
-		default:
-			return TEXTURE_STONE;
-		}
-	}
-
 	static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_t soltZ,
 		int maxPlaceCount, int indexCount, std::vector<std::pair<int, int>>& outRandomPlace2D)
 	{
@@ -803,41 +699,8 @@ namespace Terrain {
 		}
 	}
 
-	static const Instance* GetBiomeInstance(BIOME_TYPE biomeType, int worldX, int worldZ, int solt) 
+	static INSTANCE_TYPE GetBiomeInstanceType(BIOME_TYPE biomeType, int worldX, int worldZ, int solt) 
 	{
-		static InstanceGroup instanceGroup;
-
-		switch (biomeType) {
-		case BIOME_TYPE::BIOME_OCEAN:
-			
-		case BIOME_TYPE::BIOME_BEACH:
-
-		case BIOME_TYPE::BIOME_TUNDRA:
-
-		case BIOME_TYPE::BIOME_TAIGA:
-
-		case BIOME_TYPE::BIOME_PLAINS:
-
-		case BIOME_TYPE::BIOME_SWAMP:
-
-		case BIOME_TYPE::BIOME_FOREST:
-
-		case BIOME_TYPE::BIOME_SHRUBLAND:
-
-		case BIOME_TYPE::BIOME_DESERT:
-
-		case BIOME_TYPE::BIOME_RAINFOREST:
-
-		case BIOME_TYPE::BIOME_SEASONFOREST:
-
-		case BIOME_TYPE::BIOME_SAVANA:
-
-		case BIOME_TYPE::BIOME_SNOWY_TAIGA:
-
-		default:
-			return instanceGroup.GetShortGrass();
-		}
-
-		return instanceGroup.GetShortGrass();
+		return INSTANCE_TYPE::INSTANCE_SHORT_GRASS;
 	}
 }

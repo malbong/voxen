@@ -375,9 +375,9 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		// set instance info
 		for (int y = 0; y < CHUNK_SIZE; ++y) {
 			if (CanPlaceInstanceAt(x, y, z)) {
-				const Instance* instance = Terrain::GetBiomeInstance(biomeType, x, z, 123);
+				INSTANCE_TYPE instanceType = Terrain::GetBiomeInstanceType(biomeType, x, z, 123);
 
-				m_instanceMap.insert(std::pair(PosInt3(x, y, z), instance));
+				m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(instanceType)));
 
 				break;
 			}
@@ -430,34 +430,34 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 
 					// 타입이 같거나 불투명 블록이면 메쉬를 생성하지 않음
 					if (x - 1 >= 0 && type != m_blocks[x - 1][y][z].GetType() &&
-						!Block::IsOpaqua(m_blocks[x - 1][y][z].GetType())) {
+						!Block::IsOpaque(m_blocks[x - 1][y][z].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(0, y, z, CHUNK_SIZE_P)] |=
 							(1ULL << x);
 					}
 					if (x + 1 < CHUNK_SIZE_P && type != m_blocks[x + 1][y][z].GetType() &&
-						!Block::IsOpaqua(m_blocks[x + 1][y][z].GetType())) {
+						!Block::IsOpaque(m_blocks[x + 1][y][z].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(1, y, z, CHUNK_SIZE_P)] |=
 							(1ULL << x);
 					}
 
 					if (y - 1 >= 0 && type != m_blocks[x][y - 1][z].GetType() &&
-						!Block::IsOpaqua(m_blocks[x][y - 1][z].GetType())) {
+						!Block::IsOpaque(m_blocks[x][y - 1][z].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(2, z, x, CHUNK_SIZE_P)] |=
 							(1ULL << y);
 					}
 					if (y + 1 < CHUNK_SIZE_P && type != m_blocks[x][y + 1][z].GetType() &&
-						!Block::IsOpaqua(m_blocks[x][y + 1][z].GetType())) {
+						!Block::IsOpaque(m_blocks[x][y + 1][z].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(3, z, x, CHUNK_SIZE_P)] |=
 							(1ULL << y);
 					}
 
 					if (z - 1 >= 0 && type != m_blocks[x][y][z - 1].GetType() &&
-						!Block::IsOpaqua(m_blocks[x][y][z - 1].GetType())) {
+						!Block::IsOpaque(m_blocks[x][y][z - 1].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(4, y, x, CHUNK_SIZE_P)] |=
 							(1ULL << z);
 					}
 					if (z + 1 < CHUNK_SIZE_P && type != m_blocks[x][y][z + 1].GetType() &&
-						!Block::IsOpaqua(m_blocks[x][y][z + 1].GetType())) {
+						!Block::IsOpaque(m_blocks[x][y][z + 1].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(5, y, x, CHUNK_SIZE_P)] |=
 							(1ULL << z);
 					}
@@ -465,15 +465,15 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 				else if (Block::IsSemiAlpha(type)) {
 					saTypeMap[type] = true;
 					// - -> + : 불투명이 아니면 페이스 존재 -> 같은 타입을 고려하지 않음
-					if (x + 1 < CHUNK_SIZE_P && !Block::IsOpaqua(m_blocks[x + 1][y][z].GetType())) {
+					if (x + 1 < CHUNK_SIZE_P && !Block::IsOpaque(m_blocks[x + 1][y][z].GetType())) {
 						memory->saCullColBit[Utils::GetIndexFrom3D(1, y, z, CHUNK_SIZE_P)] |=
 							(1ULL << x);
 					}
-					if (y + 1 < CHUNK_SIZE_P && !Block::IsOpaqua(m_blocks[x][y + 1][z].GetType())) {
+					if (y + 1 < CHUNK_SIZE_P && !Block::IsOpaque(m_blocks[x][y + 1][z].GetType())) {
 						memory->saCullColBit[Utils::GetIndexFrom3D(3, z, x, CHUNK_SIZE_P)] |=
 							(1ULL << y);
 					}
-					if (z + 1 < CHUNK_SIZE_P && !Block::IsOpaqua(m_blocks[x][y][z + 1].GetType())) {
+					if (z + 1 < CHUNK_SIZE_P && !Block::IsOpaque(m_blocks[x][y][z + 1].GetType())) {
 						memory->saCullColBit[Utils::GetIndexFrom3D(5, y, x, CHUNK_SIZE_P)] |=
 							(1ULL << z);
 					}
@@ -629,7 +629,7 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 	// face 2, 3 : bottom, top
 	// face 4, 5 : front,back
 	for (uint8_t face = 0; face < 6; ++face) {
-		TEXTURE_INDEX textureIndex = Terrain::GetBlockTextureIndex(type, face);
+		TEXTURE_INDEX textureIndex = (TEXTURE_INDEX)Block::GetBlockTextureIndex(type, face);
 
 		for (int s = 0; s < CHUNK_SIZE; ++s) {
 			for (int i = 0; i < CHUNK_SIZE; ++i) {

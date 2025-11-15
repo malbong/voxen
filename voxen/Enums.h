@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 enum DIR : uint8_t {
 	LEFT = 0,
@@ -86,6 +86,11 @@ enum BLOCK_TYPE : uint8_t {
 	BLOCK_LEAVES_OAK = 48,
 };
 
+enum INSTANCE_TYPE : uint8_t {
+	INSTANCE_SHORT_GRASS = 0,
+
+};
+
 enum TEXTURE_INDEX : uint8_t {
 	// block
 	TEXTURE_WATER = 0,
@@ -125,5 +130,7 @@ enum TEXTURE_INDEX : uint8_t {
 
 	// instance
 	TEXTURE_SHORT_GRASS = 129,
+
+	TEXTURE_NONE = 255,
 };
 
