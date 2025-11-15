@@ -2,6 +2,7 @@
 #include "DXUtils.h"
 #include "MeshGenerator.h"
 #include "ChunkManager.h"
+#include "Biome.h"
 
 #include <future>
 #include <algorithm>
@@ -351,7 +352,7 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		INSTANCE_PLACE_RANDOM_SOLT_Z, INSTANCE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
 		memory->instanceRandomPlace2D);
 
-	uint32_t biomeInstanceCount[BIOME_TYPE::BIOME_COUNT] = {
+	uint32_t biomeInstanceCount[Biome::BIOME_TYPE_COUNT] = {
 		0,
 	};
 
@@ -367,7 +368,7 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 			memory->peaksValleyNoises[px][pz], memory->erosionNoises[px][pz]);
 
 		// check instance count for biome per chunk
-		if (biomeInstanceCount[biomeType] >= Terrain::GetBiomeInstanceCountPerChunk(biomeType)) {
+		if (biomeInstanceCount[biomeType] >= Biome::GetInstanceCountPerChunk(biomeType)) {
 			continue;
 		}
 		biomeInstanceCount[biomeType]++;

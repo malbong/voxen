@@ -64,7 +64,8 @@ private:
 class InstanceTypeInfoSet {
 
 public:
-	InstanceTypeInfoSet() : m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
+	InstanceTypeInfoSet() 
+		: m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
 	{
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SHORT_GRASS].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_SHORT_GRASS);

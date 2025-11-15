@@ -41,7 +41,6 @@ private:
 	void ShiftBiomeMapData(int dx, int dz);
 	void UpdateBiomeMapData(int dx, int dz);
 	RGBA_UINT GetBiomeMapColor(int x, int z);
-	RGBA_UINT GetColorByBiome(BIOME_TYPE biomeType);
 
 	void ShiftClimateMapData(int dx, int dz);
 	void UpdateClimateMapData(int dx, int dz);
