@@ -17,8 +17,9 @@ public:
 	static const uint32_t INSTANCE_TYPE_COUNT = 256;
 
 	static INSTANCE_SHAPE GetShape(INSTANCE_TYPE type);
-
 	static TEXTURE_INDEX GetTextureIndex(INSTANCE_TYPE type);
+	static INSTANCE_TYPE GetInstanceTypeForBiome(
+		BIOME_TYPE biomeType, int worldX, int worldZ, int solt);
 
 	Instance() : m_type(INSTANCE_TYPE::INSTANCE_SHORT_GRASS) {}
 	Instance(INSTANCE_TYPE type) : m_type(type) {}
@@ -64,8 +65,7 @@ private:
 class InstanceTypeInfoSet {
 
 public:
-	InstanceTypeInfoSet() 
-		: m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
+	InstanceTypeInfoSet() : m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
 	{
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SHORT_GRASS].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_SHORT_GRASS);

@@ -166,18 +166,21 @@ RGBA_UINT WorldMap::GetBiomeMapColor(int x, int z)
 	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
 
 	BIOME_TYPE biomeType =
-		Terrain::GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
+		Biome::GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
 
 	RGBA_UINT biomeBaseColor = Biome::GetBaseColor(biomeType);
 
 	if (elevation < 64.0f) {
-		biomeBaseColor.r = (biomeBaseColor.r * 0.8 + 6 * 0.2);
-		biomeBaseColor.g = (biomeBaseColor.g * 0.8 + 8 * 0.2);
-		biomeBaseColor.b = (biomeBaseColor.b * 0.8 + 255 * 0.2);
+		biomeBaseColor.r = (uint8_t)(biomeBaseColor.r * 0.8 + 6 * 0.2);
+		biomeBaseColor.g = (uint8_t)(biomeBaseColor.g * 0.8 + 8 * 0.2);
+		biomeBaseColor.b = (uint8_t)(biomeBaseColor.b * 0.8 + 255 * 0.2);
 	}
-	biomeBaseColor.r = std::clamp((int)(biomeBaseColor.r * min(1.75f, (elevation / 63.0f))), 0, 255);
-	biomeBaseColor.g = std::clamp((int)(biomeBaseColor.g * min(1.75f, (elevation / 63.0f))), 0, 255);
-	biomeBaseColor.b = std::clamp((int)(biomeBaseColor.b * min(1.75f, (elevation / 63.0f))), 0, 255);
+	biomeBaseColor.r =
+		(uint8_t)std::clamp((int)(biomeBaseColor.r * min(1.75f, (elevation / 63.0f))), 0, 255);
+	biomeBaseColor.g =
+		(uint8_t)std::clamp((int)(biomeBaseColor.g * min(1.75f, (elevation / 63.0f))), 0, 255);
+	biomeBaseColor.b =
+		(uint8_t)std::clamp((int)(biomeBaseColor.b * min(1.75f, (elevation / 63.0f))), 0, 255);
 
 	return biomeBaseColor;
 }

@@ -16,6 +16,10 @@ public:
 	static bool IsOpaque(BLOCK_TYPE type);
 	static bool IsSemiAlpha(BLOCK_TYPE type);
 	static uint8_t GetBlockTextureIndex(BLOCK_TYPE type, uint8_t face);
+	static BLOCK_TYPE GetBlockTypeForInner(int x, int y, int z, float distribution);
+	static BLOCK_TYPE GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, float d);
+	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
+		float peaksValley, float temperature, float humidity, float distribution, float elevation);
 
 	Block() : m_type(BLOCK_TYPE::BLOCK_AIR) {}
 	Block(BLOCK_TYPE type) : m_type(type) {}

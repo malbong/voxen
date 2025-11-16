@@ -15,6 +15,8 @@ public:
 	static RGBA_UINT GetBaseColor(BIOME_TYPE type);
 	static uint8_t GetInstanceCountPerChunk(BIOME_TYPE type);
 	static const std::vector<Instance>& GetInstances(BIOME_TYPE type);
+	static BIOME_TYPE GetBiomeType(
+		float elevation, float temperature, float humidity, float peaksValley, float erosion);
 
 private:
 	static BiomeTypeInfoSet m_biomeTypeInfoSet;

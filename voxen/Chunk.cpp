@@ -170,7 +170,7 @@ void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 				int worldY = (int)m_offsetPosition.y + y - 1;
 				int worldZ = (int)m_offsetPosition.z + z - 1;
 
-				BLOCK_TYPE blockType = Terrain::GetBlockType(worldX, worldY, worldZ,
+				BLOCK_TYPE blockType = Block::GetBlockType(worldX, worldY, worldZ,
 					memory->continentalinessNoises[x][z], memory->erosionNoises[x][z],
 					memory->peaksValleyNoises[x][z], memory->temperatureNoises[x][z],
 					memory->humidityNoises[x][z], memory->distributionNoises[x][z],
@@ -363,7 +363,7 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		// get biome at x, z
 		int px = x + 1;
 		int pz = z + 1;
-		BIOME_TYPE biomeType = Terrain::GetBiomeType(memory->elevationNoises[px][pz],
+		BIOME_TYPE biomeType = Biome::GetBiomeType(memory->elevationNoises[px][pz],
 			memory->temperatureNoises[px][pz], memory->humidityNoises[px][pz],
 			memory->peaksValleyNoises[px][pz], memory->erosionNoises[px][pz]);
 
@@ -376,7 +376,8 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		// set instance info
 		for (int y = 0; y < CHUNK_SIZE; ++y) {
 			if (CanPlaceInstanceAt(x, y, z)) {
-				INSTANCE_TYPE instanceType = Terrain::GetBiomeInstanceType(biomeType, x, z, 123);
+				INSTANCE_TYPE instanceType =
+					Instance::GetInstanceTypeForBiome(biomeType, x, z, 123);
 
 				m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(instanceType)));
 
