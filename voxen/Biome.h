@@ -74,13 +74,19 @@ public:
 		// no instance
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetBaseColor(RGBA_UINT(255, 223, 128, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetInstanceCountPerChunk(125);
-		
+		tmpInstances.clear();
+		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_NONE));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetInstances(std::move(tmpInstances));
+
 
 		// BIOME_TUNDRA
 		// no instance
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetBaseColor(RGBA_UINT(235, 235, 235, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetInstanceCountPerChunk(125);
-		
+		tmpInstances.clear();
+		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_NONE));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetInstances(std::move(tmpInstances));
+
 
 		// BIOME_TAIGA
 		// grass
@@ -175,7 +181,7 @@ public:
 		// BIOME_DESERT
 		// dead bush
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetBaseColor(RGBA_UINT(214, 131, 31, 255));
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetInstanceCountPerChunk(125);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetInstanceCountPerChunk(5);
 		tmpInstances.clear();
 		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_DEAD_BUSH));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetInstances(std::move(tmpInstances));

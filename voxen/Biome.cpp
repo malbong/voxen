@@ -20,6 +20,7 @@ const std::vector<Instance>& Biome::GetInstances(BIOME_TYPE type)
 BIOME_TYPE Biome::GetBiomeType(
 	float elevation, float temperature, float humidity, float peaksValley, float erosion)
 {
+	return BIOME_SEASONFOREST;
 	// Biome Block
 	float pvRange = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
 	float newElevation = elevation - pvRange;

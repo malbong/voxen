@@ -376,10 +376,12 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		// set instance info
 		for (int y = 0; y < CHUNK_SIZE; ++y) {
 			if (CanPlaceInstanceAt(x, y, z)) {
-				INSTANCE_TYPE instanceType =
-					Instance::GetInstanceTypeForBiome(biomeType, x, z, 123);
+				INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
+					biomeType, memory->distributionNoises[px][pz], x, y, z);
 
-				m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(instanceType)));
+				if (instanceType != INSTANCE_TYPE::INSTANCE_NONE) {
+					m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(instanceType)));
+				}
 
 				break;
 			}

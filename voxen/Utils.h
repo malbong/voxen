@@ -135,4 +135,138 @@ namespace Utils {
 	{ 
 		return Vector3((float)std::get<0>(t), (float)std::get<1>(t), (float)std::get<2>(t));
 	}
+
+	static uint32_t HashInt(uint32_t seed, uint32_t solt)
+	{
+		uint32_t hash = (uint32_t)seed * 73856093 ^ (uint32_t)(solt) * 19349663;
+
+		hash ^= (hash >> 13);
+		hash *= 1597334673U;
+		hash ^= (hash >> 17);
+
+		return hash;
+	}
+
+	static Vector2 Hash(uint32_t x, uint32_t y)
+	{
+		// https://www.shadertoy.com/view/3dVXDc
+		uint32_t u0 = 1597334673U;
+		uint32_t u1 = 3812015801U;
+		float uf = (1.0f / float(0xffffffffU));
+
+		uint32_t qi = x * u0;
+		uint32_t qj = y * u1;
+
+		uint32_t qx = (qi ^ qj) * u0;
+		uint32_t qy = (qi ^ qj) * u1;
+
+		float rx = -1.0f + 2.0f * qx * uf;
+		float ry = -1.0f + 2.0f * qy * uf;
+
+		return Vector2(rx, ry);
+	}
+
+	static Vector3 Hash(uint32_t x, uint32_t y, uint32_t z)
+	{
+		// https://www.shadertoy.com/view/3dVXDc
+		uint32_t u0 = 1597334673U;
+		uint32_t u1 = 3812015801U;
+		uint32_t u2 = 2798796415U;
+		float uf = (1.0f / float(0xffffffffU));
+
+		uint32_t qi = x * u0;
+		uint32_t qj = y * u1;
+		uint32_t qk = z * u2;
+
+		uint32_t qx = (qi ^ qj ^ qk) * u0;
+		uint32_t qy = (qi ^ qj ^ qk) * u1;
+		uint32_t qz = (qi ^ qj ^ qk) * u2;
+
+		float rx = -1.0f + 2.0f * qx * uf;
+		float ry = -1.0f + 2.0f * qy * uf;
+		float rz = -1.0f + 2.0f * qz * uf;
+
+		return Vector3(rx, ry, rz);
+	}
+
+	static float GetPerlinNoiseFbm(float x, float y)
+	{
+		Vector2 p = Vector2(x, y);
+		int x0 = (int)floor(x);
+		int x1 = x0 + 1;
+		int y0 = (int)floor(y);
+		int y1 = y0 + 1;
+
+		float n0 = Hash(x0, y0).Dot(p - Vector2((float)x0, (float)y0));
+		float n1 = Hash(x1, y0).Dot(p - Vector2((float)x1, (float)y0));
+		float n2 = Hash(x0, y1).Dot(p - Vector2((float)x0, (float)y1));
+		float n3 = Hash(x1, y1).Dot(p - Vector2((float)x1, (float)y1));
+
+		float i0 = CubicLerp(n0, n1, p.x - (float)x0);
+		float i1 = CubicLerp(n2, n3, p.x - (float)x0);
+
+		return CubicLerp(i0, i1, p.y - (float)y0);
+	}
+
+	static float GetPerlinNoiseFbm(float x, float y, float z)
+	{
+		Vector3 p = Vector3(x, y, z);
+
+		int x0 = (int)floor(x);
+		int x1 = x0 + 1;
+		int y0 = (int)floor(y);
+		int y1 = y0 + 1;
+		int z0 = (int)floor(z);
+		int z1 = z0 + 1;
+
+		float n0 = Hash(x0, y0, z0).Dot(p - Vector3((float)x0, (float)y0, (float)z0));
+		float n1 = Hash(x0, y0, z1).Dot(p - Vector3((float)x0, (float)y0, (float)z1));
+		float n2 = Hash(x0, y1, z0).Dot(p - Vector3((float)x0, (float)y1, (float)z0));
+		float n3 = Hash(x0, y1, z1).Dot(p - Vector3((float)x0, (float)y1, (float)z1));
+		float n4 = Hash(x1, y0, z0).Dot(p - Vector3((float)x1, (float)y0, (float)z0));
+		float n5 = Hash(x1, y0, z1).Dot(p - Vector3((float)x1, (float)y0, (float)z1));
+		float n6 = Hash(x1, y1, z0).Dot(p - Vector3((float)x1, (float)y1, (float)z0));
+		float n7 = Hash(x1, y1, z1).Dot(p - Vector3((float)x1, (float)y1, (float)z1));
+
+		float i0 = CubicLerp(n0, n1, p.z - z0);
+		float i1 = CubicLerp(n2, n3, p.z - z0);
+		float i2 = CubicLerp(i0, i1, p.y - y0);
+		float i3 = CubicLerp(n4, n5, p.z - z0);
+		float i4 = CubicLerp(n6, n7, p.z - z0);
+		float i5 = CubicLerp(i3, i4, p.y - y0);
+
+		return CubicLerp(i2, i5, p.x - x0);
+	}
+
+	static float PerlinFbm(float x, float y, float freq, int octave)
+	{
+		float amp = 1.0f;
+		float noise = 0.0f;
+		float aFactor = exp2(-0.85f);
+
+		for (int i = 0; i < octave; ++i) {
+			noise += amp * GetPerlinNoiseFbm(x * freq, y * freq);
+
+			freq *= 2.0f;
+			amp *= aFactor;
+		}
+
+		return noise;
+	}
+
+	static float PerlinFbm(float x, float y, float z, float freq, int octave)
+	{
+		float amp = 1.0f;
+		float noise = 0.0f;
+		float aFactor = exp2(-0.85f);
+
+		for (int i = 0; i < octave; ++i) {
+			noise += amp * GetPerlinNoiseFbm(x * freq, y * freq, z * freq);
+
+			freq *= 2.0f;
+			amp *= aFactor;
+		}
+
+		return noise;
+	}
 };
