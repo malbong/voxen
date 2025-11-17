@@ -26,7 +26,6 @@ struct psOutput
     float4 mer : SV_Target4;
 };
 
-
 bool useDirtOverlay(uint texIndex)
 {
     return texIndex == 2;
@@ -35,7 +34,7 @@ bool useDirtOverlay(uint texIndex)
 bool useGrassColor(uint texIndex)
 {
     // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
-    return texIndex <= 2 || texIndex == 128;
+    return texIndex <= 2 || texIndex == 128 || texIndex == 131 || texIndex == 148;
 }
 
 bool useFoliageColor(uint texIndex)
