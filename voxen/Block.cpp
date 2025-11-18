@@ -102,7 +102,7 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 
 	case BIOME_TAIGA:
 		if (y == baseHeight) { // top
-			if (d <= 0.5f) {
+			if (d <= 0.6f) {
 				return BLOCK_GRASS;
 			}
 			else if (d <= 0.85f) {
@@ -113,7 +113,7 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 			}
 		}
 		else {
-			if (d <= 0.6f) {
+			if (d <= 0.7f) {
 				return BLOCK_COARSE;
 			}
 			else {

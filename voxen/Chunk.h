@@ -31,7 +31,7 @@ public:
 
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;
-	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 8;
+	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 4;
 
 	Chunk(UINT id);
 	~Chunk();

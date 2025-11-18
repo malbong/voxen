@@ -385,7 +385,7 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		// set ratio max instance count per chunk for biome
 		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
 		float biomeRatio = memory->biomeCount[biomeType] / (float)CHUNK_SIZE2;
-		float maxInstanceCountPerChunk = Biome::GetMaxInstanceCountPerChunk(biomeType);
+		float maxInstanceCountPerChunk = (float)Biome::GetMaxInstanceCountPerChunk(biomeType);
 		float instanceCountByRatio = biomeRatio * maxInstanceCountPerChunk;
 
 		// check instance count for biome per chunk
@@ -425,7 +425,7 @@ bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
 	if (!Block::IsTransparency(currentBlockType))
 		return false;
 
-	if (Block::IsTransparency(bottomBlockType))
+	if (!Block::IsOpaque(bottomBlockType))
 		return false;
 
 	if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end())
