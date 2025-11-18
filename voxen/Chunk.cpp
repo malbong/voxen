@@ -28,6 +28,9 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	// initialize noises for terrain
 	InitTerrainNoises(memory);
 
+	// initialize biome count
+	InitBiomeMapAndCount(memory);
+
 	// initialize block type of basic block
 	InitBasicBlockType(memory);
 
@@ -157,6 +160,24 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 			memory->elevationNoises[x][z] =
 				Terrain::GetElevation(memory->continentalinessNoises[x][z],
 					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z]);
+		}
+	}
+}
+
+void Chunk::InitBiomeMapAndCount(ChunkLoadMemory* memory)
+{
+	for (int x = 0; x < CHUNK_SIZE; ++x) {
+		for (int z = 0; z < CHUNK_SIZE; ++z) {
+			int px = x + 1;
+			int pz = z + 1;
+
+			BIOME_TYPE biomeType = Biome::GetBiomeType(memory->elevationNoises[px][pz],
+				memory->temperatureNoises[px][pz], memory->humidityNoises[px][pz],
+				memory->peaksValleyNoises[px][pz], memory->erosionNoises[px][pz]);
+
+			memory->biomeMap2D[x][z] = biomeType;
+
+			memory->biomeCount[biomeType]++;
 		}
 	}
 }
@@ -352,7 +373,8 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		INSTANCE_PLACE_RANDOM_SOLT_Z, INSTANCE_PLACE_MAX_COUNT_PER_CHUNK, CHUNK_SIZE,
 		memory->instanceRandomPlace2D);
 
-	uint32_t biomeInstanceCount[Biome::BIOME_TYPE_COUNT] = {
+
+	uint32_t placedBiomeInstanceCount[Biome::BIOME_TYPE_COUNT] = {
 		0,
 	};
 
@@ -360,32 +382,38 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		int x = memory->instanceRandomPlace2D[i].first;
 		int z = memory->instanceRandomPlace2D[i].second;
 
-		// get biome at x, z
-		int px = x + 1;
-		int pz = z + 1;
-		BIOME_TYPE biomeType = Biome::GetBiomeType(memory->elevationNoises[px][pz],
-			memory->temperatureNoises[px][pz], memory->humidityNoises[px][pz],
-			memory->peaksValleyNoises[px][pz], memory->erosionNoises[px][pz]);
+		// set ratio max instance count per chunk for biome
+		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
+		float biomeRatio = memory->biomeCount[biomeType] / (float)CHUNK_SIZE2;
+		float maxInstanceCountPerChunk = Biome::GetMaxInstanceCountPerChunk(biomeType);
+		float instanceCountByRatio = biomeRatio * maxInstanceCountPerChunk;
 
 		// check instance count for biome per chunk
-		if (biomeInstanceCount[biomeType] >= Biome::GetInstanceCountPerChunk(biomeType)) {
+		if (placedBiomeInstanceCount[biomeType] >= instanceCountByRatio) {
 			continue;
 		}
-		biomeInstanceCount[biomeType]++;
 
-		// set instance info
-		for (int y = 0; y < CHUNK_SIZE; ++y) {
-			if (CanPlaceInstanceAt(x, y, z)) {
-				INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
-					biomeType, memory->distributionNoises[px][pz], x, y, z);
-
-				if (instanceType != INSTANCE_TYPE::INSTANCE_NONE) {
-					m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(instanceType)));
-				}
-
-				break;
-			}
+		/// compared world elevation with localY range
+		float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
+		int localY = (int)(elevationWorldY - m_offsetPosition.y);
+		if (localY < 0 || localY > CHUNK_SIZE - 1) {
+			continue;
 		}
+			
+		// checked place conditions
+		if (!CanPlaceInstanceAt(x, localY, z)) {
+			continue;
+		}
+		
+		// set instance
+		INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
+			biomeType, memory->distributionNoises[x + 1][z + 1], x, localY, z);
+		if (instanceType == INSTANCE_TYPE::INSTANCE_NONE) {
+			continue;
+		}
+
+		m_instanceMap.insert(std::pair(PosInt3(x, localY, z), Instance(instanceType)));
+		placedBiomeInstanceCount[biomeType]++;
 	}
 }
 

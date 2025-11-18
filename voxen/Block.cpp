@@ -213,7 +213,7 @@ BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float
 	if (y == Terrain::WATER_HEIGHT_LEVEL && temperature < 0.25f)
 		blockType = BLOCK_ICE;
 
-	if (y <= elevation && !Terrain::IsCave(x, y, z)) {
+	if (y < elevation && !Terrain::IsCave(x, y, z)) {
 		int biomeLayer =
 			1 + (int)(6.0f * (1.0f - erosion) * powf(((-peaksValley + 1.0f) * 0.5f), 0.5f));
 

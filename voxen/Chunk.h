@@ -4,6 +4,7 @@
 #include "Instance.h"
 #include "Structure.h"
 #include "Terrain.h"
+#include "Biome.h"
 
 #include <d3d11.h>
 #include <wrl.h>
@@ -31,7 +32,7 @@ public:
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;
 	static const uint32_t INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 8;
-	
+
 	Chunk(UINT id);
 	~Chunk();
 
@@ -57,8 +58,11 @@ public:
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
 	inline void SetOffsetPosition(Vector3 offsetPosition) { m_offsetPosition = offsetPosition; }
 	inline Vector3 GetPosition() const { return m_position; }
-	
-	inline bool IsEmpty() const { return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha(); }
+
+	inline bool IsEmpty() const
+	{
+		return IsEmptyOpaque() && IsEmptyTransparency() && IsEmptySemiAlpha();
+	}
 	inline bool IsEmptyLowLod() const { return m_lowLodVertexCount == 0; }
 	inline bool IsEmptyOpaque() const { return m_opaqueVertexCount == 0; }
 	inline bool IsEmptyTransparency() const { return m_transparencyVertexCount == 0; }
@@ -83,10 +87,7 @@ public:
 	}
 	inline const std::vector<uint32_t>& GetSemiAlphaIndices() const { return m_semiAlphaIndices; }
 
-	inline const PosHashMap<Instance>& GetInstanceMap() const
-	{
-		return m_instanceMap;
-	}
+	inline const PosHashMap<Instance>& GetInstanceMap() const { return m_instanceMap; }
 
 	inline uint32_t GetLowLodVertexCount() const { return m_lowLodVertexCount; }
 	inline uint32_t GetLowLodIndexCount() const { return m_lowLodIndexCount; }
@@ -108,11 +109,11 @@ public:
 
 	inline const Instance* GetInstance(Vector3 pos) const
 	{
-		auto iter = m_instanceMap.find(
-			PosInt3(Utils::WrapToBase((int)std::floor(pos.x), CHUNK_SIZE), 
-					Utils::WrapToBase((int)std::floor(pos.y), CHUNK_SIZE),
-					Utils::WrapToBase((int)std::floor(pos.z), CHUNK_SIZE)));
-			
+		auto iter =
+			m_instanceMap.find(PosInt3(Utils::WrapToBase((int)std::floor(pos.x), CHUNK_SIZE),
+				Utils::WrapToBase((int)std::floor(pos.y), CHUNK_SIZE),
+				Utils::WrapToBase((int)std::floor(pos.z), CHUNK_SIZE)));
+
 		if (iter == m_instanceMap.end())
 			return nullptr;
 		else
@@ -124,6 +125,8 @@ private:
 	void ClearCpuVertices();
 
 	void InitTerrainNoises(ChunkLoadMemory* memory);
+
+	void InitBiomeMapAndCount(ChunkLoadMemory* memory);
 
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
@@ -196,6 +199,9 @@ struct ChunkLoadMemory {
 	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float elevationNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 
+	BIOME_TYPE biomeMap2D[Chunk::CHUNK_SIZE][Chunk::CHUNK_SIZE];
+	uint32_t biomeCount[Biome::BIOME_TYPE_COUNT];
+
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
 
@@ -238,6 +244,14 @@ struct ChunkLoadMemory {
 			  {
 				  0,
 			  },
+		  },
+		  biomeMap2D{
+			  {
+				  (BIOME_TYPE)0,
+			  },
+		  },
+		  biomeCount{
+			  0,
 		  }
 	{
 		instanceRandomPlace2D.reserve(Chunk::INSTANCE_PLACE_MAX_COUNT_PER_CHUNK);
@@ -253,6 +267,8 @@ struct ChunkLoadMemory {
 		std::fill(std::begin(opCullColBit), std::end(opCullColBit), 0);
 		std::fill(std::begin(tpCullColBit), std::end(tpCullColBit), 0);
 		std::fill(std::begin(saCullColBit), std::end(saCullColBit), 0);
+
+		std::fill(std::begin(biomeCount), std::end(biomeCount), 0);
 
 		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
