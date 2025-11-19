@@ -5,7 +5,6 @@
 
 #include "Structure.h"
 
-class BlockTypeInfo;
 class BlockTypeInfoSet;
 
 class Block {
@@ -113,8 +112,26 @@ public:
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_PODZOL].Init(23, 24, 3, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_ICE].Init(25, 25, 25, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_GOLD].Init(26, 26, 26, false, true, false);
-		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_LOG_OAK].Init(28, 27, 28, false, true, false);
-		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_LEAVES_OAK].Init(48, 48, 48, false, false, true);
+		
+		// tree
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_OAK_LOG].Init(28, 27, 28, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_SPRUCE_LOG].Init(30, 29, 30, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MANGROVE_LOG].Init(32, 31, 32, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_BIRCH_LOG].Init(34, 33, 34, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_CHERRY_LOG].Init(36, 35, 36, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_CACTUS].Init(37, 38, 39, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_JUNGLE_LOG].Init(41, 40, 41, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_ACACIA_LOG].Init(43, 42, 43, false, true, false);
+
+		// leaves
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_OAK_LEAF].Init(64, 64, 64, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_SPRUCE_LEAF].Init(65, 65, 65, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MANGROVE_LEAF].Init(66, 66, 66, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_BIRCH_LEAF].Init(67, 67, 67, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_CHERRY_LEAF].Init(80, 80, 80, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_JUNGLE_LEAF].Init(68, 68, 68, false, false, true);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_ACACIA_LEAF].Init(69, 69, 69, false, false, true);
+
 	}
 
 	inline const BlockTypeInfo& GetInfo(BLOCK_TYPE type) const { return m_blockTypeInfoSet[type]; }

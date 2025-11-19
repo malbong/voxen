@@ -4,11 +4,7 @@
 
 #include <stdint.h>
 #include <vector>
-#include <directxtk/SimpleMath.h>
 
-using namespace DirectX::SimpleMath;
-
-class InstanceTypeInfo;
 class InstanceTypeInfoSet;
 
 class Instance {

@@ -27,7 +27,7 @@ public:
 
 	static const uint32_t TREE_PLACE_RANDOM_SOLT_X = 763777711U;
 	static const uint32_t TREE_PLACE_RANDOM_SOLT_Z = 128200883U;
-	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 64;
+	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 32;
 
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;
@@ -136,7 +136,7 @@ private:
 	bool IsInnerEdge(int x, int y, int z);
 	bool IsOuterEdge(int x, int y, int z);
 	bool CanPlaceTreeAt(int x, int y, int z);
-	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory);
+	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType);
 
 	void InitInstancePlace(ChunkLoadMemory* memory);
 	bool CanPlaceInstanceAt(int x, int y, int z);

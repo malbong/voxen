@@ -162,6 +162,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SimpleQuadRenderer.cpp" />
     <ClCompile Include="Skybox.cpp" />
+    <ClCompile Include="Tree.cpp" />
     <ClCompile Include="WorldMap.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -185,6 +186,7 @@
     <ClInclude Include="Structure.h" />
     <ClInclude Include="DXUtils.h" />
     <ClInclude Include="Terrain.h" />
+    <ClInclude Include="Tree.h" />
     <ClInclude Include="WorldMap.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

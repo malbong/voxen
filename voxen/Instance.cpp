@@ -69,7 +69,6 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 			return biomeInstances[hash % 3 + 1].GetType(); // Rose blue,red,plants
 		else
 			return biomeInstances[hash % 2 + 4].GetType(); // lily, allium
-		break;
 
 	case BIOME_SHRUBLAND:
 		if (d < 0.6f)
@@ -87,7 +86,6 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 			return biomeInstances[0].GetType(); // grass
 		else
 			return biomeInstances[hash % 2 + 1].GetType(); // fern, large fern
-		break;
 
 	case BIOME_SEASONFOREST:
 		if (d < 0.7f)
@@ -96,7 +94,6 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 			return biomeInstances[hash % 3 + 1].GetType(); // Allium, Lily, Rosebush
 		else
 			return biomeInstances[hash % 4 + 4].GetType(); // tulips
-		break;
 
 	case BIOME_SAVANA:
 		return biomeInstances[0].GetType(); // grass
@@ -108,8 +105,7 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 			return biomeInstances[hash % 2 + 1].GetType(); // fern, large fern
 		else
 			return biomeInstances[3].GetType(); // sweet berry bush
-		break;
 	}
 
-	return INSTANCE_TYPE::INSTANCE_SHORT_GRASS;
+	return INSTANCE_TYPE::INSTANCE_NONE;
 }

@@ -7,6 +7,11 @@ RGBA_UINT Biome::GetBaseColor(BIOME_TYPE type)
 	return m_biomeTypeInfoSet.GetInfo(type).GetBaseColor();
 }
 
+uint32_t Biome::GetMaxTreeCountPerChunk(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetMaxTreeCountPerChunk();
+}
+
 uint32_t Biome::GetMaxInstanceCountPerChunk(BIOME_TYPE type)
 { 
 	return m_biomeTypeInfoSet.GetInfo(type).GetMaxInstanceCountPerChunk();
@@ -15,6 +20,11 @@ uint32_t Biome::GetMaxInstanceCountPerChunk(BIOME_TYPE type)
 const std::vector<Instance>& Biome::GetInstances(BIOME_TYPE type)
 {
 	return m_biomeTypeInfoSet.GetInfo(type).GetInstances();
+}
+
+const std::vector<Tree>& Biome::GetTrees(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetTrees();
 }
 
 BIOME_TYPE Biome::GetBiomeType(
