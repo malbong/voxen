@@ -27,7 +27,7 @@ public:
 
 	static const uint32_t TREE_PLACE_RANDOM_SOLT_X = 763777711U;
 	static const uint32_t TREE_PLACE_RANDOM_SOLT_Z = 128200883U;
-	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 32;
+	static const uint32_t TREE_PLACE_MAX_COUNT_PER_CHUNK = Chunk::CHUNK_SIZE2 / 16;
 
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U;
 	static const uint32_t INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U;

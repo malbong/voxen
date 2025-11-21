@@ -258,10 +258,18 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z)
 	BLOCK_TYPE topBlockType = m_blocks[x + 1][y + 2][z + 1].GetType();
 	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
 
-	if (Block::IsTransparency(currentBlockType))
+	if (!Block::IsOpaque(currentBlockType))
 		return false;
 
 	if (topBlockType == BLOCK_TYPE::BLOCK_WATER)
+		return false;
+
+	BLOCK_TYPE leftBlockType = m_blocks[x][y + 1][z + 1].GetType();
+	BLOCK_TYPE rightBlockType = m_blocks[x + 2][y + 1][z + 1].GetType();
+	BLOCK_TYPE backBlockType = m_blocks[x + 1][y + 1][z].GetType();
+	BLOCK_TYPE frontBlockType = m_blocks[x + 1][y + 1][z + 2].GetType();
+	if (!Block::IsOpaque(leftBlockType) || !Block::IsOpaque(rightBlockType) ||
+		!Block::IsOpaque(backBlockType) || !Block::IsOpaque(frontBlockType))
 		return false;
 
 	BLOCK_TYPE topLeftBlockType = m_blocks[x][y + 2][z + 1].GetType();
@@ -277,64 +285,25 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z)
 
 void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType)
 {
-	uint32_t tree[6][5][5] = {
-		{
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 1, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-		},
-		{
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 1, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-		},
-		{
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 2, 0, 0 },
-			{ 0, 2, 1, 2, 0 },
-			{ 0, 0, 2, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-		},
-		{
-			{ 0, 0, 2, 0, 0 },
-			{ 0, 2, 2, 2, 0 },
-			{ 2, 2, 1, 2, 2 },
-			{ 0, 2, 2, 2, 0 },
-			{ 0, 0, 2, 0, 0 },
-		},
-		{
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 2, 2, 2, 0 },
-			{ 0, 2, 2, 2, 0 },
-			{ 0, 2, 2, 2, 0 },
-			{ 0, 0, 0, 0, 0 },
-		},
-		{
-			{ 0, 0, 0, 0, 0 },
-			{ 0, 0, 2, 0, 0 },
-			{ 0, 2, 2, 2, 0 },
-			{ 0, 0, 2, 0, 0 },
-			{ 0, 0, 0, 0, 0 },
-		},
-	};
+	TreeShape treeShape = { TREE_BLOCK_INDEX::EMPTY };
+	
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
+	Tree::GenerateTreeShape(treeType, worldPosInt3, treeShape);
 
-	for (int dy = 0; dy < 6; ++dy) {
-		for (int dz = 0; dz < 5; ++dz) {
-			for (int dx = 0; dx < 5; ++dx) {
-				if (tree[dy][dz][dx] <= 0)
+	for (int dy = 0; dy < Tree::TREE_SIZE; ++dy) {
+		for (int dz = 0; dz < Tree::TREE_SIZE; ++dz) {
+			for (int dx = 0; dx < Tree::TREE_SIZE; ++dx) {
+				if (treeShape[dy][dz][dx] == 0)
 					continue;
 
-				int tx = x + dx - 2;
 				int ty = y + dy + 1;
-				int tz = z - dz + 2;
+				int tz = z - dz + (Tree::TREE_SIZE / 2);
+				int tx = x + dx - (Tree::TREE_SIZE / 2);
 
 				BLOCK_TYPE trunkBlockType = Tree::GetTrunkBlockType(treeType);
 				BLOCK_TYPE leafBlockType = Tree::GetLeafBlockType(treeType);
-				BLOCK_TYPE treeBlock = tree[dy][dz][dx] == 1 ? trunkBlockType : leafBlockType;
+				BLOCK_TYPE treeBlock = treeShape[dy][dz][dx] == 1 ? trunkBlockType : leafBlockType;
 
 				// Set chunk tree block
 				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32

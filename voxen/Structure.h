@@ -189,3 +189,4 @@ struct PatchDataEqual {
 };
 
 using PatchDataHashSet = std::unordered_set<PatchData, PatchDataHash, PatchDataEqual>;
+

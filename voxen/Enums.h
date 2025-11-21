@@ -12,6 +12,12 @@ enum DIR : uint8_t {
 	ANY = 6,
 };
 
+enum TREE_BLOCK_INDEX : uint8_t {
+	EMPTY = 0,
+	TRUNK = 1,
+	LEAF = 2,
+};
+
 enum BIOME_TYPE : uint8_t {
 	BIOME_OCEAN = 0,
 	BIOME_BEACH = 1,

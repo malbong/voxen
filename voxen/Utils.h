@@ -189,6 +189,17 @@ namespace Utils {
 		return Vector3(rx, ry, rz);
 	}
 
+	static int RandomRangeByPos(PosInt3 pos, int min, int max)
+	{
+		int x = std::get<0>(pos);
+		int y = std::get<1>(pos);
+		int z = std::get<2>(pos);
+
+		uint32_t hash = HashInt(x * y * z, 10069u);
+		uint32_t length = max - min + 1;
+		return min + hash % length;
+	}
+
 	static float GetPerlinNoiseFbm(float x, float y)
 	{
 		Vector2 p = Vector2(x, y);

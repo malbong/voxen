@@ -1,22 +1,35 @@
 #pragma once
 
 #include "Enums.h"
+#include "Structure.h"
 #include "Block.h"
 
 #include <stdint.h>
 #include <vector>
 
-class TreeTypeInfoSet;
+struct TreeShapeParams {
+	int baseHeight;
+	int branchCount;
+	int branchLength;
+	int branchStartHeight;
+	int leafRadius;
+};
 
+using TreeShape = uint8_t[19][19][19];
+
+class TreeTypeInfoSet;
 class Tree {
 public:
 	static const uint32_t TREE_TYPE_COUNT = 256;
+	static const uint8_t TREE_SIZE = 19;
 
 	static BLOCK_TYPE GetTrunkBlockType(TREE_TYPE type);
 	static BLOCK_TYPE GetLeafBlockType(TREE_TYPE type);
-	static const std::vector<uint8_t> GetShape(TREE_TYPE type);
+	static const TreeShapeParams& GetTreeShapeParams(TREE_TYPE type);
+
 	static TREE_TYPE GetTreeTypeForBiome(
 		BIOME_TYPE biomeType, float d, int localX, int localY, int localZ);
+	static void GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPos, TreeShape& outTree);
 
 	Tree() : m_type(TREE_TYPE::TREE_OAK_LOG) {}
 	Tree(TREE_TYPE type) : m_type(type) {}
@@ -31,17 +44,16 @@ private:
 	TREE_TYPE m_type;
 };
 
-
 class TreeTypeInfo {
 public:
 	TreeTypeInfo()
 		: m_trunkBlockType(BLOCK_TYPE::BLOCK_OAK_LOG), m_leafBlockType(BLOCK_TYPE::BLOCK_OAK_LEAF),
-		  m_shape()
+		  m_shapeParams()
 	{
 	}
-	TreeTypeInfo(
-		BLOCK_TYPE trunkBlockType, BLOCK_TYPE leafBlockType, const std::vector<uint8_t>& shape)
-		: m_trunkBlockType(trunkBlockType), m_leafBlockType(leafBlockType), m_shape(shape)
+	TreeTypeInfo(BLOCK_TYPE trunkBlockType, BLOCK_TYPE leafBlockType, TreeShapeParams shapeParams)
+		: m_trunkBlockType(trunkBlockType), m_leafBlockType(leafBlockType),
+		  m_shapeParams(shapeParams)
 	{
 	}
 	~TreeTypeInfo() {}
@@ -52,14 +64,13 @@ public:
 	inline BLOCK_TYPE GetLeafBlockType() const { return m_leafBlockType; }
 	inline void SetLeafBlockType(BLOCK_TYPE leafBlockType) { m_leafBlockType = leafBlockType; }
 
-	inline const std::vector<uint8_t>& GetShape() const { return m_shape; }
-	inline void SetShape(std::vector<uint8_t>&& shape) { m_shape = std::move(shape); }
-
+	inline const TreeShapeParams& GetShapeParams() const { return m_shapeParams; }
+	inline void SetShapeParams(TreeShapeParams shapeParams) { m_shapeParams = shapeParams; }
 
 private:
 	BLOCK_TYPE m_trunkBlockType;
 	BLOCK_TYPE m_leafBlockType;
-	std::vector<uint8_t> m_shape;
+	TreeShapeParams m_shapeParams;
 };
 
 
@@ -69,37 +80,46 @@ public:
 	{
 		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_OAK_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_OAK_LEAF);
+		TreeShapeParams shapeParams = { 6, 0, 0, 0, 3 };
+		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_BIRCH_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_BIRCH_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetTrunkBlockType(BLOCK_TYPE::BLOCK_CACTUS);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetLeafBlockType(BLOCK_TYPE::BLOCK_CACTUS);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LEAF);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetShapeParams(shapeParams);
 	}
 
 	inline const TreeTypeInfo& GetInfo(TREE_TYPE type) const { return m_treeTypeInfoSet[type]; }
