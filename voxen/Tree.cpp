@@ -88,7 +88,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 }
 
 void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY, int carveEndY,
-	float carveScaleX, float carveScaleZ, const PosInt3 worldPos, TreeShape& tree)
+	float carveScale, const PosInt3 worldPos, TreeShape& tree)
 {
 	for (int y = -radius; y <= radius; ++y) {
 		float sy = y * shrink.y;
@@ -107,8 +107,8 @@ void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY,
 					uint32_t hx = Utils::HashInt(wx, wx * wy * wz);
 					uint32_t hz = Utils::HashInt(wz, wx * wy * wz);
 
-					sx *= (1.0f + (carveScaleX * (hx % 2)));
-					sz *= (1.0f + (carveScaleZ * (hz % 2)));
+					sx *= (1.0f + (carveScale * (hx % 2)));
+					sz *= (1.0f + (carveScale * (hz % 2)));
 				}
 
 				if (sx * sx + sy * sy + sz * sz < radius * radius) {
@@ -138,10 +138,35 @@ void GenerateJungle(const TreeShapeParams& params, TreeShape& tree) {}
 
 void GenerateAcacia(const TreeShapeParams& params, TreeShape& tree) {}
 
+void GenerateSpruce(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
+{
+	// tree x, z at center
+	int tx = Tree::TREE_SIZE / 2;
+	int tz = Tree::TREE_SIZE / 2;
+
+	// set trunk block
+	int heightRange = Utils::RandomRangeByPos(worldPos, -2, 4);
+	for (int y = 0; y < params.baseHeight + heightRange; ++y)
+		tree[y][tz][tx] = TREE_BLOCK_INDEX::TRUNK;
+
+	Vector3 center = Vector3((float)tx, (float)(params.baseHeight - 4 + heightRange), (float)tz);
+	Vector3 shrink = Vector3(1.0f, 2.5f, 1.0f);
+	int radiusRange = Utils::RandomRangeByPos(worldPos, -1, 1);
+	int leafRadius = params.leafRadius + radiusRange;
+	int carveStartY = -(1 + radiusRange);
+	int carveEndY = radiusRange;
+	float carveScale = 0.25f;
+	AddLeafCluster(
+		center, shrink, leafRadius, carveStartY, carveEndY, carveScale, worldPos, tree);
+
+	// cap leaves
+	center = Vector3((float)tx, (float)(params.baseHeight - 1 + heightRange), (float)tz);
+	shrink = Vector3(1.0f, 1.5f, 1.0f);
+	AddLeafCluster(center, shrink, 2, -1, 1, 0.25f, worldPos, tree);
+}
+
 void GenerateBasicTree(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
 {
-	// oak, spruce, birch
-
 	// tree x, z at center
 	int tx = Tree::TREE_SIZE / 2;
 	int tz = Tree::TREE_SIZE / 2;
@@ -159,18 +184,18 @@ void GenerateBasicTree(const TreeShapeParams& params, const PosInt3& worldPos, T
 	int carveEndY = radiusRange;
 	float carveScale = 0.125f;
 	AddLeafCluster(
-		center, shrink, leafRadius, carveStartY, carveEndY, carveScale, carveScale, worldPos, tree);
+		center, shrink, leafRadius, carveStartY, carveEndY, carveScale, worldPos, tree);
 
-	// top leaves
+	// cap leaves
 	center = Vector3((float)tx, (float)(params.baseHeight - 1 + heightRange), (float)tz);
 	shrink = Vector3(1.0f, 1.5f, 1.0f);
-	AddLeafCluster(center, shrink, 2, 0, 0, 0.25f, 0.25f, worldPos, tree);
+	AddLeafCluster(center, shrink, 2, 0, 0, 0.25f, worldPos, tree);
 }
 
 void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeShape& outTreeShape)
 {
 	const TreeShapeParams& params = GetTreeShapeParams(type);
-	return GenerateBasicTree(params, worldPosInt3, outTreeShape);
+	return GenerateSpruce(params, worldPosInt3, outTreeShape);
 
 	switch (type) {
 	case TREE_TYPE::TREE_MANGROVE_LOG:
@@ -188,7 +213,10 @@ void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeSh
 	case TREE_TYPE::TREE_ACACIA_LOG:
 		return GenerateAcacia(params, outTreeShape);
 
-	default:
+	case TREE_TYPE::TREE_SPRUCE_LOG:
+		return GenerateSpruce(params, worldPosInt3, outTreeShape);
+
+	default: // oak, birch
 		return GenerateBasicTree(params, worldPosInt3, outTreeShape);
 	}
 }
