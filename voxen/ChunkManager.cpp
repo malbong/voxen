@@ -554,7 +554,9 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 
 			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + Vector3(0.5f);
 			Vector3 instanceWorldPosition = instanceLocalPosition + c->GetOffsetPosition();
-			info.instanceWorld = Matrix::CreateTranslation(instanceWorldPosition).Transpose();
+			info.instanceWorld = (Matrix::CreateRotationY(Utils::PI / 6.0f) *
+								  Matrix::CreateTranslation(instanceWorldPosition))
+									 .Transpose();
 
 			INSTANCE_SHAPE shapeType = p.second.GetShape(type);
 			m_instanceInfoList[shapeType].push_back(info);

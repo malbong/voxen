@@ -36,7 +36,7 @@ vsOutput main(vsInput input)
     output.posProj = mul(output.posProj, view);
     output.posProj = mul(output.posProj, proj);
     
-    output.normal = input.normal; // invTranspose 고려하지 않음 -> ununiform scaling X
+    output.normal = mul(float4(input.normal, 0.0), input.instanceWorld); // invTranspose 고려하지 않음 -> ununiform scaling X
     float3 toEye = normalize(eyePos - output.posWorld);
     if (dot(output.normal, toEye) < 0.0)
         output.normal *= -1;

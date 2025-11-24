@@ -47,6 +47,11 @@ vsOutput main(vsInput input)
     output.posProj = mul(output.posProj, proj);
     
     output.normal = getNormal(face);
+    #ifdef USE_ALPHA_CLIP
+        float3 toEye = normalize(eyePos - output.posWorld);
+        if (dot(output.normal, toEye) < 0.0)
+            output.normal *= -1;
+    #endif
     
     output.texcoord = getVoxelTexcoord(position, face);
     output.texIndex = texIndex;

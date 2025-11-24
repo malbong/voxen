@@ -128,15 +128,18 @@ void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY,
 	}
 }
 
-void GenerateMangrove(const TreeShapeParams& params, TreeShape& tree) {}
+void GenerateMangrove(const TreeShapeParams& params, TreeShape& tree) 
+{
 
-void GenerateCherry(const TreeShapeParams& params, TreeShape& tree) {}
-
-void GenerateCactus(const TreeShapeParams& params, TreeShape& tree) {}
+}
 
 void GenerateJungle(const TreeShapeParams& params, TreeShape& tree) {}
 
+void GenerateCactus(const TreeShapeParams& params, TreeShape& tree) {}
+
 void GenerateAcacia(const TreeShapeParams& params, TreeShape& tree) {}
+
+void GenerateCherry(const TreeShapeParams& params, TreeShape& tree) {}
 
 void GenerateSpruce(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
 {
@@ -195,7 +198,6 @@ void GenerateBasicTree(const TreeShapeParams& params, const PosInt3& worldPos, T
 void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeShape& outTreeShape)
 {
 	const TreeShapeParams& params = GetTreeShapeParams(type);
-	return GenerateSpruce(params, worldPosInt3, outTreeShape);
 
 	switch (type) {
 	case TREE_TYPE::TREE_MANGROVE_LOG:

@@ -294,7 +294,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE tr
 	for (int dy = 0; dy < Tree::TREE_SIZE; ++dy) {
 		for (int dz = 0; dz < Tree::TREE_SIZE; ++dz) {
 			for (int dx = 0; dx < Tree::TREE_SIZE; ++dx) {
-				if (treeShape[dy][dz][dx] == 0)
+				if (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::EMPTY)
 					continue;
 
 				int ty = y + dy + 1;
@@ -303,7 +303,9 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE tr
 
 				BLOCK_TYPE trunkBlockType = Tree::GetTrunkBlockType(treeType);
 				BLOCK_TYPE leafBlockType = Tree::GetLeafBlockType(treeType);
-				BLOCK_TYPE treeBlock = treeShape[dy][dz][dx] == 1 ? trunkBlockType : leafBlockType;
+				BLOCK_TYPE treeBlock = treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::TRUNK
+										   ? trunkBlockType
+										   : leafBlockType;
 
 				// Set chunk tree block
 				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32

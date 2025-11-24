@@ -86,18 +86,18 @@ public:
 			BLOCK_TYPE::BLOCK_SPRUCE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LEAF);
-		TreeShapeParams shapeParams = { 9, 0, 0, 0, 4 };
-		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams({ 9, 0, 0, 0, 4 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LEAF);
+		TreeShapeParams shapeParams = { 9, 0, 0, 0, 4 };
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_BIRCH_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_BIRCH_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetShapeParams({5, 0, 0, 0, 2});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LOG);

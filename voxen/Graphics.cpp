@@ -22,6 +22,7 @@ namespace Graphics {
 
 	// Vertex Shader
 	ComPtr<ID3D11VertexShader> basicVS;
+	ComPtr<ID3D11VertexShader> basicAlphaClipVS;
 	ComPtr<ID3D11VertexShader> skyboxVS;
 	ComPtr<ID3D11VertexShader> cloudVS;
 	ComPtr<ID3D11VertexShader> samplingVS;
@@ -894,8 +895,18 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 		return false;
 	}
 
-	// Basic Shadow
+	// Basic AlphaClip
 	std::vector<D3D_SHADER_MACRO> macros;
+	macros.push_back({ "USE_ALPHA_CLIP", "1" });
+	macros.push_back({ NULL, NULL });
+	if (!DXUtils::CreateVertexShaderAndInputLayout(
+			L"BasicVS.hlsl", basicAlphaClipVS, basicIL, elementDesc, macros.data())) {
+		std::cout << "failed create basic alpha clip vs" << std::endl;
+		return false;
+	}
+
+	// Basic Shadow
+	macros.clear();
 	macros.push_back({ "USE_SHADOW", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
@@ -1475,6 +1486,7 @@ void Graphics::InitGraphicsPSO()
 	// semiAlphaPSO
 	semiAlphaPSO = basicPSO;
 	semiAlphaPSO.rasterizerState = noneCullRS;
+	semiAlphaPSO.vertexShader = basicAlphaClipVS;
 	semiAlphaPSO.pixelShader = basicAlphaClipPS;
 
 	// skyboxPSO

@@ -26,6 +26,7 @@ namespace Graphics {
 
 	// Vertex Shader
 	extern ComPtr<ID3D11VertexShader> basicVS;
+	extern ComPtr<ID3D11VertexShader> basicAlphaClipVS;
 	extern ComPtr<ID3D11VertexShader> skyboxVS;
 	extern ComPtr<ID3D11VertexShader> cloudVS;
 	extern ComPtr<ID3D11VertexShader> samplingVS;
