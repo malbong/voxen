@@ -73,17 +73,33 @@ ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMem
 		int y = patchData.localY;
 		int z = patchData.localZ;
 
-		if (patchData.blockType != m_blocks[x + 1][y + 1][z + 1].GetType()) {
-			m_blocks[x + 1][y + 1][z + 1].SetType(patchData.blockType);
-			m_onPatchDirtyFlag = true;
+		// for instance
+		if (patchData.instance.GetType() != INSTANCE_TYPE::INSTANCE_NONE &&
+			Block::IsTransparency(m_blocks[x + 1][y + 1][z + 1].GetType())) {
+
+			if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
+				m_instanceMap.erase(PosInt3(x, y, z));
+			}
+
+			m_instanceMap.insert(std::pair(PosInt3(x, y, z), Instance(patchData.instance)));
 		}
 
-		if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
-			m_instanceMap.erase(PosInt3(x, y, z));
+		// for block
+		if (patchData.block.GetType() != BLOCK_TYPE::BLOCK_NONE) {
+			if (patchData.block.GetType() != m_blocks[x + 1][y + 1][z + 1].GetType()) {
+				m_blocks[x + 1][y + 1][z + 1] = Block(patchData.block);
+				m_onPatchDirtyFlag = true;
+			}
+
+			if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
+				m_instanceMap.erase(PosInt3(x, y, z));
+			}
 		}
 	}
 
-	InitWorldVerticesData(memory);
+	if (m_onPatchDirtyFlag) {
+		InitWorldVerticesData(memory);
+	}
 
 	return memory;
 }
@@ -315,7 +331,7 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE tr
 				// Making chunk patch data to neighbor chunk
 				if (!IsInsideChunk(tx, ty, tz)) {
 					PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-						tx, ty, tz, treeBlock, CHUNK_SIZE, true);
+						tx, ty, tz, treeBlock, Instance(), CHUNK_SIZE, true);
 
 					Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
 					Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
@@ -420,7 +436,33 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 			continue;
 		}
 
-		m_instanceMap.insert(std::pair(PosInt3(x, localY, z), Instance(instanceType)));
+		PosInt3 WorldPosInt3 =
+			Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)localY, (float)z));
+		int randomHeight =
+			Utils::RandomRangeByPos(WorldPosInt3, 1, Instance::GetMaxHeight(instanceType)); // TODO: h, t
+
+		for (int h = 0; h < randomHeight; ++h) {
+			TEXTURE_INDEX texIndex =
+				Instance::GetTextureIndexByHeight(instanceType, h, randomHeight);
+			
+			Instance instance = Instance(instanceType, texIndex);
+
+			if (IsInsideChunk(x, localY + h, z)) {
+				m_instanceMap.insert(std::pair(PosInt3(x, localY + h, z), instance));
+			}
+			else {
+				PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+					x, localY + h, z, Block(), instance, CHUNK_SIZE, true);
+
+				Vector3 instancePos =
+					m_offsetPosition + Vector3((float)x, (float)(localY + h), (float)z);
+				Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
+				PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
+
+				memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
+			}
+		}
+
 		placedBiomeInstanceCount[biomeType]++;
 	}
 }

@@ -16,8 +16,8 @@ public:
 	static RGBA_UINT GetBaseColor(BIOME_TYPE type);
 	static uint32_t GetMaxInstanceCountPerChunk(BIOME_TYPE type);
 	static uint32_t GetMaxTreeCountPerChunk(BIOME_TYPE type);
-	static const std::vector<Instance>& GetInstances(BIOME_TYPE type);
-	static const std::vector<Tree>& GetTrees(BIOME_TYPE type);
+	static const std::vector<INSTANCE_TYPE>& GetInstances(BIOME_TYPE type);
+	static const std::vector<TREE_TYPE>& GetTrees(BIOME_TYPE type);
 	static BIOME_TYPE GetBiomeType(
 		float elevation, float temperature, float humidity, float peaksValley, float erosion);
 
@@ -51,21 +51,21 @@ public:
 		m_maxInstanceCountPerChunk = maxInstanceCountPerChunk;
 	}
 
-	inline const std::vector<Instance>& GetInstances() const { return m_instances; }
-	inline void SetInstances(std::vector<Instance>&& instances)
+	inline const std::vector<INSTANCE_TYPE>& GetInstances() const { return m_instances; }
+	inline void SetInstances(std::vector<INSTANCE_TYPE>&& instances)
 	{
 		m_instances = std::move(instances);
 	}
 
-	inline const std::vector<Tree>& GetTrees() const { return m_trees; }
-	inline void SetTrees(std::vector<Tree>&& trees) { m_trees = std::move(trees); }
+	inline const std::vector<TREE_TYPE>& GetTrees() const { return m_trees; }
+	inline void SetTrees(std::vector<TREE_TYPE>&& trees) { m_trees = std::move(trees); }
 
 private:
 	RGBA_UINT m_baseColor;
 	uint32_t m_maxTreeCountPerChunk;
 	uint32_t m_maxInstanceCountPerChunk;
-	std::vector<Instance> m_instances;
-	std::vector<Tree> m_trees;
+	std::vector<INSTANCE_TYPE> m_instances;
+	std::vector<TREE_TYPE> m_trees;
 };
 
 
@@ -74,8 +74,8 @@ class BiomeTypeInfoSet {
 public:
 	BiomeTypeInfoSet() : m_biomeTypeInfoSet(Biome::BIOME_TYPE_COUNT)
 	{
-		std::vector<Instance> tmpInstances;
-		std::vector<Tree> tmpTrees;
+		std::vector<INSTANCE_TYPE> tmpInstances;
+		std::vector<TREE_TYPE> tmpTrees;
 
 		// BIOME_OCEAN
 		// instance: seagrass, kelp
@@ -84,13 +84,13 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetMaxTreeCountPerChunk(0);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SEAGRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_KELP));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SEAGRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_KELP);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_NONE));
+		tmpTrees.push_back(TREE_TYPE::TREE_NONE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetTrees(std::move(tmpTrees));
-			
+		
 
 		// BIOME_BEACH
 		// instance: no instance
@@ -99,10 +99,10 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxInstanceCountPerChunk(0);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxTreeCountPerChunk(0);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_NONE));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_NONE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_NONE));
+		tmpTrees.push_back(TREE_TYPE::TREE_NONE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetTrees(std::move(tmpTrees));
 
 
@@ -113,10 +113,10 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetMaxInstanceCountPerChunk(0);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetMaxTreeCountPerChunk(3);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_NONE));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_NONE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_SPRUCE_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetTrees(std::move(tmpTrees));
 
 
@@ -127,13 +127,13 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetMaxTreeCountPerChunk(8);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_FERN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_LARGE_FERN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_SPRUCE_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetTrees(std::move(tmpTrees));
 
 
@@ -144,16 +144,16 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxInstanceCountPerChunk(96);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxTreeCountPerChunk(12);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_OXEYE_DAISY));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_CORN_FLOWER));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_PINK));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_RED));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_WHITE));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_OXEYE_DAISY);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_CORN_FLOWER);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_PINK);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_RED);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_WHITE);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetTrees(std::move(tmpTrees));
 
 
@@ -164,16 +164,16 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxInstanceCountPerChunk(128);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxTreeCountPerChunk(16);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SEAGRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_BLUE_ORCHID));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_MUSHROOM_BROWN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_MUSHROOM_RED));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_DEAD_BUSH));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SEAGRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_BLUE_ORCHID);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_MUSHROOM_BROWN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_MUSHROOM_RED);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DEAD_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_MANGROVE_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_MANGROVE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetTrees(std::move(tmpTrees));
 
 
@@ -184,16 +184,16 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetMaxInstanceCountPerChunk(160);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetMaxTreeCountPerChunk(32);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ROSE_BLUE));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ROSE_RED));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ROSE_PLANTS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_LILY_OF_THE_VALLEY));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ALLIUM));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ROSE_BLUE);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ROSE_RED);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ROSE_PLANTS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LILY_OF_THE_VALLEY);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ALLIUM);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_BIRCH_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_BIRCH_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetTrees(std::move(tmpTrees));
 
 
@@ -204,19 +204,19 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxInstanceCountPerChunk(96);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxTreeCountPerChunk(12);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_DANDELION));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_CORN_FLOWER));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ALLIUM));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_OXEYE_DAISY));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_PINK));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_RED));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_WHITE));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DANDELION);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_CORN_FLOWER);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ALLIUM);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_OXEYE_DAISY);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_PINK);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_RED);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_WHITE);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_CHERRY_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_CHERRY_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetTrees(std::move(tmpTrees));
 
 
@@ -227,10 +227,10 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxInstanceCountPerChunk(8);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxTreeCountPerChunk(2);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_DEAD_BUSH));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DEAD_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_CACTUS));
+		tmpTrees.push_back(TREE_TYPE::TREE_CACTUS);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetTrees(std::move(tmpTrees));
 
 
@@ -241,13 +241,13 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxInstanceCountPerChunk(160);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxTreeCountPerChunk(32);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_FERN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_LARGE_FERN));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_JUNGLE_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_JUNGLE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetTrees(std::move(tmpTrees));
 
 
@@ -259,18 +259,18 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetMaxInstanceCountPerChunk(160);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetMaxTreeCountPerChunk(32);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ALLIUM));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_LILY_OF_THE_VALLEY));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_ROSE_PLANTS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_PINK));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_RED));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_WHITE));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ALLIUM);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LILY_OF_THE_VALLEY);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_ROSE_PLANTS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_PINK);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_RED);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_WHITE);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_TULIP_ORANGE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_BIRCH_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_BIRCH_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetTrees(std::move(tmpTrees));
 
 
@@ -281,11 +281,11 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetMaxTreeCountPerChunk(8);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_OAK_LOG));
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_ACACIA_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
+		tmpTrees.push_back(TREE_TYPE::TREE_ACACIA_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetTrees(std::move(tmpTrees));
 
 
@@ -297,13 +297,13 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxInstanceCountPerChunk(32);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxTreeCountPerChunk(4);
 		tmpInstances.clear();
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SHORT_GRASS));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_FERN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_LARGE_FERN));
-		tmpInstances.push_back(Instance(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH));
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
+		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
-		tmpTrees.push_back(Tree(TREE_TYPE::TREE_SPRUCE_LOG));
+		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetTrees(std::move(tmpTrees));
 	}
 

@@ -50,8 +50,10 @@ public:
 	void RemoveBlockPatchAt(Vector3 position);
 	void AddBlockPatchAt(Vector3 position, DIR face);
 
-	PatchData MakePatchData(int x, int y, int z, BLOCK_TYPE blockType, int baseSize, bool needWrap);
-	PatchData MakePatchData(Vector3 position, BLOCK_TYPE blockType, int baseSize, bool needWrap);
+	PatchData MakePatchData(
+		int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap);
+	PatchData MakePatchData(Vector3 position, Block block, Instance instance,
+		int baseSize, bool needWrap);
 	void GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition, BLOCK_TYPE blockType,
 		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
 	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,

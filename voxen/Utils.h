@@ -7,6 +7,8 @@
 #include <stb_image.h>
 #include <algorithm>
 
+#include "Type.h"
+
 using namespace DirectX::SimpleMath;
 
 namespace Utils {

@@ -3,6 +3,7 @@
 #include "Enums.h"
 #include "Structure.h"
 #include "Block.h"
+#include "Type.h"
 
 #include <stdint.h>
 #include <vector>

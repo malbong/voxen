@@ -14,20 +14,29 @@ public:
 
 	static INSTANCE_SHAPE GetShape(INSTANCE_TYPE type);
 	static TEXTURE_INDEX GetTextureIndex(INSTANCE_TYPE type);
+	static TEXTURE_INDEX GetTextureTopIndex(INSTANCE_TYPE type);
+	static TEXTURE_INDEX GetTextureBottomIndex(INSTANCE_TYPE type);
+	static TEXTURE_INDEX GetTextureIndexByHeight(
+		INSTANCE_TYPE type, int currentHeight, int maxHeight);
+	static uint8_t GetMaxHeight(INSTANCE_TYPE type);
 	static INSTANCE_TYPE GetInstanceTypeForBiome(
 		BIOME_TYPE biomeType, float d, int localX, int localY, int localZ);
 
-	Instance() : m_type(INSTANCE_TYPE::INSTANCE_SHORT_GRASS) {}
-	Instance(INSTANCE_TYPE type) : m_type(type) {}
+	Instance() : m_type(INSTANCE_TYPE::INSTANCE_NONE), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE) {}
+	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex) : m_type(type), m_texIndex(texIndex) {}
 	~Instance() {}
 
 	inline INSTANCE_TYPE GetType() const { return m_type; }
 	inline void SetType(INSTANCE_TYPE type) { m_type = type; }
 
+	inline TEXTURE_INDEX GetTexIndex() const { return m_texIndex; }
+	inline void SetTexIndex(TEXTURE_INDEX texIndex) { m_texIndex = texIndex; }
+
 private:
 	static InstanceTypeInfoSet m_instanceTypeInfoSet;
 
 	INSTANCE_TYPE m_type;
+	TEXTURE_INDEX m_texIndex;
 };
 
 
@@ -35,11 +44,15 @@ class InstanceTypeInfo {
 
 public:
 	InstanceTypeInfo()
-		: m_shape(INSTANCE_SHAPE::INSTANCE_CROSS), m_texIndex(TEXTURE_INDEX::TEXTURE_SHORT_GRASS)
+		: m_shape(INSTANCE_SHAPE::INSTANCE_CROSS), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE),
+		  m_texTopIndex(TEXTURE_INDEX::TEXTURE_NONE), m_texBottomIndex(TEXTURE_INDEX::TEXTURE_NONE),
+		  m_maxHeight(1)
 	{
 	}
-	InstanceTypeInfo(INSTANCE_SHAPE shape, TEXTURE_INDEX texIndex)
-		: m_shape(shape), m_texIndex(texIndex)
+	InstanceTypeInfo(INSTANCE_SHAPE shape, TEXTURE_INDEX texIndex, TEXTURE_INDEX texTopIndex,
+		TEXTURE_INDEX texBottomIndex, uint8_t maxHeight)
+		: m_shape(shape), m_texIndex(texIndex), m_texTopIndex(texTopIndex),
+		  m_texBottomIndex(texBottomIndex), m_maxHeight(maxHeight)
 	{
 	}
 	~InstanceTypeInfo() {}
@@ -48,13 +61,31 @@ public:
 	{
 		m_shape = shape;
 		m_texIndex = texIndex;
+		m_texTopIndex = TEXTURE_INDEX::TEXTURE_NONE;
+		m_texBottomIndex = TEXTURE_INDEX::TEXTURE_NONE;
+		m_maxHeight = 1;
+	}
+	inline void Init(INSTANCE_SHAPE shape, TEXTURE_INDEX texIndex, TEXTURE_INDEX texTopIndex,
+		TEXTURE_INDEX texBottomIndex, uint8_t maxHeight)
+	{
+		m_shape = shape;
+		m_texIndex = texIndex;
+		m_texTopIndex = texTopIndex;
+		m_texBottomIndex = texBottomIndex;
+		m_maxHeight = maxHeight;
 	}
 	inline INSTANCE_SHAPE GetShape() const { return m_shape; }
 	inline TEXTURE_INDEX GetTextureIndex() const { return m_texIndex; }
+	inline TEXTURE_INDEX GetTextureTopIndex() const { return m_texTopIndex; }
+	inline TEXTURE_INDEX GetTextureBottomIndex() const { return m_texBottomIndex; }
+	inline uint8_t GetMaxHeight() const { return m_maxHeight; }
 
 private:
 	INSTANCE_SHAPE m_shape;
 	TEXTURE_INDEX m_texIndex;
+	TEXTURE_INDEX m_texTopIndex;
+	TEXTURE_INDEX m_texBottomIndex;
+	uint8_t m_maxHeight;
 };
 
 
@@ -64,14 +95,16 @@ public:
 	InstanceTypeInfoSet() : m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
 	{
 		// INSTANCE_TYPE, TEXTURE_TYPE
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SHORT_GRASS].Init(
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_GRASS].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_SHORT_GRASS);
 
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SEAGRASS].Init(
-			INSTANCE_SHAPE::INSTANCE_FENCE, TEXTURE_INDEX::TEXTURE_SEAGRASS);
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SEAGRASS].Init(INSTANCE_SHAPE::INSTANCE_FENCE,
+			TEXTURE_INDEX::TEXTURE_SEAGRASS, TEXTURE_INDEX::TEXTURE_DOUBLE_SEAGRASS_TOP,
+			TEXTURE_INDEX::TEXTURE_DOUBLE_SEAGRASS_BOTTOM, 2);
 
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_KELP].Init(
-			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_KELP);
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_KELP].Init(INSTANCE_SHAPE::INSTANCE_CROSS,
+			TEXTURE_INDEX::TEXTURE_KELP_TOP, TEXTURE_INDEX::TEXTURE_KELP_TOP,
+			TEXTURE_INDEX::TEXTURE_KELP, 10);
 
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_FERN].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_FERN);

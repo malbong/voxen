@@ -17,12 +17,12 @@ uint32_t Biome::GetMaxInstanceCountPerChunk(BIOME_TYPE type)
 	return m_biomeTypeInfoSet.GetInfo(type).GetMaxInstanceCountPerChunk();
 }
 
-const std::vector<Instance>& Biome::GetInstances(BIOME_TYPE type)
+const std::vector<INSTANCE_TYPE>& Biome::GetInstances(BIOME_TYPE type)
 {
 	return m_biomeTypeInfoSet.GetInfo(type).GetInstances();
 }
 
-const std::vector<Tree>& Biome::GetTrees(BIOME_TYPE type)
+const std::vector<TREE_TYPE>& Biome::GetTrees(BIOME_TYPE type)
 {
 	return m_biomeTypeInfoSet.GetInfo(type).GetTrees();
 }

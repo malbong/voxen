@@ -146,6 +146,9 @@
     <ClInclude Include="Tree.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Type.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

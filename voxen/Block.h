@@ -20,7 +20,7 @@ public:
 	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
 		float peaksValley, float temperature, float humidity, float distribution, float elevation);
 
-	Block() : m_type(BLOCK_TYPE::BLOCK_AIR) {}
+	Block() : m_type(BLOCK_TYPE::BLOCK_NONE) {}
 	Block(BLOCK_TYPE type) : m_type(type) {}
 	~Block() {}
 

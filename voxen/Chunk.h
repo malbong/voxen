@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Block.h"
-#include "Instance.h"
 #include "Structure.h"
 #include "Terrain.h"
 #include "Biome.h"
+#include "Type.h"
 
 #include <d3d11.h>
 #include <wrl.h>

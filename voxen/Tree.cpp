@@ -22,66 +22,66 @@ const TreeShapeParams& Tree::GetTreeShapeParams(TREE_TYPE type)
 TREE_TYPE Tree::GetTreeTypeForBiome(
 	BIOME_TYPE biomeType, float d, int localX, int localY, int localZ)
 {
-	const std::vector<Tree> biomeTrees = Biome::GetTrees(biomeType);
+	const std::vector<TREE_TYPE> biomeTrees = Biome::GetTrees(biomeType);
 	uint32_t hash = Utils::HashInt((uint32_t)(localX * localZ), localY);
 
 	switch (biomeType) {
 	case BIOME_OCEAN:
-		return biomeTrees[0].GetType(); // none
+		return biomeTrees[0]; // none
 
 	case BIOME_BEACH:
-		return biomeTrees[0].GetType(); // none
+		return biomeTrees[0]; // none
 
 	case BIOME_TUNDRA:
-		return biomeTrees[0].GetType(); // spruce
+		return biomeTrees[0]; // spruce
 
 	case BIOME_TAIGA:
-		return biomeTrees[0].GetType(); // spruce
+		return biomeTrees[0]; // spruce
 
 	case BIOME_PLAINS:
-		return biomeTrees[0].GetType(); // oak
+		return biomeTrees[0]; // oak
 
 	case BIOME_SWAMP:
 		if (d < 0.5f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // mangrove
+			return biomeTrees[1]; // mangrove
 
 	case BIOME_FOREST:
 		if (d < 0.8f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // birch
+			return biomeTrees[1]; // birch
 
 	case BIOME_SHRUBLAND:
 		if (d < 0.4f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // cherry
+			return biomeTrees[1]; // cherry
 
 	case BIOME_DESERT:
-		return biomeTrees[0].GetType(); // cactus
+		return biomeTrees[0]; // cactus
 
 	case BIOME_RAINFOREST:
 		if (d < 0.2f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // jungle
+			return biomeTrees[1]; // jungle
 
 	case BIOME_SEASONFOREST:
 		if (d < 0.6f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // birch
+			return biomeTrees[1]; // birch
 
 	case BIOME_SAVANA:
 		if (d < 0.3f)
-			return biomeTrees[0].GetType(); // oak
+			return biomeTrees[0]; // oak
 		else
-			return biomeTrees[1].GetType(); // acacia
+			return biomeTrees[1]; // acacia
 
 	case BIOME_SNOWY_TAIGA:
-		return biomeTrees[0].GetType(); // spruce
+		return biomeTrees[0]; // spruce
 	}
 
 	return TREE_TYPE::TREE_NONE;
