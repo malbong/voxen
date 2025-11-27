@@ -7,10 +7,12 @@
 #include "Chunk.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Block.h"
 #include "Instance.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
+
 
 class ChunkManager {
 

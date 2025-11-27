@@ -3,7 +3,7 @@
 #include "Structure.h"
 #include "Terrain.h"
 #include "Biome.h"
-#include "Type.h"
+#include "PatchData.h"
 
 #include <d3d11.h>
 #include <wrl.h>
@@ -66,6 +66,7 @@ public:
 	inline bool IsEmptyOpaque() const { return m_opaqueVertexCount == 0; }
 	inline bool IsEmptyTransparency() const { return m_transparencyVertexCount == 0; }
 	inline bool IsEmptySemiAlpha() const { return m_semiAlphaVertexCount == 0; }
+	inline bool IsEmptyInstance() const { return m_instanceMap.empty(); }
 
 	inline const std::vector<VoxelVertex>& GetLowLodVertices() const { return m_lowLodVertices; }
 	inline const std::vector<uint32_t>& GetLowLodIndices() const { return m_lowLodIndices; }
@@ -129,6 +130,9 @@ private:
 
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
+	uint32_t GetMaxPlaceCountByBiomeRatio(
+		BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount);
+
 	void InitTreePlace(ChunkLoadMemory* memory);
 	bool IsInsideChunk(int x, int y, int z);
 	bool IsInsideChunkWithPadding(int x, int y, int z);
@@ -138,7 +142,15 @@ private:
 	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType);
 
 	void InitInstancePlace(ChunkLoadMemory* memory);
-	bool CanPlaceInstanceAt(int x, int y, int z);
+	bool IsInstanceAt(int x, int y, int z);
+	INSTANCE_TYPE GetWaterPlaneInstanceType(int x, int z, ChunkLoadMemory* memory);
+	bool CanPlaceWaterPlaneInstanceAt(int x, int z, ChunkLoadMemory* memory);
+	void SetWaterPlaneInstance(int x, int z, INSTANCE_TYPE instanceType, ChunkLoadMemory* memory);
+	INSTANCE_TYPE GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* memory);
+	bool CanPlaceBiomeInstanceAt(
+		int x, int y, int z, uint32_t placedBiomeInstanceCount, ChunkLoadMemory* memory);
+	bool CheckPlaceCondition(INSTANCE_TYPE type, int x, int y, int z);
+	void SetBiomeInstance(int x, int y, int z, INSTANCE_TYPE instanceType, ChunkLoadMemory* memory);
 
 	void InitWorldVerticesData(ChunkLoadMemory* memory);
 	void MakeFaceSliceColumnBit(uint64_t cullColBit[Chunk::CHUNK_SIZE_P2 * 6],

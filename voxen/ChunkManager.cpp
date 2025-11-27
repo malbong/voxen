@@ -169,7 +169,7 @@ void ChunkManager::RenderTransparencyChunk(Chunk* chunk)
 
 void ChunkManager::RenderInstance()
 {
-	UINT indexCountPerInstance[3] = { 12, 24, 6 };
+	UINT indexCountPerInstance[INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT] = { 12, 24, 6, 6 };
 
 	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i) {
 		Graphics::context->IASetIndexBuffer(
@@ -179,7 +179,8 @@ void ChunkManager::RenderInstance()
 		std::vector<UINT> offsets = { 0, 0 };
 		std::vector<ID3D11Buffer*> buffers = { m_instanceVertexBuffers[i].Get(),
 			m_instanceInfoBuffers[i].Get() };
-		Graphics::context->IASetVertexBuffers(0, 2, buffers.data(), strides.data(), offsets.data());
+		Graphics::context->IASetVertexBuffers(
+			0, (UINT)buffers.size(), buffers.data(), strides.data(), offsets.data());
 		Graphics::context->DrawIndexedInstanced(
 			indexCountPerInstance[i], (UINT)m_instanceInfoList[i].size(), 0, 0, 0);
 	}
@@ -555,14 +556,18 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 			INSTANCE_TYPE type = p.second.GetType();
 			info.texIndex = p.second.GetTexIndex();
 
-			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + Vector3(0.5f);
+			float offsetNoiseX = p.second.GetOffsetNoisePositionXZ().x;
+			float offsetNoiseZ = p.second.GetOffsetNoisePositionXZ().y;
+			Vector3 offsetNoiseXZ = Vector3(0.5f) + Vector3(offsetNoiseX, 0.0f, offsetNoiseZ);
+			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + offsetNoiseXZ;
 			Vector3 instanceWorldPosition = instanceLocalPosition + c->GetOffsetPosition();
+			Matrix translation = Matrix::CreateTranslation(instanceWorldPosition);
 
+			float yawRotationRadian = p.second.GetYawRotation() * (XM_PI / 180.0f);
 			Matrix rotation = Matrix::CreateFromQuaternion(
-				Quaternion::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), XM_PI / 6.0f));
+				Quaternion::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yawRotationRadian));
 
-			info.instanceWorld =
-				(rotation * Matrix::CreateTranslation(instanceWorldPosition)).Transpose();
+			info.instanceWorld = (rotation * translation).Transpose();
 
 			INSTANCE_SHAPE shapeType = p.second.GetShape(type);
 			m_instanceInfoList[shapeType].push_back(info);
@@ -774,6 +779,22 @@ bool ChunkManager::MakeInstanceVertexBuffer()
 	if (!DXUtils::CreateIndexBuffer(
 			m_instanceIndexBuffers[INSTANCE_SHAPE::INSTANCE_SQUARE], instanceIndices)) {
 		std::cout << "failed create SQUARE instance index buffer in chunk manager" << std::endl;
+		return false;
+	}
+	instanceVertices.clear();
+	instanceIndices.clear();
+
+
+	// Instance Type 3 : FLOOR
+	MeshGenerator::CreateFloorInstanceMesh(instanceVertices, instanceIndices);
+	if (!DXUtils::CreateVertexBuffer(
+			m_instanceVertexBuffers[INSTANCE_SHAPE::INSTANCE_FLOOR], instanceVertices)) {
+		std::cout << "failed create FLOOR instance vertex buffer in chunk manager" << std::endl;
+		return false;
+	}
+	if (!DXUtils::CreateIndexBuffer(
+			m_instanceIndexBuffers[INSTANCE_SHAPE::INSTANCE_FLOOR], instanceIndices)) {
+		std::cout << "failed create FLOOR instance index buffer in chunk manager" << std::endl;
 		return false;
 	}
 

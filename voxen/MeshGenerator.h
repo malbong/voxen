@@ -183,6 +183,43 @@ namespace MeshGenerator {
 		indices.push_back(3);
 	}
 
+	static void CreateFloorInstanceMesh(
+		std::vector<InstanceVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		std::vector<Vector3> positions;
+		std::vector<Vector3> normals;
+		std::vector<Vector2> texcoords;
+
+		// floor 
+		positions.push_back(Vector3(-0.5f, -0.5f + 1e-2f, 0.5f));
+		positions.push_back(Vector3(0.5f, -0.5f + 1e-2f, 0.5f));
+		positions.push_back(Vector3(0.5f, -0.5f + 1e-2f, -0.5f));
+		positions.push_back(Vector3(-0.5f, -0.5f + 1e-2f, -0.5f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		texcoords.push_back(Vector2(0.0f, 0.0f));
+		texcoords.push_back(Vector2(1.0f, 0.0f));
+		texcoords.push_back(Vector2(1.0f, 1.0f));
+		texcoords.push_back(Vector2(0.0f, 1.0f));
+
+		for (int i = 0; i < 4; i++) {
+			InstanceVertex v;
+			v.position = positions[i];
+			v.normal = normals[i];
+			v.texcoord = texcoords[i];
+			vertices.push_back(v);
+		}
+
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(2);
+		indices.push_back(0);
+		indices.push_back(2);
+		indices.push_back(3);
+	}
+
 	static void SetSquareIndices(std::vector<uint32_t>& indices, uint32_t offset)
 	{
 		indices.push_back(offset);

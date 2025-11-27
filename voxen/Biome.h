@@ -93,10 +93,10 @@ public:
 		
 
 		// BIOME_BEACH
-		// instance: no instance
+		// instance: none
 		// tree: none
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetBaseColor(RGBA_UINT(255, 223, 128, 255));
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxInstanceCountPerChunk(0);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxInstanceCountPerChunk(16);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxTreeCountPerChunk(0);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_NONE);
@@ -121,7 +121,7 @@ public:
 
 
 		// BIOME_TAIGA
-		// instance: grass, fern, large fern, sweet berry bush
+		// instance: grass, fern, sweet berry bush
 		// tree: spruce
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetBaseColor(RGBA_UINT(59, 94, 84, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetMaxInstanceCountPerChunk(64);
@@ -129,7 +129,6 @@ public:
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
-		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
@@ -158,14 +157,13 @@ public:
 
 
 		// BIOME_SWAMP
-		// instance: grass, seagrass, blue orchid, mushrooms, dead bush
+		// instance: grass, blue orchid, mushrooms, dead bush
 		// tree: oak, mangrove
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetBaseColor(RGBA_UINT(20, 249, 183, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxInstanceCountPerChunk(128);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxTreeCountPerChunk(16);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
-		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SEAGRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_BLUE_ORCHID);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_MUSHROOM_BROWN);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_MUSHROOM_RED);
@@ -235,7 +233,7 @@ public:
 
 
 		// BIOME_RAINFOREST
-		// instance: grass, Fern, Large Fern
+		// instance: grass, Fern
 		// tree: oak, jungle
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetBaseColor(RGBA_UINT(93, 130, 21, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxInstanceCountPerChunk(160);
@@ -243,7 +241,6 @@ public:
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
-		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
@@ -290,7 +287,7 @@ public:
 
 
 		// BIOME_SNOWY_TAIGA
-		// instance: grass, fern, large fern, sweet berry bush
+		// instance: grass, fern, sweet berry bush
 		// tree: spruce
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetBaseColor(
 			RGBA_UINT(200, 255, 239, 255));
@@ -299,7 +296,6 @@ public:
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
-		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_LARGE_FERN);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();

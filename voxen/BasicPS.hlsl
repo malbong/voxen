@@ -34,7 +34,8 @@ bool useDirtOverlay(uint texIndex)
 bool useGrassColor(uint texIndex)
 {
     // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
-    return texIndex <= 2 || texIndex == 128 || texIndex == 131 || texIndex == 148;
+    return texIndex <= 2 || texIndex == 128 || texIndex == 131 ||
+            texIndex == 148 || texIndex == 153 || texIndex == 154 || texIndex == 155 || texIndex == 156;
 }
 
 bool useFoliageColor(uint texIndex)
@@ -49,7 +50,7 @@ float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
     
     if (useGrassColor(texIndex) || useFoliageColor(texIndex))
     {
-        float3 faceBiasPos = -normal * 1e-4; 
+        float3 faceBiasPos = -normal * 1e-4;
         // normal vector의 반대방향으로 shrink
         // bias를 사용하지 않으면 depthFighting같은 효과가 나타남
         // 1.0000001, 0.99999999가 서로 완전 다른 결과이기 때문
@@ -135,7 +136,7 @@ float3 normalMapping(float2 texcoord, uint texIndex, float3 normal)
 
 psOutput
     main(psInput
-    input, 
+    input,
     uint coverage : SV_COVERAGE, uint sampleIndex : SV_SampleIndex)
 {
 #ifdef USE_ALPHA_CLIP 

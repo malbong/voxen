@@ -7,7 +7,7 @@
 #include <stb_image.h>
 #include <algorithm>
 
-#include "Type.h"
+#include "Pos.h"
 
 using namespace DirectX::SimpleMath;
 

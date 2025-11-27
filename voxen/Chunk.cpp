@@ -77,7 +77,7 @@ ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMem
 		if (patchData.instance.GetType() != INSTANCE_TYPE::INSTANCE_NONE &&
 			Block::IsTransparency(m_blocks[x + 1][y + 1][z + 1].GetType())) {
 
-			if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
+			if (IsInstanceAt(x, y, z)) {
 				m_instanceMap.erase(PosInt3(x, y, z));
 			}
 
@@ -91,7 +91,7 @@ ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMem
 				m_onPatchDirtyFlag = true;
 			}
 
-			if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end()) {
+			if (IsInstanceAt(x, y, z)) {
 				m_instanceMap.erase(PosInt3(x, y, z));
 			}
 		}
@@ -220,6 +220,15 @@ void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 	}
 }
 
+uint32_t Chunk::GetMaxPlaceCountByBiomeRatio(BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount)
+{
+	float biomeRatio = biomeCount / (float)CHUNK_SIZE2;
+
+	float placeCountByRatio = biomeRatio * (float)maxCountPerChunk;
+
+	return (uint32_t)placeCountByRatio;
+}
+
 void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 {
 	Terrain::GenerateRandomPlace2D(m_offsetPosition, TREE_PLACE_RANDOM_SOLT_X,
@@ -236,19 +245,16 @@ void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 
 		// set ratio max tree count per chunk for biome
 		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
-		float biomeRatio = memory->biomeCount[biomeType] / (float)CHUNK_SIZE2;
-		float maxTreeCountPerChunk = (float)Biome::GetMaxTreeCountPerChunk(biomeType);
-		float treeCountByRatio = biomeRatio * maxTreeCountPerChunk;
-
-		// check instance count for biome per chunk
-		if (placedBiomeTreeCount[biomeType] >= treeCountByRatio) {
+		uint32_t maxTreeCountByRatio = GetMaxPlaceCountByBiomeRatio(
+			biomeType, Biome::GetMaxTreeCountPerChunk(biomeType), memory->biomeCount[biomeType]);
+		if (placedBiomeTreeCount[biomeType] >= maxTreeCountByRatio) {
 			continue;
 		}
 
 		// compared world elevation with localY range
 		float elevationWorldY = std::floor(memory->elevationNoises[x + 1][z + 1]);
 		int localY = (int)(elevationWorldY - m_offsetPosition.y);
-		if (localY < 0 || localY > CHUNK_SIZE - 1) {
+		if (!IsInsideChunk(x, localY, z)) {
 			continue;
 		}
 
@@ -263,7 +269,7 @@ void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 		if (!CanPlaceTreeAt(x, localY, z)) {
 			continue;
 		}
-		
+
 		PlaceTree(x, localY, z, memory, treeType);
 		placedBiomeTreeCount[biomeType]++;
 	}
@@ -302,7 +308,7 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z)
 void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType)
 {
 	TreeShape treeShape = { TREE_BLOCK_INDEX::EMPTY };
-	
+
 	PosInt3 worldPosInt3 =
 		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
 	Tree::GenerateTreeShape(treeType, worldPosInt3, treeShape);
@@ -406,82 +412,171 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		int x = memory->instanceRandomPlace2D[i].first;
 		int z = memory->instanceRandomPlace2D[i].second;
 
-		// set ratio max instance count per chunk for biome
+		// set water plane instance
+		if (CanPlaceWaterPlaneInstanceAt(x, z, memory)) {
+			INSTANCE_TYPE instanceType = GetWaterPlaneInstanceType(x, z, memory);
+
+			SetWaterPlaneInstance(x, z, instanceType, memory);
+		}
+
+		// set biome instance
 		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
-		float biomeRatio = memory->biomeCount[biomeType] / (float)CHUNK_SIZE2;
-		float maxInstanceCountPerChunk = (float)Biome::GetMaxInstanceCountPerChunk(biomeType);
-		float instanceCountByRatio = biomeRatio * maxInstanceCountPerChunk;
+		uint32_t placedCount = placedBiomeInstanceCount[biomeType];
 
-		// check instance count for biome per chunk
-		if (placedBiomeInstanceCount[biomeType] >= instanceCountByRatio) {
-			continue;
-		}
-
-		// compared world elevation with localY range
 		float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
-		int localY = (int)(elevationWorldY - m_offsetPosition.y);
-		if (localY < 0 || localY > CHUNK_SIZE - 1) {
-			continue;
+		int y = (int)(elevationWorldY - m_offsetPosition.y);
+
+		if (CanPlaceBiomeInstanceAt(x, y, z, placedCount, memory)) {
+			INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, y, z, memory);
+
+			SetBiomeInstance(x, y, z, instanceType, memory);
+
+			placedBiomeInstanceCount[biomeType]++;
 		}
-		
-		// get instance type
-		INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
-			biomeType, memory->distributionNoises[x + 1][z + 1], x, localY, z);
-		if (instanceType == INSTANCE_TYPE::INSTANCE_NONE) {
-			continue;
-		}
-
-		// checked place conditions
-		if (!CanPlaceInstanceAt(x, localY, z)) {
-			continue;
-		}
-
-		PosInt3 WorldPosInt3 =
-			Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)localY, (float)z));
-		int randomHeight =
-			Utils::RandomRangeByPos(WorldPosInt3, 1, Instance::GetMaxHeight(instanceType)); // TODO: h, t
-
-		for (int h = 0; h < randomHeight; ++h) {
-			TEXTURE_INDEX texIndex =
-				Instance::GetTextureIndexByHeight(instanceType, h, randomHeight);
-			
-			Instance instance = Instance(instanceType, texIndex);
-
-			if (IsInsideChunk(x, localY + h, z)) {
-				m_instanceMap.insert(std::pair(PosInt3(x, localY + h, z), instance));
-			}
-			else {
-				PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-					x, localY + h, z, Block(), instance, CHUNK_SIZE, true);
-
-				Vector3 instancePos =
-					m_offsetPosition + Vector3((float)x, (float)(localY + h), (float)z);
-				Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
-				PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
-
-				memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
-			}
-		}
-
-		placedBiomeInstanceCount[biomeType]++;
 	}
 }
 
-bool Chunk::CanPlaceInstanceAt(int x, int y, int z)
+bool Chunk::IsInstanceAt(int x, int y, int z)
+{
+	return m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end();
+}
+
+INSTANCE_TYPE Chunk::GetWaterPlaneInstanceType(int x, int z, ChunkLoadMemory* memory)
+{
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, 0.0f, (float)z));
+
+	float distribution = memory->distributionNoises[x + 1][z + 1];
+	float temperature = memory->temperatureNoises[x + 1][z + 1];
+	float humidity = memory->humidityNoises[x + 1][z + 1];
+
+	INSTANCE_TYPE instanceType =
+		Instance::GetInstanceTypeForWaterPlane(temperature, humidity, distribution, worldPosInt3);
+
+	return instanceType;
+}
+
+bool Chunk::CanPlaceWaterPlaneInstanceAt(int x, int z, ChunkLoadMemory* memory)
+{
+	const float WATER_HEIGHT = 64.0f;
+
+	if (m_offsetPosition.y != WATER_HEIGHT)
+		return false;
+
+	float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
+	if (elevationWorldY >= WATER_HEIGHT)
+		return false;
+
+	INSTANCE_TYPE instanceType = GetWaterPlaneInstanceType(x, z, memory);
+	if (instanceType == INSTANCE_TYPE::INSTANCE_NONE)
+		return false;
+	
+	return true;
+}
+
+void Chunk::SetWaterPlaneInstance(int x, int z, INSTANCE_TYPE instanceType, ChunkLoadMemory* memory)
+{
+	TEXTURE_INDEX texIndex = Instance::GetTextureIndex(instanceType);
+
+	PosInt3 worldPosInt3 = Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, 0.0f, (float)z));
+	float rangeRotation = (float)Utils::RandomRangeByPos(worldPosInt3, 0, 360);
+
+	float rangeOffsetNoiseX = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
+	float rangeOffsetNoiseZ = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
+	Vector2 rangeOffsetNoiseXZ = Vector2(rangeOffsetNoiseX, rangeOffsetNoiseZ);
+
+	Instance instance = Instance(instanceType, texIndex, rangeRotation, rangeOffsetNoiseXZ);
+
+	m_instanceMap.insert(std::pair(PosInt3(x, 0, z), instance));
+}
+
+INSTANCE_TYPE Chunk::GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* memory)
+{
+	BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
+
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
+
+	INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
+		biomeType, memory->distributionNoises[x + 1][z + 1], worldPosInt3);
+
+	return instanceType;
+}
+
+bool Chunk::CanPlaceBiomeInstanceAt(int x, int y, int z, uint32_t placedBiomeInstanceCount, ChunkLoadMemory* memory)
+{
+	BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
+	uint32_t maxInstanceCountByRatio = GetMaxPlaceCountByBiomeRatio(
+		biomeType, Biome::GetMaxInstanceCountPerChunk(biomeType), memory->biomeCount[biomeType]);
+	if (placedBiomeInstanceCount >= maxInstanceCountByRatio) {
+		return false;
+	}
+
+	if (!IsInsideChunk(x, y, z)) {
+		return false;
+	}
+
+	if (IsInstanceAt(x, y, z)) {
+		return false;
+	}
+
+	INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, y, z, memory);
+	if (instanceType == INSTANCE_TYPE::INSTANCE_NONE) {
+		return false;
+	}
+
+	if (!CheckPlaceCondition(instanceType, x, y, z)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Chunk::CheckPlaceCondition(INSTANCE_TYPE type, int x, int y, int z)
 {
 	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
 	BLOCK_TYPE bottomBlockType = m_blocks[x + 1][y][z + 1].GetType();
 
-	if (!Block::IsTransparency(currentBlockType))
-		return false;
+	return Instance::CanPlace(type, currentBlockType, bottomBlockType);
+}
 
-	if (!Block::IsOpaque(bottomBlockType))
-		return false;
+void Chunk::SetBiomeInstance(
+	int x, int y, int z, INSTANCE_TYPE instanceType, ChunkLoadMemory* memory)
+{
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
+	float rangeRotation = (float)Utils::RandomRangeByPos(worldPosInt3, 0, 360);
+	
+	float rangeOffsetNoiseX = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
+	float rangeOffsetNoiseZ = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
+	Vector2 rangeOffsetNoiseXZ = Vector2(rangeOffsetNoiseX, rangeOffsetNoiseZ);
 
-	if (m_instanceMap.find(PosInt3(x, y, z)) != m_instanceMap.end())
-		return false;
+	int instanceMaxHeight = Instance::GetMaxHeight(instanceType);
+	float temperature = memory->temperatureNoises[x + 1][z + 1];
+	float humidity = memory->humidityNoises[x + 1][z + 1];
+	float thPercent = (temperature + humidity) * 0.5f;
+	int thMaxHeight = (int)std::ceil(thPercent * (float)instanceMaxHeight);
+	int rangeHeight = Utils::RandomRangeByPos(worldPosInt3, 1, thMaxHeight);
 
-	return true;
+	for (int h = 0; h < rangeHeight; ++h) {
+		TEXTURE_INDEX texIndex = Instance::GetTextureIndexByHeight(instanceType, h, rangeHeight);
+
+		Instance instance = Instance(instanceType, texIndex, rangeRotation, rangeOffsetNoiseXZ);
+
+		if (IsInsideChunk(x, y + h, z)) {
+			m_instanceMap.insert(std::pair(PosInt3(x, y + h, z), instance));
+		}
+		else {
+			PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+				x, y + h, z, Block(), instance, CHUNK_SIZE, true);
+
+			Vector3 instancePos = m_offsetPosition + Vector3((float)x, (float)(y + h), (float)z);
+			Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
+			PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
+
+			memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
+		}
+	}
 }
 
 void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)

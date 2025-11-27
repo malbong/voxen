@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Enums.h"
-#include "Instance.h"
-#include "Block.h"
+
 #include <directxtk/SimpleMath.h>
 #include <unordered_map>
 #include <unordered_set>

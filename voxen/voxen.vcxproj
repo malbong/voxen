@@ -176,6 +176,7 @@
     <ClInclude Include="Enums.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="PatchData.h" />
     <ClInclude Include="PostEffect.h" />
     <ClInclude Include="MeshGenerator.h" />
     <ClInclude Include="Graphics.h" />
@@ -187,7 +188,7 @@
     <ClInclude Include="DXUtils.h" />
     <ClInclude Include="Terrain.h" />
     <ClInclude Include="Tree.h" />
-    <ClInclude Include="Type.h" />
+    <ClInclude Include="Pos.h" />
     <ClInclude Include="WorldMap.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

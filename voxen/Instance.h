@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Structure.h"
+#include "Pos.h"
+#include "Block.h"
 
 #include <stdint.h>
 #include <vector>
@@ -19,11 +21,26 @@ public:
 	static TEXTURE_INDEX GetTextureIndexByHeight(
 		INSTANCE_TYPE type, int currentHeight, int maxHeight);
 	static uint8_t GetMaxHeight(INSTANCE_TYPE type);
-	static INSTANCE_TYPE GetInstanceTypeForBiome(
-		BIOME_TYPE biomeType, float d, int localX, int localY, int localZ);
+	static INSTANCE_TYPE GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, PosInt3 worldPos);
+	static bool CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE bottomBlock);
+	static INSTANCE_TYPE GetInstanceTypeForWaterPlane(
+		float temperature, float humidity, float distribution, PosInt3 worldPos);
 
-	Instance() : m_type(INSTANCE_TYPE::INSTANCE_NONE), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE) {}
-	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex) : m_type(type), m_texIndex(texIndex) {}
+	Instance()
+		: m_type(INSTANCE_TYPE::INSTANCE_NONE), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE),
+		  m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f)
+	{
+	}
+	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex)
+		: m_type(type), m_texIndex(texIndex), m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f)
+	{
+	}
+	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex, float yawRotation,
+		Vector2 offsetNoisePositionXZ)
+		: m_type(type), m_texIndex(texIndex), m_yawRotation(yawRotation),
+		  m_offsetNoisePositionXZ(offsetNoisePositionXZ)
+	{
+	}
 	~Instance() {}
 
 	inline INSTANCE_TYPE GetType() const { return m_type; }
@@ -32,11 +49,22 @@ public:
 	inline TEXTURE_INDEX GetTexIndex() const { return m_texIndex; }
 	inline void SetTexIndex(TEXTURE_INDEX texIndex) { m_texIndex = texIndex; }
 
+	inline float GetYawRotation() const { return m_yawRotation; }
+	inline void SetYawRotation(float yawRotation) { m_yawRotation = yawRotation; }
+
+	inline Vector2 GetOffsetNoisePositionXZ() const { return m_offsetNoisePositionXZ; }
+	inline void SetOffsetNoisePositionXZ(Vector2 offsetNoisePositionXZ)
+	{
+		m_offsetNoisePositionXZ = offsetNoisePositionXZ;
+	}
+
 private:
 	static InstanceTypeInfoSet m_instanceTypeInfoSet;
 
 	INSTANCE_TYPE m_type;
 	TEXTURE_INDEX m_texIndex;
+	float m_yawRotation;
+	Vector2 m_offsetNoisePositionXZ;
 };
 
 
@@ -95,10 +123,11 @@ public:
 	InstanceTypeInfoSet() : m_instanceTypeInfoSet(Instance::INSTANCE_TYPE_COUNT)
 	{
 		// INSTANCE_TYPE, TEXTURE_TYPE
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_GRASS].Init(
-			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_SHORT_GRASS);
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_GRASS].Init(INSTANCE_SHAPE::INSTANCE_CROSS,
+			TEXTURE_INDEX::TEXTURE_SHORT_GRASS, TEXTURE_INDEX::TEXTURE_DOUBLE_GRASS_TOP,
+			TEXTURE_INDEX::TEXTURE_DOBULE_GRASS_BOTTOM, 2);
 
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SEAGRASS].Init(INSTANCE_SHAPE::INSTANCE_FENCE,
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SEAGRASS].Init(INSTANCE_SHAPE::INSTANCE_CROSS,
 			TEXTURE_INDEX::TEXTURE_SEAGRASS, TEXTURE_INDEX::TEXTURE_DOUBLE_SEAGRASS_TOP,
 			TEXTURE_INDEX::TEXTURE_DOUBLE_SEAGRASS_BOTTOM, 2);
 
@@ -106,8 +135,9 @@ public:
 			TEXTURE_INDEX::TEXTURE_KELP_TOP, TEXTURE_INDEX::TEXTURE_KELP_TOP,
 			TEXTURE_INDEX::TEXTURE_KELP, 10);
 
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_FERN].Init(
-			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_FERN);
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_FERN].Init(INSTANCE_SHAPE::INSTANCE_CROSS,
+			TEXTURE_INDEX::TEXTURE_FERN, TEXTURE_INDEX::TEXTURE_DOUBLE_FERN_TOP,
+			TEXTURE_INDEX::TEXTURE_DOUBLE_FERN_BOTTOM, 3);
 
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_SWEET_BERRY_BUSH].Init(
 			INSTANCE_SHAPE::INSTANCE_FENCE, TEXTURE_INDEX::TEXTURE_SWEET_BERRY_BUSH);
@@ -157,11 +187,11 @@ public:
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_ALLIUM].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_ALLIUM);
 
-		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_LARGE_FERN].Init(
-			INSTANCE_SHAPE::INSTANCE_FENCE, TEXTURE_INDEX::TEXTURE_LARGE_FERN);
-
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_DANDELION].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_DANDELION);
+
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_WATER_LILY].Init(
+			INSTANCE_SHAPE::INSTANCE_FLOOR, TEXTURE_INDEX::TEXTURE_WATER_LILY);
 
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_NONE].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_NONE);

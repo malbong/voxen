@@ -11,7 +11,7 @@ INSTANCE_SHAPE Instance::GetShape(INSTANCE_TYPE type)
 
 TEXTURE_INDEX Instance::GetTextureIndex(INSTANCE_TYPE type)
 {
-	
+
 	return m_instanceTypeInfoSet.GetInfo(type).GetTextureIndex();
 }
 
@@ -46,22 +46,20 @@ uint8_t Instance::GetMaxHeight(INSTANCE_TYPE type)
 	return m_instanceTypeInfoSet.GetInfo(type).GetMaxHeight();
 }
 
-INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
-	BIOME_TYPE biomeType, float d, int localX, int localY, int localZ)
+INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, PosInt3 worldPos)
 {
 	const std::vector<INSTANCE_TYPE> biomeInstances = Biome::GetInstances(biomeType);
-	uint32_t hash = Utils::HashInt((uint32_t)(localX * localZ), localY);
-	
-	switch (biomeType)
-	{
+	int worldY = std::get<1>(worldPos);
+
+	switch (biomeType) {
 	case BIOME_OCEAN:
-		if (d < 0.65f)
-			return biomeInstances[0]; // shortseagrass
+		if (worldY < 52 && d < 0.5f)
+			return biomeInstances[0]; // seagrass
 		else
 			return biomeInstances[1]; // kelp
 
 	case BIOME_BEACH:
-		return biomeInstances[0]; // none
+		return biomeInstances[0];
 
 	case BIOME_TUNDRA:
 		return biomeInstances[0]; // none
@@ -70,45 +68,44 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 		if (d < 0.5f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.8f)
-			return biomeInstances[hash % 2 + 1]; // fern, large fern
+			return biomeInstances[1]; // fern, large fern
 		else
-			return biomeInstances[3]; // sweet berry bush
+			return biomeInstances[2]; // sweet berry bush
 
 	case BIOME_PLAINS:
 		if (d < 0.7f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.83f)
-			return biomeInstances[hash % 2 + 1]; // oxeyeDaisy, conrflower
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 1, 2)]; // oxeye, conrflower
 		else
-			return biomeInstances[hash % 4 + 3]; // tulips
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 3, 6)]; // tulips
 
 	case BIOME_SWAMP:
 		if (d < 0.8f)
 			return biomeInstances[0]; // grass
-		else if (d < 0.85f)
-			return biomeInstances[1]; // seagrass
 		else if (d < 0.9f)
-			return biomeInstances[2]; // blue orchild
+			return biomeInstances[1]; // blue orchild
 		else if (d < 0.95f)
-			return biomeInstances[hash % 2 + 3]; // mushrooms
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 2, 3)]; // mushrooms
 		else
-			return biomeInstances[5]; // dead bush
+			return biomeInstances[4]; // dead bush
 
 	case BIOME_FOREST:
 		if (d < 0.7f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.85f)
-			return biomeInstances[hash % 3 + 1]; // Rose blue,red,plants
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 1, 3)]; // Rose blue,red,plants
 		else
-			return biomeInstances[hash % 2 + 4]; // lily, allium
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 4, 5)]; // lily, allium
 
 	case BIOME_SHRUBLAND:
 		if (d < 0.6f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.85f)
-			return biomeInstances[hash % 4 + 1]; // dandelion, cornflower, allium, oxeye daisy
+			return biomeInstances[Utils::RandomRangeByPos(
+				worldPos, 1, 4)]; // dandelion, cornflower, allium, oxeye daisy
 		else
-			return biomeInstances[hash % 4 + 5]; // tulips
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 5, 8)]; // tulips
 
 	case BIOME_DESERT:
 		return biomeInstances[0]; // dead bush
@@ -117,15 +114,16 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 		if (d < 0.6f)
 			return biomeInstances[0]; // grass
 		else
-			return biomeInstances[hash % 2 + 1]; // fern, large fern
+			return biomeInstances[1]; // fern
 
 	case BIOME_SEASONFOREST:
 		if (d < 0.7f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.85f)
-			return biomeInstances[hash % 3 + 1]; // Allium, Lily, Rosebush
+			return biomeInstances[Utils::RandomRangeByPos(
+				worldPos, 1, 3)]; // Allium, Lily, Rosebush
 		else
-			return biomeInstances[hash % 4 + 4]; // tulips
+			return biomeInstances[Utils::RandomRangeByPos(worldPos, 4, 7)]; // tulips
 
 	case BIOME_SAVANA:
 		return biomeInstances[0]; // grass
@@ -134,10 +132,41 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(
 		if (d < 0.7f)
 			return biomeInstances[0]; // grass
 		else if (d < 0.92f)
-			return biomeInstances[hash % 2 + 1]; // fern, large fern
+			return biomeInstances[1]; // fern
 		else
-			return biomeInstances[3]; // sweet berry bush
+			return biomeInstances[2]; // sweet berry bush
 	}
+
+	return INSTANCE_TYPE::INSTANCE_NONE;
+}
+
+bool Instance::CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE bottomBlock)
+{
+	if (!Block::IsTransparency(currentBlock))
+		return false;
+
+	if (type == INSTANCE_TYPE::INSTANCE_WATER_LILY) {
+		return (currentBlock == BLOCK_TYPE::BLOCK_AIR && bottomBlock == BLOCK_TYPE::BLOCK_WATER);
+	}
+	else {
+		if (bottomBlock == BLOCK_TYPE::BLOCK_DIRT)
+			return true;
+		if (bottomBlock == BLOCK_TYPE::BLOCK_GRASS)
+			return true;
+		if (bottomBlock == BLOCK_TYPE::BLOCK_SNOW_GRASS)
+			return true;
+		if (bottomBlock == BLOCK_TYPE::BLOCK_GRAVEL)
+			return true;
+
+		return false;
+	}
+}
+
+INSTANCE_TYPE Instance::GetInstanceTypeForWaterPlane(
+	float temperature, float humidity, float distribution, PosInt3 worldPos)
+{
+	if (humidity > 0.77f && temperature > 0.5f && distribution > 0.75f)
+		return INSTANCE_TYPE::INSTANCE_WATER_LILY;
 
 	return INSTANCE_TYPE::INSTANCE_NONE;
 }
