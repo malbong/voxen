@@ -220,7 +220,8 @@ void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 	}
 }
 
-uint32_t Chunk::GetMaxPlaceCountByBiomeRatio(BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount)
+uint32_t Chunk::GetMaxPlaceCountByBiomeRatio(
+	BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount)
 {
 	float biomeRatio = biomeCount / (float)CHUNK_SIZE2;
 
@@ -243,63 +244,66 @@ void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 		int x = memory->treeRandomPlace2D[i].first;
 		int z = memory->treeRandomPlace2D[i].second;
 
-		// set ratio max tree count per chunk for biome
 		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
-		uint32_t maxTreeCountByRatio = GetMaxPlaceCountByBiomeRatio(
-			biomeType, Biome::GetMaxTreeCountPerChunk(biomeType), memory->biomeCount[biomeType]);
-		if (placedBiomeTreeCount[biomeType] >= maxTreeCountByRatio) {
-			continue;
-		}
 
-		// compared world elevation with localY range
 		float elevationWorldY = std::floor(memory->elevationNoises[x + 1][z + 1]);
 		int localY = (int)(elevationWorldY - m_offsetPosition.y);
-		if (!IsInsideChunk(x, localY, z)) {
-			continue;
-		}
 
-		// get tree type
-		TREE_TYPE treeType = Tree::GetTreeTypeForBiome(
-			biomeType, memory->distributionNoises[x + 1][z + 1], x, localY, z);
-		if (treeType == TREE_TYPE::TREE_NONE) {
-			continue;
-		}
+		if (CanPlaceTreeAt(x, localY, z, placedBiomeTreeCount[biomeType], memory)) {
+			TREE_TYPE treeType = Tree::GetTreeTypeForBiome(
+				biomeType, memory->distributionNoises[x + 1][z + 1], x, localY, z);
 
-		// checked place conditions
-		if (!CanPlaceTreeAt(x, localY, z)) {
-			continue;
-		}
+			PlaceTree(x, localY, z, memory, treeType);
 
-		PlaceTree(x, localY, z, memory, treeType);
-		placedBiomeTreeCount[biomeType]++;
+			placedBiomeTreeCount[biomeType]++;
+		}
 	}
 }
 
-bool Chunk::CanPlaceTreeAt(int x, int y, int z)
+bool Chunk::CanPlaceTreeAt(
+	int x, int y, int z, uint32_t placedBiomeTreeCount, ChunkLoadMemory* memory)
 {
-	BLOCK_TYPE topBlockType = m_blocks[x + 1][y + 2][z + 1].GetType();
+	// set ratio max tree count per chunk for biome
+	BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
+	uint32_t maxTreeCountByRatio = GetMaxPlaceCountByBiomeRatio(
+		biomeType, Biome::GetMaxTreeCountPerChunk(biomeType), memory->biomeCount[biomeType]);
+	if (placedBiomeTreeCount >= maxTreeCountByRatio) {
+		return false;
+	}
+
+	// compared world elevation with localY range
+	if (!IsInsideChunk(x, y, z)) {
+		return false;
+	}
+
+	// get tree type
+	TREE_TYPE treeType = Tree::GetTreeTypeForBiome(
+		biomeType, memory->distributionNoises[x + 1][z + 1], x, y, z);
+	if (treeType == TREE_TYPE::TREE_NONE) {
+		return false;
+	}
+
+	// checked place conditions
+	for (int i = -1; i <= 1; ++i) {
+		for (int j = -1; j <= 1; ++j) {
+			if (!CheckTreePlaceCondition(x + i, y, z + j)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool Chunk::CheckTreePlaceCondition(int x, int y, int z)
+{
 	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+	BLOCK_TYPE topBlockType = m_blocks[x + 1][y + 2][z + 1].GetType();
 
 	if (!Block::IsOpaque(currentBlockType))
 		return false;
 
-	if (topBlockType == BLOCK_TYPE::BLOCK_WATER)
-		return false;
-
-	BLOCK_TYPE leftBlockType = m_blocks[x][y + 1][z + 1].GetType();
-	BLOCK_TYPE rightBlockType = m_blocks[x + 2][y + 1][z + 1].GetType();
-	BLOCK_TYPE backBlockType = m_blocks[x + 1][y + 1][z].GetType();
-	BLOCK_TYPE frontBlockType = m_blocks[x + 1][y + 1][z + 2].GetType();
-	if (!Block::IsOpaque(leftBlockType) || !Block::IsOpaque(rightBlockType) ||
-		!Block::IsOpaque(backBlockType) || !Block::IsOpaque(frontBlockType))
-		return false;
-
-	BLOCK_TYPE topLeftBlockType = m_blocks[x][y + 2][z + 1].GetType();
-	BLOCK_TYPE topRightBlockType = m_blocks[x + 2][y + 2][z + 1].GetType();
-	BLOCK_TYPE topBackBlockType = m_blocks[x + 1][y + 2][z].GetType();
-	BLOCK_TYPE topFrontBlockType = m_blocks[x + 1][y + 2][z + 2].GetType();
-	if (!Block::IsTransparency(topLeftBlockType) || !Block::IsTransparency(topRightBlockType) ||
-		!Block::IsTransparency(topBackBlockType) || !Block::IsTransparency(topFrontBlockType))
+	if (topBlockType != BLOCK_TYPE::BLOCK_AIR)
 		return false;
 
 	return true;
@@ -421,12 +425,11 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 
 		// set biome instance
 		BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
-		uint32_t placedCount = placedBiomeInstanceCount[biomeType];
 
 		float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
 		int y = (int)(elevationWorldY - m_offsetPosition.y);
 
-		if (CanPlaceBiomeInstanceAt(x, y, z, placedCount, memory)) {
+		if (CanPlaceBiomeInstanceAt(x, y, z, placedBiomeInstanceCount[biomeType], memory)) {
 			INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, y, z, memory);
 
 			SetBiomeInstance(x, y, z, instanceType, memory);
@@ -470,7 +473,7 @@ bool Chunk::CanPlaceWaterPlaneInstanceAt(int x, int z, ChunkLoadMemory* memory)
 	INSTANCE_TYPE instanceType = GetWaterPlaneInstanceType(x, z, memory);
 	if (instanceType == INSTANCE_TYPE::INSTANCE_NONE)
 		return false;
-	
+
 	return true;
 }
 
@@ -478,7 +481,8 @@ void Chunk::SetWaterPlaneInstance(int x, int z, INSTANCE_TYPE instanceType, Chun
 {
 	TEXTURE_INDEX texIndex = Instance::GetTextureIndex(instanceType);
 
-	PosInt3 worldPosInt3 = Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, 0.0f, (float)z));
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, 0.0f, (float)z));
 	float rangeRotation = (float)Utils::RandomRangeByPos(worldPosInt3, 0, 360);
 
 	float rangeOffsetNoiseX = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
@@ -503,7 +507,8 @@ INSTANCE_TYPE Chunk::GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* 
 	return instanceType;
 }
 
-bool Chunk::CanPlaceBiomeInstanceAt(int x, int y, int z, uint32_t placedBiomeInstanceCount, ChunkLoadMemory* memory)
+bool Chunk::CanPlaceBiomeInstanceAt(
+	int x, int y, int z, uint32_t placedBiomeInstanceCount, ChunkLoadMemory* memory)
 {
 	BIOME_TYPE biomeType = memory->biomeMap2D[x][z];
 	uint32_t maxInstanceCountByRatio = GetMaxPlaceCountByBiomeRatio(
@@ -525,14 +530,14 @@ bool Chunk::CanPlaceBiomeInstanceAt(int x, int y, int z, uint32_t placedBiomeIns
 		return false;
 	}
 
-	if (!CheckPlaceCondition(instanceType, x, y, z)) {
+	if (!CheckInstancePlaceCondition(instanceType, x, y, z)) {
 		return false;
 	}
 
 	return true;
 }
 
-bool Chunk::CheckPlaceCondition(INSTANCE_TYPE type, int x, int y, int z)
+bool Chunk::CheckInstancePlaceCondition(INSTANCE_TYPE type, int x, int y, int z)
 {
 	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
 	BLOCK_TYPE bottomBlockType = m_blocks[x + 1][y][z + 1].GetType();
@@ -546,7 +551,7 @@ void Chunk::SetBiomeInstance(
 	PosInt3 worldPosInt3 =
 		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
 	float rangeRotation = (float)Utils::RandomRangeByPos(worldPosInt3, 0, 360);
-	
+
 	float rangeOffsetNoiseX = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
 	float rangeOffsetNoiseZ = (float)(Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
 	Vector2 rangeOffsetNoiseXZ = Vector2(rangeOffsetNoiseX, rangeOffsetNoiseZ);

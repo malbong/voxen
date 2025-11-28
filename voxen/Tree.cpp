@@ -104,9 +104,9 @@ void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY,
 					int wy = (int)(std::get<1>(worldPos) + center.y + y + 1);
 					int wz = (int)(std::get<2>(worldPos) + center.z + z);
 
-					uint32_t hx = Utils::HashInt(wx, wx * wy * wz);
-					uint32_t hz = Utils::HashInt(wz, wx * wy * wz);
-
+					uint32_t hx = Utils::HashInt(wx, 100043u);
+					uint32_t hz = Utils::HashInt(wz, 400021u);
+					 
 					sx *= (1.0f + (carveScale * (hx % 2)));
 					sz *= (1.0f + (carveScale * (hz % 2)));
 				}
@@ -116,8 +116,8 @@ void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY,
 					int ny = (int)center.y + y;
 					int nz = (int)center.z + z;
 
-					if (nx < 0 || nx >= Tree::TREE_SIZE || nx < 0 || nx >= Tree::TREE_SIZE ||
-						nx < 0 || nx >= Tree::TREE_SIZE)
+					if (nx < 0 || nx >= Tree::TREE_SIZE || ny < 0 || ny >= Tree::TREE_SIZE ||
+						nz < 0 || nz >= Tree::TREE_SIZE)
 						continue;
 
 					if (tree[ny][nz][nx] == 0)
@@ -133,9 +133,15 @@ void GenerateMangrove(const TreeShapeParams& params, TreeShape& tree)
 
 }
 
-void GenerateJungle(const TreeShapeParams& params, TreeShape& tree) {}
+void GenerateJungle(const TreeShapeParams& params, TreeShape& tree) 
+{
 
-void GenerateCactus(const TreeShapeParams& params, TreeShape& tree) {}
+}
+
+void GenerateCactus(const TreeShapeParams& params, TreeShape& tree) 
+{
+
+}
 
 void GenerateAcacia(const TreeShapeParams& params, TreeShape& tree) {}
 

@@ -134,13 +134,15 @@ private:
 		BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount);
 
 	void InitTreePlace(ChunkLoadMemory* memory);
+	bool CanPlaceTreeAt(
+		int x, int y, int z, uint32_t placedBiomeTreeCount, ChunkLoadMemory* memory);
+	bool CheckTreePlaceCondition(int x, int y, int z);
+	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType);
 	bool IsInsideChunk(int x, int y, int z);
 	bool IsInsideChunkWithPadding(int x, int y, int z);
 	bool IsInnerEdge(int x, int y, int z);
 	bool IsOuterEdge(int x, int y, int z);
-	bool CanPlaceTreeAt(int x, int y, int z);
-	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType);
-
+	
 	void InitInstancePlace(ChunkLoadMemory* memory);
 	bool IsInstanceAt(int x, int y, int z);
 	INSTANCE_TYPE GetWaterPlaneInstanceType(int x, int z, ChunkLoadMemory* memory);
@@ -149,7 +151,7 @@ private:
 	INSTANCE_TYPE GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* memory);
 	bool CanPlaceBiomeInstanceAt(
 		int x, int y, int z, uint32_t placedBiomeInstanceCount, ChunkLoadMemory* memory);
-	bool CheckPlaceCondition(INSTANCE_TYPE type, int x, int y, int z);
+	bool CheckInstancePlaceCondition(INSTANCE_TYPE type, int x, int y, int z);
 	void SetBiomeInstance(int x, int y, int z, INSTANCE_TYPE instanceType, ChunkLoadMemory* memory);
 
 	void InitWorldVerticesData(ChunkLoadMemory* memory);

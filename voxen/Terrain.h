@@ -119,8 +119,7 @@ namespace Terrain {
 
 	static float GetContinentalness(int x, int z)
 	{
-
-		float scale = 1024.0f;
+		float scale = 2024.0f;
 
 		float cNoise = Utils::PerlinFbm(x / scale, z / scale, 2.0f, 6);
 		float cValue = SplineContinentalness(cNoise);
@@ -135,7 +134,7 @@ namespace Terrain {
 
 	static float GetErosion(int x, int z)
 	{
-		float scale = 1024.0f;
+		float scale = 3024.0f;
 		float seed = 123.0f;
 
 		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
@@ -182,7 +181,7 @@ namespace Terrain {
 
 	static float GetTemperature(int x, int z)
 	{
-		float scale = 1024.0f;
+		float scale = 2024.0f;
 		float seed = 157.0f;
 
 		float tNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
@@ -194,7 +193,7 @@ namespace Terrain {
 
 	static float GetHumidity(int x, int z)
 	{
-		float scale = 2048.0f;
+		float scale = 4048.0f;
 		float seed = 653.0f;
 
 		float hNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
