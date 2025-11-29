@@ -200,7 +200,7 @@ public:
 		// tree: oak, cherry
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetBaseColor(RGBA_UINT(163, 184, 99, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxInstanceCountPerChunk(96);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxTreeCountPerChunk(12);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxTreeCountPerChunk(3);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DANDELION);

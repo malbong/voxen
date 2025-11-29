@@ -87,7 +87,7 @@ public:
 			BLOCK_TYPE::BLOCK_SPRUCE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams({ 9, 0, 0, 0, 4 });
+		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams({ 11, 0, 0, 0, 4 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
@@ -104,7 +104,7 @@ public:
 			BLOCK_TYPE::BLOCK_CHERRY_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetShapeParams({ 8, 2, 13, 3, 6});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetTrunkBlockType(BLOCK_TYPE::BLOCK_CACTUS);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetLeafBlockType(BLOCK_TYPE::BLOCK_CACTUS);

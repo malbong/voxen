@@ -54,7 +54,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 			return biomeTrees[1]; // birch
 
 	case BIOME_SHRUBLAND:
-		if (d < 0.4f)
+		if (d < 0.6f)
 			return biomeTrees[0]; // oak
 		else
 			return biomeTrees[1]; // cherry
@@ -235,15 +235,30 @@ Vector3 GenerateNextDirectionForGradient(Vector3 diffPos, Vector3 gradient)
 	return bestDir;
 }
 
-Vector3 GenerateRandomGradient(const PosInt3& worldPos, int loop, Vector3 scale, bool negitiveY = false)
+Vector3 GenerateRandomGradient(const PosInt3& worldPos, int loop, Vector3 minScale, Vector3 maxScale, bool negitiveY = false)
 {
-	int minY = (negitiveY) ? (int)-scale.y : 0;
+	float sx = (float)Utils::RandomRangeByPosForLoop(
+		worldPos, loop, 31477u, (int)minScale.x, (int)maxScale.x);
+	float sy = (float)Utils::RandomRangeByPosForLoop(
+		worldPos, loop, 37307u, (int)minScale.x, (int)maxScale.x);
+	float sz = (float)Utils::RandomRangeByPosForLoop(
+		worldPos, loop, 39511u, (int)minScale.x, (int)maxScale.x);
 
-	float x = (float)Utils::RandomRangeByPosForLoop(worldPos, loop, (int)-scale.x, (int)scale.x);
-	float y = (float)Utils::RandomRangeByPosForLoop(worldPos, loop, minY, (int)scale.y);
-	float z = (float)Utils::RandomRangeByPosForLoop(worldPos, loop, (int)-scale.z, (int)scale.z);
+	int signX = Utils::RandomRangeByPosForLoop(worldPos, loop, 46589u, 0, 1);
+	int signY = Utils::RandomRangeByPosForLoop(worldPos, loop, 63761u, 0, 1);
+	int signZ = Utils::RandomRangeByPosForLoop(worldPos, loop, 81749u, 0, 1);
 
-	return Vector3(x, y, z);
+	sx = (signX == 0) ? -sx : sx;
+	sy = (negitiveY && signX == 0) ? -sy : sy;
+	sz = (signZ == 0) ? -sz : sz;
+
+	Vector3 gradient = Vector3(sx, sy, sz);
+	if (gradient.Length() <= 1e-2)
+		gradient = Vector3(1.0f, 0.0f, 0.0f);
+
+	gradient.Normalize();
+
+	return gradient;
 }
 
 Vector3 AddBranchForGradient(
@@ -358,8 +373,9 @@ void GenerateAcacia(const TreeShapeParams& params, const PosInt3& worldPos, Tree
 		int branchStartHeightRange =
 			params.branchStartHeight + Utils::RandomRangeByPosForLoop(worldPos, i, 65599u, -1, 1);
 
-		Vector3 scale = Vector3(6.0f, 3.0f, 6.0f);
-		Vector3 gradient = GenerateRandomGradient(worldPos, i, scale);
+		Vector3 minScale = Vector3(1.0f, 0.0f, 1.0f);
+		Vector3 maxScale = Vector3(6.0f, 3.0f, 6.0f);
+		Vector3 gradient = GenerateRandomGradient(worldPos, i, minScale, maxScale);
 
 		Vector3 lastBranchPos = AddBranchForGradient(
 			worldPos, branchLengthRange, branchStartHeightRange, gradient, tree);
@@ -388,7 +404,41 @@ void GenerateAcacia(const TreeShapeParams& params, const PosInt3& worldPos, Tree
 
 void GenerateCherry(const TreeShapeParams& params, const PosInt3 worldPos, TreeShape& tree) 
 {
+	// tree x, z at center
+	int tx = Tree::TREE_SIZE / 2;
+	int tz = Tree::TREE_SIZE / 2;
+
+	int heightRange = params.baseHeight + Utils::RandomRangeByPos(worldPos, -1, 1);
+	for (int y = 0; y < heightRange; ++y)
+		tree[y][tz][tx] = TREE_BLOCK_INDEX::TRUNK;
 	
+	for (int i = 0; i < params.branchCount; ++i) {
+		int branchLengthRange =
+			params.branchLength + Utils::RandomRangeByPosForLoop(worldPos, i, 95369u, -1, 1);
+		int branchStartHeightRange =
+			params.branchStartHeight + Utils::RandomRangeByPosForLoop(worldPos, i, 65599u, -1, 1);
+
+		Vector3 minScale = Vector3(2.0f, 0.0f, 2.0f);
+		Vector3 maxScale = Vector3(6.0f, 1.0f, 6.0f);
+		Vector3 gradient = GenerateRandomGradient(worldPos, i, minScale, maxScale);
+
+		Vector3 lastBranchPos = AddBranchForGradient(
+			worldPos, branchLengthRange, branchStartHeightRange, gradient, tree);
+
+		Vector3 shrink = Vector3(1.25f, 2.0f, 1.25f);
+		int leafRadius = 3;
+		float carveScale = 0.25f;
+		AddLeafCluster(
+			lastBranchPos, shrink, leafRadius, -leafRadius, leafRadius, carveScale, worldPos, tree);
+	}
+
+	Vector3 center = Vector3((float)tx, (float)(heightRange - 1), (float)tz);
+	Vector3 shrink = Vector3(1.25f, 2.75f, 1.25f);
+	int leafRadius = params.leafRadius + Utils::RandomRangeByPos(worldPos, 0, 1);
+	int carveStartY = -leafRadius;
+	int carveEndY = leafRadius;
+	float carveScale = 0.075f;
+	AddLeafCluster(center, shrink, leafRadius, carveStartY, carveEndY, carveScale, worldPos, tree);
 }
 
 void GenerateSpruce(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
