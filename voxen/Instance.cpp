@@ -158,6 +158,9 @@ bool Instance::CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE 
 		if (bottomBlock == BLOCK_TYPE::BLOCK_GRAVEL)
 			return true;
 
+		if (INSTANCE_TYPE::INSTANCE_DEAD_BUSH && bottomBlock == BLOCK_TYPE::BLOCK_SAND)
+			return true;
+
 		return false;
 	}
 }

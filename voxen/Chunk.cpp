@@ -520,7 +520,7 @@ bool Chunk::CanPlaceBiomeInstanceAt(
 	if (!IsInsideChunk(x, y, z)) {
 		return false;
 	}
-
+	
 	if (IsInstanceAt(x, y, z)) {
 		return false;
 	}

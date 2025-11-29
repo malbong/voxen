@@ -197,8 +197,55 @@ namespace Utils {
 		int y = std::get<1>(pos);
 		int z = std::get<2>(pos);
 
-		uint32_t hash = HashInt(x * y * z, 10069u);
 		uint32_t length = max - min + 1;
+
+		uint32_t hash = HashInt(x * y * z, 100057u);
+
+		return min + hash % length;
+	}
+
+	static int RandomRangeByPos(PosInt3 pos, uint32_t seed, int min, int max)
+	{
+		int x = std::get<0>(pos);
+		int y = std::get<1>(pos);
+		int z = std::get<2>(pos);
+
+		uint32_t length = max - min + 1;
+
+		uint32_t hash = HashInt(x * y * z, seed);
+
+		return min + hash % length;
+	}
+
+	static int RandomRangeByPosForLoop(PosInt3 pos, int loop, int min, int max)
+	{
+		int x = std::get<0>(pos);
+		int y = std::get<1>(pos);
+		int z = std::get<2>(pos);
+
+		uint32_t length = max - min + 1;
+
+		uint32_t hash = HashInt(x * y * z, 100057u);
+		for (int i = 0; i < loop; ++i) {
+			hash = HashInt(hash, 100057u);
+		}
+
+		return min + hash % length;
+	}
+
+	static int RandomRangeByPosForLoop(PosInt3 pos, int loop, uint32_t seed, int min, int max)
+	{
+		int x = std::get<0>(pos);
+		int y = std::get<1>(pos);
+		int z = std::get<2>(pos);
+
+		uint32_t length = max - min + 1;
+
+		uint32_t hash = HashInt(x * y * z, seed);
+		for (int i = 0; i < loop; ++i) {
+			hash = HashInt(hash, seed);
+		}
+
 		return min + hash % length;
 	}
 

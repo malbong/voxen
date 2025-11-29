@@ -108,7 +108,7 @@ public:
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetTrunkBlockType(BLOCK_TYPE::BLOCK_CACTUS);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetLeafBlockType(BLOCK_TYPE::BLOCK_CACTUS);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetShapeParams({6, 2, 4, 4, 0});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LOG);

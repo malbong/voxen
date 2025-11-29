@@ -222,7 +222,7 @@ public:
 		// instance: dead bush
 		// tree: cactus
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetBaseColor(RGBA_UINT(214, 131, 31, 255));
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxInstanceCountPerChunk(8);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxInstanceCountPerChunk(4);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxTreeCountPerChunk(2);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DEAD_BUSH);
