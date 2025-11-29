@@ -125,7 +125,7 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, P
 		else
 			return biomeInstances[Utils::RandomRangeByPos(worldPos, 4, 7)]; // tulips
 
-	case BIOME_SAVANA:
+	case BIOME_SAVANNA:
 		return biomeInstances[0]; // grass
 
 	case BIOME_SNOWY_TAIGA:

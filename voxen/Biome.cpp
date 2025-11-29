@@ -30,7 +30,7 @@ const std::vector<TREE_TYPE>& Biome::GetTrees(BIOME_TYPE type)
 BIOME_TYPE Biome::GetBiomeType(
 	float elevation, float temperature, float humidity, float peaksValley, float erosion)
 {
-	return BIOME_TYPE::BIOME_DESERT;
+	return BIOME_TYPE::BIOME_SAVANNA;
 	// Biome Block
 	float pvRange = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
 	float newElevation = elevation - pvRange;
@@ -75,7 +75,7 @@ BIOME_TYPE Biome::GetBiomeType(
 	}
 	else {
 		if (humidity < 0.55f) { // 0.6875 < t && 0.33 < h < 0.55
-			return BIOME_SAVANA;
+			return BIOME_SAVANNA;
 		}
 		else if (humidity < 0.77f) { // 0.6875 < t && 0.55 < h < 0.77
 			return BIOME_SEASONFOREST;

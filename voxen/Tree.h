@@ -120,7 +120,7 @@ public:
 			BLOCK_TYPE::BLOCK_ACACIA_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetShapeParams({ 9, 1, 10, 3, 6 });
 	}
 
 	inline const TreeTypeInfo& GetInfo(TREE_TYPE type) const { return m_treeTypeInfoSet[type]; }

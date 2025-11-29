@@ -177,7 +177,7 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 	case BIOME_SHRUBLAND:
 	case BIOME_RAINFOREST:
 	case BIOME_SEASONFOREST:
-	case BIOME_SAVANA:
+	case BIOME_SAVANNA:
 		if (y == baseHeight) {
 			if (d <= 0.95f) {
 				return BLOCK_GRASS;

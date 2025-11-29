@@ -208,8 +208,8 @@ void App::Run()
 				biomeString = "BIOME_SEASONFOREST";
 				break;
 
-			case BIOME_TYPE::BIOME_SAVANA:
-				biomeString = "BIOME_SAVANA";
+			case BIOME_TYPE::BIOME_SAVANNA:
+				biomeString = "BIOME_SAVANNA";
 				break;
 
 			default:

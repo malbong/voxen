@@ -223,7 +223,7 @@ public:
 		// tree: cactus
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetBaseColor(RGBA_UINT(214, 131, 31, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxInstanceCountPerChunk(4);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxTreeCountPerChunk(2);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxTreeCountPerChunk(1);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_DEAD_BUSH);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetInstances(std::move(tmpInstances));
@@ -271,19 +271,19 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetTrees(std::move(tmpTrees));
 
 
-		// BIOME_SAVANA
+		// BIOME_SAVANNA
 		// instance: grass
 		// tree: oak, acacia
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetBaseColor(RGBA_UINT(182, 173, 97, 255));
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetMaxInstanceCountPerChunk(64);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetMaxTreeCountPerChunk(8);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetBaseColor(RGBA_UINT(182, 173, 97, 255));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetMaxInstanceCountPerChunk(64);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetMaxTreeCountPerChunk(3);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetInstances(std::move(tmpInstances));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetInstances(std::move(tmpInstances));
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_ACACIA_LOG);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANA].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetTrees(std::move(tmpTrees));
 
 
 		// BIOME_SNOWY_TAIGA
