@@ -172,6 +172,32 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 		}
 
 	case BIOME_SWAMP:
+		if (y == baseHeight) {
+			if (d <= 0.25f) {
+				return BLOCK_MUD;
+			}
+			else if (d <= 0.4f) {
+				return BLOCK_MOSS;
+			}
+			else if (d <= 0.9f) {
+				return BLOCK_GRASS;
+			}
+			else {
+				return BLOCK_DIRT;
+			}
+		}
+		else  {
+			if (d <= 0.25f) {
+				return BLOCK_STONE;
+			}
+			else if (d <= 0.9f) {
+				return BLOCK_MOSS;
+			}	
+			else {
+				return BLOCK_MUD;
+			}
+		}
+
 	case BIOME_PLAINS:
 	case BIOME_FOREST:
 	case BIOME_SHRUBLAND:
@@ -187,8 +213,8 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 			}
 		}
 		else if (y == baseHeight - 1) {
-			if (d <= 0.25f)
-				return BLOCK_GRASS;
+			if (d <= 0.2f)
+				return BLOCK_STONE;
 			else
 				return BLOCK_DIRT;
 		}

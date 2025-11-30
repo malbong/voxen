@@ -112,6 +112,8 @@ public:
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_PODZOL].Init(23, 24, 3, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_ICE].Init(25, 25, 25, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_GOLD].Init(26, 26, 26, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MUD].Init(44, 44, 44, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MOSS].Init(45, 45, 45, false, true, false);
 		
 		// tree
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_OAK_LOG].Init(28, 27, 28, false, true, false);
