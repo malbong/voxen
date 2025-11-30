@@ -80,6 +80,9 @@ private:
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
 
+	void AddInstanceInfo(Vector3 worldPosition, const Instance& instance);
+	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
+
 	bool FrustumCulling(
 		Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index = 0);
 

@@ -42,7 +42,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 		return biomeTrees[0]; // oak
 
 	case BIOME_SWAMP:
-		if (d < 0.5f)
+		if (d < 0.3f)
 			return biomeTrees[0]; // oak
 		else
 			return biomeTrees[1]; // mangrove
@@ -235,7 +235,8 @@ Vector3 GenerateNextDirectionForGradient(Vector3 diffPos, Vector3 gradient)
 	return bestDir;
 }
 
-Vector3 GenerateRandomGradient(const PosInt3& worldPos, int loop, Vector3 minScale, Vector3 maxScale, bool negitiveY = false)
+Vector3 GenerateRandomGradient(
+	const PosInt3& worldPos, int loop, Vector3 minScale, Vector3 maxScale, bool negitiveY = false)
 {
 	float sx = (float)Utils::RandomRangeByPosForLoop(
 		worldPos, loop, 31477u, (int)minScale.x, (int)maxScale.x);
@@ -333,9 +334,94 @@ Vector3 AddBranchForRandom(const PosInt3& worldPos, int branchLength, int startH
 	return lastBranchPos;
 }
 
-void GenerateMangrove(const TreeShapeParams& params, TreeShape& tree) {}
+void DropVines(int x, int y, int z, int dir, int height, TreeShape& tree)
+{
+	for (int ty = y; ty > y - height; --ty) {
+		if (x < 0 || x >= Tree::TREE_SIZE || ty < 0 || ty >= Tree::TREE_SIZE || z < 0 ||
+			z >= Tree::TREE_SIZE)
+			return;
 
-void GenerateJungle(const TreeShapeParams& params, TreeShape& tree) {}
+		if (tree[ty][z][x] == TREE_BLOCK_INDEX::LEAF || tree[ty][z][x] == TREE_BLOCK_INDEX::TRUNK)
+			return;
+
+		if (dir == 0) { // TREE LEFT -> RIGHT of VINE
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_RIGHT));
+		}
+		else if (dir == 1) { // TREE RIGHT -> LEFT of VINE
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_LEFT));
+		}
+		else if (dir == 2) { // TREE FRONT -> BACK of VINE
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_BACK));
+		}
+		else if (dir == 3) { // TREE BACK -> FRONT of VINE
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_FRONT));
+		}
+	}
+}
+
+void AddVines(const PosInt3& worldPos, int vinePercent, TreeShape& tree)
+{
+	int dir[4][2] = { { -1, 0 }, { 1, 0 }, { 0, 1 }, { 0, -1 } }; // L R F B
+
+	for (int y = Tree::TREE_SIZE - 1; y >= 0; --y) {
+		for (int z = 0; z < Tree::TREE_SIZE; ++z) {
+			for (int x = 0; x < Tree::TREE_SIZE; ++x) {
+				if (tree[y][z][x] == TREE_BLOCK_INDEX::LEAF ||
+					tree[y][z][x] == TREE_BLOCK_INDEX::TRUNK) {
+
+					for (int d = 0; d < 4; ++d) {
+						int nx = x + dir[d][0];
+						int nz = z + dir[d][1];
+
+						if (nx < 0 || nx >= Tree::TREE_SIZE || nz < 0 || nz >= Tree::TREE_SIZE)
+							continue;
+
+						if (tree[y][nz][nx] == TREE_BLOCK_INDEX::EMPTY) {
+
+							int wx = std::get<0>(worldPos) + nx - (Tree::TREE_SIZE / 2);
+							int wy = std::get<1>(worldPos) + y + 1;
+							int wz = std::get<2>(worldPos) - nz + (Tree::TREE_SIZE / 2);
+
+							int percent = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 0, 100);
+							if (percent <= vinePercent) {
+
+								int length = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 1, y + 1);
+
+								DropVines(nx, y, nz, d, length, tree);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void GenerateMangrove(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
+{
+	// tree x, z at center
+	int tx = Tree::TREE_SIZE / 2;
+	int tz = Tree::TREE_SIZE / 2;
+
+	// set trunk block
+	int heightRange = params.baseHeight + Utils::RandomRangeByPos(worldPos, -1, 0);
+	for (int y = 0; y < heightRange; ++y)
+		tree[y][tz][tx] = TREE_BLOCK_INDEX::TRUNK;
+
+	Vector3 center = Vector3((float)tx, (float)(heightRange - 1), (float)tz);
+	Vector3 shrink = Vector3(1.0f, 1.5f, 1.0f);
+	int radiusRange = Utils::RandomRangeByPos(worldPos, 0, 1);
+	int leafRadius = params.leafRadius + radiusRange;
+	int carveStartY = -leafRadius;
+	int carveEndY = leafRadius;
+	float carveScale = 0.125f;
+	AddLeafCluster(center, shrink, leafRadius, carveStartY, carveEndY, carveScale, worldPos, tree);
+
+	int vinePercentRange = 40 + Utils::RandomRangeByPos(worldPos, -10, 10);
+	AddVines(worldPos, vinePercentRange, tree);
+}
+
+void GenerateJungle(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree) {}
 
 void GenerateCactus(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
 {
@@ -402,7 +488,7 @@ void GenerateAcacia(const TreeShapeParams& params, const PosInt3& worldPos, Tree
 	AddLeafPlane(center, shrink, leafRadius - 3, true, carveScale, worldPos, tree);
 }
 
-void GenerateCherry(const TreeShapeParams& params, const PosInt3 worldPos, TreeShape& tree) 
+void GenerateCherry(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
 {
 	// tree x, z at center
 	int tx = Tree::TREE_SIZE / 2;
@@ -411,7 +497,7 @@ void GenerateCherry(const TreeShapeParams& params, const PosInt3 worldPos, TreeS
 	int heightRange = params.baseHeight + Utils::RandomRangeByPos(worldPos, -1, 1);
 	for (int y = 0; y < heightRange; ++y)
 		tree[y][tz][tx] = TREE_BLOCK_INDEX::TRUNK;
-	
+
 	for (int i = 0; i < params.branchCount; ++i) {
 		int branchLengthRange =
 			params.branchLength + Utils::RandomRangeByPosForLoop(worldPos, i, 95369u, -1, 1);
@@ -499,7 +585,7 @@ void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeSh
 
 	switch (type) {
 	case TREE_TYPE::TREE_MANGROVE_LOG:
-		return GenerateMangrove(params, outTreeShape);
+		return GenerateMangrove(params, worldPosInt3, outTreeShape);
 
 	case TREE_TYPE::TREE_CHERRY_LOG:
 		return GenerateCherry(params, worldPosInt3, outTreeShape);
@@ -508,7 +594,7 @@ void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeSh
 		return GenerateCactus(params, worldPosInt3, outTreeShape);
 
 	case TREE_TYPE::TREE_JUNGLE_LOG:
-		return GenerateJungle(params, outTreeShape);
+		return GenerateJungle(params, worldPosInt3, outTreeShape);
 
 	case TREE_TYPE::TREE_ACACIA_LOG:
 		return GenerateAcacia(params, worldPosInt3, outTreeShape);

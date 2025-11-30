@@ -277,8 +277,8 @@ bool Chunk::CanPlaceTreeAt(
 	}
 
 	// get tree type
-	TREE_TYPE treeType = Tree::GetTreeTypeForBiome(
-		biomeType, memory->distributionNoises[x + 1][z + 1], x, y, z);
+	TREE_TYPE treeType =
+		Tree::GetTreeTypeForBiome(biomeType, memory->distributionNoises[x + 1][z + 1], x, y, z);
 	if (treeType == TREE_TYPE::TREE_NONE) {
 		return false;
 	}
@@ -309,71 +309,111 @@ bool Chunk::CheckTreePlaceCondition(int x, int y, int z)
 	return true;
 }
 
+void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, ChunkLoadMemory* memory)
+{
+	// Set chunk tree block
+	if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32
+		m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+	}
+
+	// Making chunk patch data to neighbor chunk
+	if (!IsInsideChunk(tx, ty, tz)) {
+		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+			tx, ty, tz, treeBlock, Instance(), CHUNK_SIZE, true);
+
+		Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
+		Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
+		PosInt3 blockOwnerOffsetPosInt3 = Utils::VectorToPosInt3(blockOwnerOffsetPos);
+
+		memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
+	}
+
+	// Propagation patch for greedy mesh
+	if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
+		Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
+		Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
+		PosInt3 blockOwnerOffsetPosInt3 = Utils::VectorToPosInt3(blockOwnerOffsetPos);
+
+		int localX = Utils::WrapToBase(tx, CHUNK_SIZE);
+		int localY = Utils::WrapToBase(ty, CHUNK_SIZE);
+		int localZ = Utils::WrapToBase(tz, CHUNK_SIZE);
+
+		std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
+		int outEdgePatchEntryCount = 0;
+		ChunkManager::GetInstance()->GenerateEdgePatchEntry(localX, localY, localZ,
+			blockOwnerOffsetPos, treeBlock, outEdgePatchEntry, outEdgePatchEntryCount);
+
+		PosInt3 myOffsetPosInt3 = Utils::VectorToPosInt3(m_offsetPosition);
+		for (int i = 0; i < outEdgePatchEntryCount; ++i) {
+			PosInt3& patchChunkPosInt3 = outEdgePatchEntry[i].first;
+			PatchData& patchData = outEdgePatchEntry[i].second;
+
+			if (patchChunkPosInt3 != myOffsetPosInt3) {
+				memory->chunkPatchDataMap[patchChunkPosInt3].insert(patchData);
+			}
+		}
+	}
+}
+
+void Chunk::SetTreeVines(
+	int tx, int ty, int tz, INSTANCE_TYPE treeVine, uint8_t faceFlag, ChunkLoadMemory* memory)
+{
+	PosInt3 worldPosInt3 =
+		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz));
+
+	TEXTURE_INDEX texIndex = Instance::GetTextureIndex(treeVine);
+
+	Instance instance = Instance(treeVine, texIndex, 0.0f, Vector2(0.0f), faceFlag);
+
+	if (IsInsideChunk(tx, ty, tz)) {
+		m_instanceMap.insert(std::pair(PosInt3(tx, ty, tz), instance));
+	}
+	else {
+		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
+			tx, ty, tz, Block(), instance, CHUNK_SIZE, true);
+
+		Vector3 instancePos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
+		Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
+		PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
+
+		memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
+	}
+}
+
 void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType)
 {
-	TreeShape treeShape = { TREE_BLOCK_INDEX::EMPTY };
-
 	PosInt3 worldPosInt3 =
 		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
+	TreeShape treeShape = { TREE_BLOCK_INDEX::EMPTY };
 	Tree::GenerateTreeShape(treeType, worldPosInt3, treeShape);
 
 	for (int dy = 0; dy < Tree::TREE_SIZE; ++dy) {
 		for (int dz = 0; dz < Tree::TREE_SIZE; ++dz) {
 			for (int dx = 0; dx < Tree::TREE_SIZE; ++dx) {
-				if (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::EMPTY)
+				if (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::EMPTY) {
 					continue;
+				}
 
 				int ty = y + dy + 1;
 				int tz = z - dz + (Tree::TREE_SIZE / 2);
 				int tx = x + dx - (Tree::TREE_SIZE / 2);
 
-				BLOCK_TYPE trunkBlockType = Tree::GetTrunkBlockType(treeType);
-				BLOCK_TYPE leafBlockType = Tree::GetLeafBlockType(treeType);
-				BLOCK_TYPE treeBlock = treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::TRUNK
-										   ? trunkBlockType
-										   : leafBlockType;
+				if (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::TRUNK ||
+					treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::LEAF) {
 
-				// Set chunk tree block
-				if (IsInsideChunkWithPadding(tx, ty, tz)) { // -1 <= tx <= 32
-					m_blocks[tx + 1][ty + 1][tz + 1].SetType(treeBlock);
+					BLOCK_TYPE treeBlock = (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::TRUNK)
+											   ? Tree::GetTrunkBlockType(treeType)
+											   : Tree::GetLeafBlockType(treeType);
+
+					SetTreeBlockType(tx, ty, tz, treeBlock, memory);
 				}
 
-				// Making chunk patch data to neighbor chunk
-				if (!IsInsideChunk(tx, ty, tz)) {
-					PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-						tx, ty, tz, treeBlock, Instance(), CHUNK_SIZE, true);
+				if (treeShape[dy][dz][dx] >= TREE_BLOCK_INDEX::VINE) {
+					INSTANCE_TYPE vineType = INSTANCE_TYPE::INSTANCE_VINE;
 
-					Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
-					Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
-					PosInt3 blockOwnerOffsetPosInt3 = Utils::VectorToPosInt3(blockOwnerOffsetPos);
+					uint8_t faceFlag = (treeShape[dy][dz][dx] & (~TREE_BLOCK_INDEX::VINE)); // off vine flag
 
-					memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
-				}
-
-				// Propagation patch for greedy mesh
-				if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
-					Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
-					Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
-					PosInt3 blockOwnerOffsetPosInt3 = Utils::VectorToPosInt3(blockOwnerOffsetPos);
-
-					int localX = Utils::WrapToBase(tx, CHUNK_SIZE);
-					int localY = Utils::WrapToBase(ty, CHUNK_SIZE);
-					int localZ = Utils::WrapToBase(tz, CHUNK_SIZE);
-
-					std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
-					int outEdgePatchEntryCount = 0;
-					ChunkManager::GetInstance()->GenerateEdgePatchEntry(localX, localY, localZ,
-						blockOwnerOffsetPos, treeBlock, outEdgePatchEntry, outEdgePatchEntryCount);
-
-					PosInt3 myOffsetPosInt3 = Utils::VectorToPosInt3(m_offsetPosition);
-					for (int i = 0; i < outEdgePatchEntryCount; ++i) {
-						PosInt3& patchChunkPosInt3 = outEdgePatchEntry[i].first;
-						PatchData& patchData = outEdgePatchEntry[i].second;
-
-						if (patchChunkPosInt3 != myOffsetPosInt3) {
-							memory->chunkPatchDataMap[patchChunkPosInt3].insert(patchData);
-						}
-					}
+					SetTreeVines(tx, ty, tz, vineType, faceFlag, memory);
 				}
 			}
 		}
@@ -520,7 +560,7 @@ bool Chunk::CanPlaceBiomeInstanceAt(
 	if (!IsInsideChunk(x, y, z)) {
 		return false;
 	}
-	
+
 	if (IsInstanceAt(x, y, z)) {
 		return false;
 	}

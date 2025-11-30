@@ -41,7 +41,7 @@ bool useGrassColor(uint texIndex)
 bool useFoliageColor(uint texIndex)
 {
     // TODO
-    return (64 <= texIndex && texIndex <= 69);
+    return (64 <= texIndex && texIndex <= 70);
 }
 
 float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)

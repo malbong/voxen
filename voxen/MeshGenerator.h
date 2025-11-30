@@ -154,10 +154,10 @@ namespace MeshGenerator {
 		std::vector<Vector2> texcoords;
 
 		// Z+ πÊ«‚
-		positions.push_back(Vector3(-0.5f, 0.5f, 0.5f));
-		positions.push_back(Vector3(0.5f, 0.5f, 0.5f));
-		positions.push_back(Vector3(0.5f, -0.5f, 0.5f));
-		positions.push_back(Vector3(-0.5f, -0.5f, 0.5f));
+		positions.push_back(Vector3(-0.5f, 0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(0.5f, 0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(0.5f, -0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(-0.5f, -0.5f, 0.5f - 1e-2f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));

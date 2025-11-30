@@ -15,7 +15,15 @@ enum DIR : uint8_t {
 enum TREE_BLOCK_INDEX : uint8_t {
 	EMPTY = 0,
 	TRUNK = 1,
-	LEAF = 2,
+	LEAF = 2, 
+	VINE = 3,
+};
+
+enum VINE_DIR : uint8_t {
+	V_LEFT = 2,
+	V_RIGHT = 3,
+	V_FRONT = 4,
+	V_BACK = 5,
 };
 
 enum BIOME_TYPE : uint8_t {
@@ -98,6 +106,7 @@ enum TEXTURE_INDEX : uint8_t {
 	TEXTURE_BIRCH_LEAF = 67,
 	TEXTURE_JUNGLE_LEAF = 68,
 	TEXTURE_ACACIA_LEAF = 69,
+	TEXTURE_VINE = 70,
 	TEXTURE_CHERRY_LEAF = 80,
 
 	// instance
@@ -219,5 +228,6 @@ enum INSTANCE_TYPE : uint8_t {
 	INSTANCE_ALLIUM = 19,
 	INSTANCE_DANDELION = 20,
 	INSTANCE_WATER_LILY = 21,
+	INSTANCE_VINE = 22,
 	INSTANCE_NONE = 255,
 };

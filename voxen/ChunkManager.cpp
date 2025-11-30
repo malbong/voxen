@@ -530,6 +530,55 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 	}
 }
 
+void ChunkManager::AddInstanceInfo(Vector3 worldPosition, const Instance& instance)
+{
+	InstanceInfoVertex info;
+
+	INSTANCE_TYPE type = instance.GetType();
+	info.texIndex = instance.GetTexIndex();
+
+	float offsetNoiseX = instance.GetOffsetNoisePositionXZ().x;
+	float offsetNoiseZ = instance.GetOffsetNoisePositionXZ().y;
+	Vector3 offsetNoiseXZ = Vector3(0.5f) + Vector3(offsetNoiseX, 0.0f, offsetNoiseZ);
+	Vector3 instanceWorldPosition = worldPosition + offsetNoiseXZ;
+	Matrix translation = Matrix::CreateTranslation(instanceWorldPosition);
+
+	float yawRotationRadian = instance.GetYawRotation() * (XM_PI / 180.0f);
+	Matrix rotation = Matrix::CreateFromQuaternion(
+		Quaternion::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yawRotationRadian));
+
+	info.instanceWorld = (rotation * translation).Transpose();
+
+	INSTANCE_SHAPE shapeType = instance.GetShape(type);
+	m_instanceInfoList[shapeType].push_back(info);
+}
+
+void ChunkManager::AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance)
+{
+	uint8_t faceFlag = instance.GetFaceFlag();
+	Instance splitedInstance = instance;
+
+	if (faceFlag & (1 << VINE_DIR::V_LEFT)) {
+		splitedInstance.SetYawRotation(270.0f);
+		AddInstanceInfo(worldPosition, splitedInstance);
+	}
+
+	if (faceFlag & (1 << VINE_DIR::V_RIGHT)) {
+		splitedInstance.SetYawRotation(90.0f);
+		AddInstanceInfo(worldPosition, splitedInstance);
+	}
+
+	if (faceFlag & (1 << VINE_DIR::V_FRONT)) {
+		splitedInstance.SetYawRotation(180.0f);
+		AddInstanceInfo(worldPosition, splitedInstance);
+	}
+
+	if (faceFlag & (1 << VINE_DIR::V_BACK)) {
+		splitedInstance.SetYawRotation(0.0f);
+		AddInstanceInfo(worldPosition, splitedInstance);
+	}
+}
+
 void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 {
 	// clear all info
@@ -551,26 +600,17 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 		// set info
 		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
 		for (auto& p : instanceMap) {
-			InstanceInfoVertex info;
+			const PosInt3& localPos = p.first;
+			Vector3 worldPosition = c->GetOffsetPosition() + Utils::PosInt3ToVector(localPos);
 
-			INSTANCE_TYPE type = p.second.GetType();
-			info.texIndex = p.second.GetTexIndex();
+			const Instance& instance = p.second;
 
-			float offsetNoiseX = p.second.GetOffsetNoisePositionXZ().x;
-			float offsetNoiseZ = p.second.GetOffsetNoisePositionXZ().y;
-			Vector3 offsetNoiseXZ = Vector3(0.5f) + Vector3(offsetNoiseX, 0.0f, offsetNoiseZ);
-			Vector3 instanceLocalPosition = Utils::PosInt3ToVector(p.first) + offsetNoiseXZ;
-			Vector3 instanceWorldPosition = instanceLocalPosition + c->GetOffsetPosition();
-			Matrix translation = Matrix::CreateTranslation(instanceWorldPosition);
-
-			float yawRotationRadian = p.second.GetYawRotation() * (XM_PI / 180.0f);
-			Matrix rotation = Matrix::CreateFromQuaternion(
-				Quaternion::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yawRotationRadian));
-
-			info.instanceWorld = (rotation * translation).Transpose();
-
-			INSTANCE_SHAPE shapeType = p.second.GetShape(type);
-			m_instanceInfoList[shapeType].push_back(info);
+			if (instance.GetFaceFlag() > 0) {
+				AddInstanceInfoBySplitFace(worldPosition, instance);
+			}
+			else {
+				AddInstanceInfo(worldPosition, instance);
+			}
 		}
 	}
 

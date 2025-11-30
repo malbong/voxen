@@ -16,6 +16,7 @@ struct TreeShapeParams {
 	int leafRadius;
 };
 
+
 using TreeShape = uint8_t[19][19][19];
 
 class TreeTypeInfoSet;
@@ -93,7 +94,7 @@ public:
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LEAF);
-		TreeShapeParams shapeParams = { 9, 0, 0, 0, 4 };
+		TreeShapeParams shapeParams = { 6, 0, 0, 0, 3 };
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams(shapeParams);
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_BIRCH_LOG);

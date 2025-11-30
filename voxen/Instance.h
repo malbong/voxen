@@ -28,17 +28,24 @@ public:
 
 	Instance()
 		: m_type(INSTANCE_TYPE::INSTANCE_NONE), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE),
-		  m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f)
+		  m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f), m_faceFlag(0)
 	{
 	}
 	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex)
-		: m_type(type), m_texIndex(texIndex), m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f)
+		: m_type(type), m_texIndex(texIndex), m_yawRotation(0.0f), m_offsetNoisePositionXZ(0.0f),
+		  m_faceFlag(0)
 	{
 	}
 	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex, float yawRotation,
 		Vector2 offsetNoisePositionXZ)
 		: m_type(type), m_texIndex(texIndex), m_yawRotation(yawRotation),
-		  m_offsetNoisePositionXZ(offsetNoisePositionXZ)
+		  m_offsetNoisePositionXZ(offsetNoisePositionXZ), m_faceFlag(0)
+	{
+	}
+	Instance(INSTANCE_TYPE type, TEXTURE_INDEX texIndex, float yawRotation,
+		Vector2 offsetNoisePositionXZ, uint8_t faceFlag)
+		: m_type(type), m_texIndex(texIndex), m_yawRotation(yawRotation),
+		  m_offsetNoisePositionXZ(offsetNoisePositionXZ), m_faceFlag(faceFlag)
 	{
 	}
 	~Instance() {}
@@ -58,6 +65,9 @@ public:
 		m_offsetNoisePositionXZ = offsetNoisePositionXZ;
 	}
 
+	inline uint8_t GetFaceFlag() const { return m_faceFlag; }
+	inline void SetFaceFlag(uint8_t faceFlag) { m_faceFlag = faceFlag; }
+
 private:
 	static InstanceTypeInfoSet m_instanceTypeInfoSet;
 
@@ -65,6 +75,7 @@ private:
 	TEXTURE_INDEX m_texIndex;
 	float m_yawRotation;
 	Vector2 m_offsetNoisePositionXZ;
+	uint8_t m_faceFlag;
 };
 
 
@@ -192,6 +203,9 @@ public:
 
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_WATER_LILY].Init(
 			INSTANCE_SHAPE::INSTANCE_FLOOR, TEXTURE_INDEX::TEXTURE_WATER_LILY);
+
+		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_VINE].Init(
+			INSTANCE_SHAPE::INSTANCE_SQUARE, TEXTURE_INDEX::TEXTURE_VINE);
 
 		m_instanceTypeInfoSet[INSTANCE_TYPE::INSTANCE_NONE].Init(
 			INSTANCE_SHAPE::INSTANCE_CROSS, TEXTURE_INDEX::TEXTURE_NONE);

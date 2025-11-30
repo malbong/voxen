@@ -137,6 +137,9 @@ private:
 	bool CanPlaceTreeAt(
 		int x, int y, int z, uint32_t placedBiomeTreeCount, ChunkLoadMemory* memory);
 	bool CheckTreePlaceCondition(int x, int y, int z);
+	void SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, ChunkLoadMemory* memory);
+	void SetTreeVines(int tx, int ty, int tz, INSTANCE_TYPE treeInstance, uint8_t faceFlag,
+		ChunkLoadMemory* memory);
 	void PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType);
 	bool IsInsideChunk(int x, int y, int z);
 	bool IsInsideChunkWithPadding(int x, int y, int z);

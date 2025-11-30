@@ -191,7 +191,7 @@ namespace Utils {
 		return Vector3(rx, ry, rz);
 	}
 
-	static int RandomRangeByPos(PosInt3 pos, int min, int max)
+	static int RandomRangeByPos(const PosInt3& pos, int min, int max)
 	{
 		int x = std::get<0>(pos);
 		int y = std::get<1>(pos);
@@ -204,7 +204,7 @@ namespace Utils {
 		return min + hash % length;
 	}
 
-	static int RandomRangeByPos(PosInt3 pos, uint32_t seed, int min, int max)
+	static int RandomRangeByPos(const PosInt3& pos, uint32_t seed, int min, int max)
 	{
 		int x = std::get<0>(pos);
 		int y = std::get<1>(pos);
@@ -217,7 +217,7 @@ namespace Utils {
 		return min + hash % length;
 	}
 
-	static int RandomRangeByPosForLoop(PosInt3 pos, int loop, int min, int max)
+	static int RandomRangeByPosForLoop(const PosInt3& pos, int loop, int min, int max)
 	{
 		int x = std::get<0>(pos);
 		int y = std::get<1>(pos);
@@ -233,7 +233,8 @@ namespace Utils {
 		return min + hash % length;
 	}
 
-	static int RandomRangeByPosForLoop(PosInt3 pos, int loop, uint32_t seed, int min, int max)
+	static int RandomRangeByPosForLoop(
+		const PosInt3& pos, int loop, uint32_t seed, int min, int max)
 	{
 		int x = std::get<0>(pos);
 		int y = std::get<1>(pos);

@@ -161,7 +161,7 @@ public:
 		// tree: oak, mangrove
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetBaseColor(RGBA_UINT(20, 249, 183, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxInstanceCountPerChunk(128);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxTreeCountPerChunk(16);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxTreeCountPerChunk(12);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_BLUE_ORCHID);
