@@ -63,7 +63,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 		return biomeTrees[0]; // cactus
 
 	case BIOME_RAINFOREST:
-		if (d < 0.2f)
+		if (d < 0.6f)
 			return biomeTrees[0]; // oak
 		else
 			return biomeTrees[1]; // jungle
@@ -421,7 +421,62 @@ void GenerateMangrove(const TreeShapeParams& params, const PosInt3& worldPos, Tr
 	AddVines(worldPos, vinePercentRange, tree);
 }
 
-void GenerateJungle(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree) {}
+void GenerateJungle(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree) 
+{
+	// tree x, z at center
+	int tx = Tree::TREE_SIZE / 2;
+	int tz = Tree::TREE_SIZE / 2;
+
+	// set trunk block
+	int heightRange = params.baseHeight + Utils::RandomRangeByPos(worldPos, -2, 2);
+	for (int y = 0; y < heightRange; ++y) {
+		tree[y][tz + 0][tx + 0] = TREE_BLOCK_INDEX::TRUNK;
+		tree[y][tz - 1][tx + 1] = TREE_BLOCK_INDEX::TRUNK;
+		tree[y][tz - 1][tx + 0] = TREE_BLOCK_INDEX::TRUNK;
+		tree[y][tz + 0][tx + 1] = TREE_BLOCK_INDEX::TRUNK;
+	}
+
+	for (int i = 0; i < params.branchCount; ++i) {
+		int branchLengthRange =
+			params.branchLength + Utils::RandomRangeByPosForLoop(worldPos, i, 87553u, -1, 1);
+		int branchStartHeightRange =
+			params.branchStartHeight + Utils::RandomRangeByPosForLoop(worldPos, i, 57881u, -1, 1);
+
+		Vector3 minScale = Vector3(1.0f, 1.0f, 1.0f);
+		Vector3 maxScale = Vector3(6.0f, 3.0f, 6.0f);
+		Vector3 gradient = GenerateRandomGradient(worldPos, i, minScale, maxScale, true);
+
+		Vector3 lastBranchPos = AddBranchForGradient(
+			worldPos, branchLengthRange, branchStartHeightRange, gradient, tree);
+
+		Vector3 shrink = Vector3(1.25f, 1.0f, 1.25f);
+		int leafRadius = 3;
+		float carveScale = 0.075f;
+		AddLeafPlane(lastBranchPos, shrink, leafRadius, true, carveScale, worldPos, tree);
+
+		lastBranchPos.y += 1;
+		shrink = Vector3(1.25f, 1.0f, 1.25f);
+		carveScale = 0.125f;
+		AddLeafPlane(lastBranchPos, shrink, leafRadius - 1, true, carveScale, worldPos, tree);
+	}
+
+	Vector3 center = Vector3((float)tx, (float)heightRange, (float)tz);
+	Vector3 shrink = Vector3(1.25f, 1.0f, 1.25f);
+	int leafRadius = params.leafRadius + Utils::RandomRangeByPos(worldPos, 0, 1);
+	float carveScale = 0.125f;
+	AddLeafPlane(center, shrink, leafRadius - 1, true, carveScale, worldPos, tree);
+
+	center.y -= 1;
+	carveScale = 0.075f;
+	AddLeafPlane(center, shrink, leafRadius, true, carveScale, worldPos, tree);
+
+	center.y -= 1;
+	carveScale = 0.075f;
+	AddLeafPlane(center, shrink, leafRadius - 3, true, carveScale, worldPos, tree);
+
+	int vinePercentRange = 5 + Utils::RandomRangeByPos(worldPos, 0, 5);
+	AddVines(worldPos, vinePercentRange, tree);
+}
 
 void GenerateCactus(const TreeShapeParams& params, const PosInt3& worldPos, TreeShape& tree)
 {

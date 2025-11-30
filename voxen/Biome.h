@@ -237,7 +237,7 @@ public:
 		// tree: oak, jungle
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetBaseColor(RGBA_UINT(93, 130, 21, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxInstanceCountPerChunk(160);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxTreeCountPerChunk(32);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxTreeCountPerChunk(24);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);
@@ -292,7 +292,7 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetBaseColor(
 			RGBA_UINT(200, 255, 239, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxInstanceCountPerChunk(32);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxTreeCountPerChunk(4);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxTreeCountPerChunk(2);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_FERN);

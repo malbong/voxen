@@ -17,13 +17,13 @@ struct TreeShapeParams {
 };
 
 
-using TreeShape = uint8_t[19][19][19];
+using TreeShape = uint8_t[25][25][25];
 
 class TreeTypeInfoSet;
 class Tree {
 public:
 	static const uint32_t TREE_TYPE_COUNT = 256;
-	static const uint8_t TREE_SIZE = 19;
+	static const uint8_t TREE_SIZE = 25;
 
 	static BLOCK_TYPE GetTrunkBlockType(TREE_TYPE type);
 	static BLOCK_TYPE GetLeafBlockType(TREE_TYPE type);
@@ -94,8 +94,7 @@ public:
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LEAF);
-		TreeShapeParams shapeParams = { 6, 0, 0, 0, 3 };
-		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams({ 6, 0, 0, 0, 3 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_BIRCH_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_BIRCH_LEAF);
@@ -115,7 +114,7 @@ public:
 			BLOCK_TYPE::BLOCK_JUNGLE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetShapeParams(shapeParams);
+		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetShapeParams({ 18, 3, 13, 13, 7});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LOG);
