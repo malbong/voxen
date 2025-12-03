@@ -1,4 +1,4 @@
-#include "CommonPS.hlsli"
+#include "Common.hlsli"
 
 Texture2DArray atlasTextureArray : register(t0);
 
