@@ -12,9 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Terrain.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="headers\App.h">
       <Filter>headers</Filter>
     </ClInclude>
