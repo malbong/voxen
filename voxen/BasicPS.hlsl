@@ -26,30 +26,31 @@ struct psOutput
     float4 mer : SV_Target4;
 };
 
-// TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
-bool useGrassColor(uint texIndex)
-{
-    return texIndex <= 2 || texIndex == 128;
-}
-
 bool useDirtOverlay(uint texIndex)
 {
     return texIndex == 2;
 }
 
+bool useGrassColor(uint texIndex)
+{
+    // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
+    return texIndex <= 2 || texIndex == 128 || texIndex == 131 ||
+            texIndex == 148 || texIndex == 153 || texIndex == 154 || texIndex == 155 || texIndex == 156;
+}
+
 bool useFoliageColor(uint texIndex)
 {
     // TODO
-    return texIndex == 32;
+    return (64 <= texIndex && texIndex <= 70);
 }
 
 float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
 {
     float4 albedo = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, texIndex));
     
-    if (useGrassColor(texIndex))
+    if (useGrassColor(texIndex) || useFoliageColor(texIndex))
     {
-        float3 faceBiasPos = -normal * 1e-4; 
+        float3 faceBiasPos = -normal * 1e-4;
         // normal vector의 반대방향으로 shrink
         // bias를 사용하지 않으면 depthFighting같은 효과가 나타남
         // 1.0000001, 0.99999999가 서로 완전 다른 결과이기 때문
@@ -64,19 +65,19 @@ float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
         
         float2 th = climateNoiseMap.SampleLevel(pointClampSS, climateTexcoord, 0.0).rg;
         
-        float3 grassColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
-        albedo.rgb *= grassColor;
+        float3 climateColor = float3(0.0, 0.0, 0.0);
+        if (useGrassColor(texIndex))
+            climateColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+        if (useFoliageColor(texIndex))
+            climateColor = foliageColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            
+        albedo.rgb *= climateColor;
     }
     
     if (useDirtOverlay(texIndex))
     {
         float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, 3));
         albedo = lerp(dirt, albedo, albedo.a);
-    }
-    
-    if (useFoliageColor(texIndex))
-    {
-        // TODO
     }
     
     return albedo;
@@ -135,7 +136,7 @@ float3 normalMapping(float2 texcoord, uint texIndex, float3 normal)
 
 psOutput
     main(psInput
-    input, 
+    input,
     uint coverage : SV_COVERAGE, uint sampleIndex : SV_SampleIndex)
 {
 #ifdef USE_ALPHA_CLIP 

@@ -40,7 +40,7 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 normal)
     float3x3 TBN = float3x3(T, B, normal);
     
     float occlusionFactor = 0.0;
-    float radius = 2.0;
+    float radius = 0.5;
     float bias = 0.025;
     
     [unroll]

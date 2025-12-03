@@ -75,6 +75,9 @@ private:
 	LONG m_mouseDeltaX;
 	LONG m_mouseDeltaY;
 
+	bool m_mouseLeftDown;
+	bool m_mouseRightDown;
+
 	bool m_isActive;
 
 	Date m_date;

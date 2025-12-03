@@ -108,9 +108,14 @@ LRESULT App::EventHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) ==
 			dwSize) {
 			RAWINPUT* raw = (RAWINPUT*)lpb;
+
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				m_mouseDeltaX += raw->data.mouse.lLastX;
 				m_mouseDeltaY += raw->data.mouse.lLastY;
+
+				USHORT mouseButtonFlags = raw->data.mouse.usButtonFlags;
+				m_mouseLeftDown = (mouseButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN);
+				m_mouseRightDown = (mouseButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN);
 			}
 		}
 		delete[] lpb;
@@ -156,9 +161,8 @@ void App::Run()
 			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
 			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
 
-			float r = 32.0f * pv * powf((1.0f - e), 1.25f);
-			BIOME_TYPE biomeType = Terrain::GetBiomeType(b - r, t, h);
-			const char* biomeString = nullptr;
+			BIOME_TYPE biomeType = Biome::GetBiomeType(b, t, h, pv, e);
+			const char *biomeString = nullptr;
 			switch (biomeType) {
 			case BIOME_TYPE::BIOME_OCEAN:
 				biomeString = "BIOME_OCEAN";
@@ -204,8 +208,8 @@ void App::Run()
 				biomeString = "BIOME_SEASONFOREST";
 				break;
 
-			case BIOME_TYPE::BIOME_SAVANA:
-				biomeString = "BIOME_SAVANA";
+			case BIOME_TYPE::BIOME_SAVANNA:
+				biomeString = "BIOME_SAVANNA";
 				break;
 
 			default:
@@ -213,7 +217,6 @@ void App::Run()
 				break;
 			}
 			ImGui::Text("BIOME: %s", biomeString);
-
 
 			ImGui::End();
 			ImGui::Render(); // 렌더링할 것들 기록 끝
@@ -241,7 +244,7 @@ void App::Update(float dt)
 
 	m_postEffect.Update(dt, m_camera.IsUnderWater());
 
-	ChunkManager::GetInstance()->Update(dt, m_camera, m_light);
+	ChunkManager::GetInstance()->Update(dt, m_camera, m_light, m_mouseLeftDown, m_mouseRightDown);
 
 	m_worldMap.Update(m_camera.GetPosition());
 
@@ -253,6 +256,8 @@ void App::Update(float dt)
 
 	m_mouseDeltaX = 0;
 	m_mouseDeltaY = 0;
+	m_mouseLeftDown = false;
+	m_mouseRightDown = false;
 }
 
 void App::Render()
@@ -292,7 +297,7 @@ void App::Render()
 
 	// 3. Picking Block
 	{
-		if (m_camera.IsPicking()) {
+		if (m_camera.HasPickingObject()) {
 			m_camera.RenderPickingBlock();
 		}
 	}
@@ -436,7 +441,7 @@ bool App::InitGUI()
 
 bool App::InitScene()
 {
-	if (!m_camera.Initialize(Vector3(0.0f, 128.0f, 0.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+	if (!m_camera.Initialize(Vector3(-93.0f, 77.0f, 34.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))

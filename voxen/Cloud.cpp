@@ -28,9 +28,9 @@ bool Cloud::Initialize(Vector3 cameraPosition)
 {
 	for (int i = 0; i < CLOUD_DATA_MAP_SIZE; ++i) {
 		for (int j = 0; j < CLOUD_DATA_MAP_SIZE; ++j) {
-			float noise1 = Terrain::PerlinFbm((float)i / CLOUD_DATA_MAP_SIZE,
+			float noise1 = Utils::PerlinFbm((float)i / CLOUD_DATA_MAP_SIZE,
 				(float)j / CLOUD_DATA_MAP_SIZE, CLOUD_DATA_MAP_SIZE * 0.125f, 3);
-			float noise2 = Terrain::PerlinFbm((float)i / CLOUD_DATA_MAP_SIZE,
+			float noise2 = Utils::PerlinFbm((float)i / CLOUD_DATA_MAP_SIZE,
 				(float)j / CLOUD_DATA_MAP_SIZE, CLOUD_DATA_MAP_SIZE * 0.5f, 1);
 			m_dataMap[i][j] = noise1 > 0.2f || noise2 > 0.45f;
 		}
@@ -101,7 +101,8 @@ bool Cloud::BuildCloud()
 	for (int i = 0; i < CLOUD_MAP_SIZE; ++i) {
 		for (int j = 0; j < CLOUD_MAP_SIZE; ++j) {
 			int x =
-				((int)(m_mapDataOffset.x / CLOUD_SCALE_SIZE) + i - (int)(CLOUD_MAP_SIZE * 0.5f)) % CLOUD_DATA_MAP_SIZE;
+				((int)(m_mapDataOffset.x / CLOUD_SCALE_SIZE) + i - (int)(CLOUD_MAP_SIZE * 0.5f)) %
+				CLOUD_DATA_MAP_SIZE;
 			int z =
 				((int)(m_mapDataOffset.z / CLOUD_SCALE_SIZE) + j - (int)(CLOUD_MAP_SIZE * 0.5f)) %
 				CLOUD_DATA_MAP_SIZE;

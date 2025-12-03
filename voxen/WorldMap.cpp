@@ -2,7 +2,9 @@
 #include "Graphics.h"
 #include "SimpleQuadRenderer.h"
 #include "Terrain.h"
+#include "Biome.h"
 #include "DXUtils.h"
+
 
 WorldMap::WorldMap() {}
 
@@ -158,66 +160,29 @@ RGBA_UINT WorldMap::GetBiomeMapColor(int x, int z)
 	float erosion = Terrain::GetErosion(worldX, worldZ);
 	float peaksValley = Terrain::GetPeaksValley(worldX, worldZ);
 
-	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
 	float temperature = Terrain::GetTemperature(worldX, worldZ);
 	float humidity = Terrain::GetHumidity(worldX, worldZ);
 
+	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
+
+	BIOME_TYPE biomeType =
+		Biome::GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
+
+	RGBA_UINT biomeBaseColor = Biome::GetBaseColor(biomeType);
+
 	if (elevation < 64.0f) {
-		return RGBA_UINT(91, 89, 255, 255);
+		biomeBaseColor.r = (uint8_t)(biomeBaseColor.r * 0.8 + 6 * 0.2);
+		biomeBaseColor.g = (uint8_t)(biomeBaseColor.g * 0.8 + 8 * 0.2);
+		biomeBaseColor.b = (uint8_t)(biomeBaseColor.b * 0.8 + 255 * 0.2);
 	}
+	biomeBaseColor.r =
+		(uint8_t)std::clamp((int)(biomeBaseColor.r * min(1.75f, (elevation / 63.0f))), 0, 255);
+	biomeBaseColor.g =
+		(uint8_t)std::clamp((int)(biomeBaseColor.g * min(1.75f, (elevation / 63.0f))), 0, 255);
+	biomeBaseColor.b =
+		(uint8_t)std::clamp((int)(biomeBaseColor.b * min(1.75f, (elevation / 63.0f))), 0, 255);
 
-	float r = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
-	BIOME_TYPE biomeType = Terrain::GetBiomeType(elevation - r, temperature, humidity);
-
-	return GetColorByBiome(biomeType);
-}
-
-RGBA_UINT WorldMap::GetColorByBiome(BIOME_TYPE biomeType)
-{
-	switch (biomeType) {
-
-	case BIOME_OCEAN:
-		return RGBA_UINT(0, 0, 255, 255);
-
-	case BIOME_BEACH:
-		return RGBA_UINT(255, 223, 128, 255);
-
-	case BIOME_TUNDRA:
-		return RGBA_UINT(235, 235, 235, 255);
-
-	case BIOME_TAIGA:
-		return RGBA_UINT(59, 94, 84, 255);
-
-	case BIOME_PLAINS:
-		return RGBA_UINT(128, 160, 91, 255);
-
-	case BIOME_SWAMP:
-		return RGBA_UINT(20, 249, 183, 255);
-
-	case BIOME_FOREST:
-		return RGBA_UINT(59, 123, 78, 255);
-
-	case BIOME_SHRUBLAND:
-		return RGBA_UINT(163, 184, 99, 255);
-
-	case BIOME_DESERT:
-		return RGBA_UINT(214, 131, 31, 255);
-
-	case BIOME_RAINFOREST:
-		return RGBA_UINT(93, 130, 21, 255);
-
-	case BIOME_SEASONFOREST:
-		return RGBA_UINT(255, 192, 247, 255);
-
-	case BIOME_SAVANA:
-		return RGBA_UINT(182, 173, 97, 255);
-
-	case BIOME_SNOWY_TAIGA:
-		return RGBA_UINT(200, 255, 239, 255);
-
-	default:
-		return RGBA_UINT(255, 0, 0, 255);
-	}
+	return biomeBaseColor;
 }
 
 void WorldMap::ShiftClimateMapData(int dx, int dz)

@@ -1,15 +1,18 @@
 #pragma once
 
-#include <map>
-#include <queue>
+#include <unordered_map>
+#include <unordered_set>
 #include <future>
 
 #include "Chunk.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Block.h"
+#include "Instance.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
+
 
 class ChunkManager {
 
@@ -28,7 +31,7 @@ public:
 	static ChunkManager* GetInstance();
 
 	bool Initialize(Vector3 cameraChunkPos);
-	void Update(float dt, Camera& camera, Light& light);
+	void Update(float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown);
 
 	void RenderOpaqueChunk(Chunk* chunk);
 	void RenderSemiAlphaChunk(Chunk* chunk);
@@ -43,6 +46,22 @@ public:
 
 	const Chunk* GetChunkByPosition(Vector3 position);
 	const Block* GetBlockByPosition(Vector3 position);
+	const Instance* GetInstanceByPosition(Vector3 position);
+
+	bool HasObjectAt(Vector3 position);
+	void RemoveBlockPatchAt(Vector3 position);
+	void AddBlockPatchAt(Vector3 position, DIR face);
+
+	PatchData MakePatchData(
+		int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap);
+	PatchData MakePatchData(Vector3 position, Block block, Instance instance,
+		int baseSize, bool needWrap);
+	void GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition, BLOCK_TYPE blockType,
+		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
+	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
+		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
+	void PropagatePatchByEdgeBlock(
+		Vector3 localPosition, Vector3 chunkOffsetPos, BLOCK_TYPE blockType);
 	
 
 private:
@@ -56,14 +75,18 @@ private:
 	void UpdateChunkList(Vector3 cameraChunkPos);
 	void UpdateLoadChunkList(Camera& camera);
 	void UpdateUnloadChunkList();
+	void UpdatePatchChunkMap(Camera& camera);
 	void UpdateRenderChunkList(Camera& camera, Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
 
+	void AddInstanceInfo(Vector3 worldPosition, const Instance& instance);
+	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
+
 	bool FrustumCulling(
 		Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index = 0);
 
-	void InitChunkBuffer(Chunk* chunk);
+	void UpdateChunkBuffer(Chunk* chunk);
 	
 	Chunk* GetChunkFromPool();
 	void ReleaseChunkToPool(Chunk* chunk);
@@ -72,7 +95,13 @@ private:
 	bool MakeInstanceInfoBuffer();
 
 	std::vector<Chunk*> m_chunkPool;
-	std::map<std::tuple<int, int, int>, Chunk*> m_chunkMap;
+	PosHashMap<Chunk*> m_chunkMap;
+
+	PosHashMap<PosHashMap<PatchDataHashSet>> m_patchDependencyMap;
+	PosHashMap<PosHashSet> m_lookupDependencySet;
+	PosHashMap<PosHashSet> m_patchedChunkSet;
+	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
+	PosHashMap<PatchDataHashSet> m_patchChunkMap;
 
 	std::vector<Chunk*> m_loadChunkList;
 	std::vector<Chunk*> m_unloadChunkList;
@@ -100,7 +129,12 @@ private:
 	std::vector<std::vector<InstanceInfoVertex>> m_instanceInfoList;
 	std::vector<UINT> m_instanceIndexCount;
 	
-	unsigned int m_initThreadCount;
-	std::vector<std::pair<Chunk*, std::future<ChunkInitMemory*>>> m_futures;
-	std::vector<ChunkInitMemory*> m_chunkInitMemoryPool;
+	std::vector<ChunkLoadMemory*> m_chunkLoadMemoryPool;
+
+	uint32_t m_initThreadCount;
+	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_initFutures;
+
+	uint32_t m_patchThreadCount;
+	std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_patchFutures;
 };
+

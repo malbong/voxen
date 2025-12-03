@@ -154,14 +154,51 @@ namespace MeshGenerator {
 		std::vector<Vector2> texcoords;
 
 		// Z+ πÊ«‚
-		positions.push_back(Vector3(-0.5f, 0.5f, 0.5f));
-		positions.push_back(Vector3(0.5f, 0.5f, 0.5f));
-		positions.push_back(Vector3(0.5f, -0.5f, 0.5f));
-		positions.push_back(Vector3(-0.5f, -0.5f, 0.5f));
+		positions.push_back(Vector3(-0.5f, 0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(0.5f, 0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(0.5f, -0.5f, 0.5f - 1e-2f));
+		positions.push_back(Vector3(-0.5f, -0.5f, 0.5f - 1e-2f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
 		normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
+		texcoords.push_back(Vector2(0.0f, 0.0f));
+		texcoords.push_back(Vector2(1.0f, 0.0f));
+		texcoords.push_back(Vector2(1.0f, 1.0f));
+		texcoords.push_back(Vector2(0.0f, 1.0f));
+
+		for (int i = 0; i < 4; i++) {
+			InstanceVertex v;
+			v.position = positions[i];
+			v.normal = normals[i];
+			v.texcoord = texcoords[i];
+			vertices.push_back(v);
+		}
+
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(2);
+		indices.push_back(0);
+		indices.push_back(2);
+		indices.push_back(3);
+	}
+
+	static void CreateFloorInstanceMesh(
+		std::vector<InstanceVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		std::vector<Vector3> positions;
+		std::vector<Vector3> normals;
+		std::vector<Vector2> texcoords;
+
+		// floor 
+		positions.push_back(Vector3(-0.5f, -0.5f + 1e-2f, 0.5f));
+		positions.push_back(Vector3(0.5f, -0.5f + 1e-2f, 0.5f));
+		positions.push_back(Vector3(0.5f, -0.5f + 1e-2f, -0.5f));
+		positions.push_back(Vector3(-0.5f, -0.5f + 1e-2f, -0.5f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+		normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
 		texcoords.push_back(Vector2(0.0f, 0.0f));
 		texcoords.push_back(Vector2(1.0f, 0.0f));
 		texcoords.push_back(Vector2(1.0f, 1.0f));
@@ -445,11 +482,11 @@ namespace MeshGenerator {
 	}
 
 	static void CreateLineToThickLine(const Vector3& start, const Vector3& end,
-		std::vector<PickingBlockVertex>& vertices, std::vector<uint32_t>& indices)
+		std::vector<PickingObjectVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		float thickness = 0.003f;
 
-		PickingBlockVertex vertex;
+		PickingObjectVertex vertex;
 		vertex.color = Vector3(1.0f, 0.0f, 0.0f);
 
 		Vector3 dir = end - start;
@@ -485,7 +522,7 @@ namespace MeshGenerator {
 	}
 
 	static void CreatePickingBlockLineMesh(
-		std::vector<PickingBlockVertex>& vertices, std::vector<uint32_t>& indices)
+		std::vector<PickingObjectVertex>& vertices, std::vector<uint32_t>& indices)
 	{
 		Vector3 corner[8] = {
 			Vector3(0.0f, 0.0f, 0.0f),

@@ -12,7 +12,7 @@ using namespace DirectX::SimpleMath;
 class Camera {
 public:
 	static const int MAX_RENDER_DISTANCE = 260;
-	static const int LOD_RENDER_DISTANCE = 160;
+	static const int LOD_RENDER_DISTANCE = 120;
 
 	Camera();
 	~Camera();
@@ -32,7 +32,10 @@ public:
 	}
 	inline Matrix GetMirrorPlaneMatrix() { return m_mirrorPlaneMatrix; }
 	inline bool IsUnderWater() { return m_isUnderWater; }
-	inline bool IsPicking() { return (m_pickingBlock != nullptr); }
+
+	inline bool HasPickingObject() { return m_hasPickingObject; }
+	inline Vector3 GetPickingObjectPosition() { return m_pickingObjectPosition; }
+	inline DIR GetPickingObjectFace() { return m_pickingObjectFace;}
 
 	bool m_isOnConstantDirtyFlag;
 	bool m_isOnChunkDirtyFlag;
@@ -69,19 +72,22 @@ private:
 
 	bool m_isUnderWater;
 
+	bool m_hasPickingObject;
+	Vector3 m_pickingObjectPosition;
+	DIR m_pickingObjectFace;
+
 	float m_mouseSensitiveX;
 	float m_mouseSensitiveY;
 	float m_yaw;
 	float m_pitch;
 
-	const Block* m_pickingBlock;
-	std::vector<PickingBlockVertex> m_pickingBlockVertices;
-	std::vector<uint32_t> m_pickingBlockIndices;
-	ChunkConstantData m_pickingBlockConstantData;
+	std::vector<PickingObjectVertex> m_pickingObjectVertices;
+	std::vector<uint32_t> m_pickingObjectIndices;
+	ChunkConstantData m_pickingObjectConstantData;
 
 	CameraConstantData m_constantData;
 
-	ComPtr<ID3D11Buffer> m_pickingBlockVertexBuffer;
-	ComPtr<ID3D11Buffer> m_pickingBlockIndexBuffer;
-	ComPtr<ID3D11Buffer> m_pickingBlockConstantBuffer;
+	ComPtr<ID3D11Buffer> m_pickingObjectVertexBuffer;
+	ComPtr<ID3D11Buffer> m_pickingObjectIndexBuffer;
+	ComPtr<ID3D11Buffer> m_pickingObjectConstantBuffer;
 };

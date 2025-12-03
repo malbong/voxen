@@ -41,7 +41,7 @@ float4 main(psInput input) : SV_TARGET
     float roughness = mer.b;
     
     float ao = ssaoTex.Sample(pointClampSS, input.texcoord).r;
-    ao = pow(abs(ao), 1.5);
+    ao = pow(abs(ao), 4.0);
     
     float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
@@ -74,7 +74,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float roughness = mer.b;
         
         float ao = ssaoTex.Sample(pointClampSS, input.texcoord).r;
-        ao = pow(ao, 1.5);
+        ao = pow(ao, 4.0);
         
         float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
         float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
