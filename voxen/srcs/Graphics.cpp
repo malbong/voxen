@@ -727,74 +727,74 @@ bool Graphics::InitShaderResourceBuffers()
 	// Asset Files
 	DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	if (!DXUtils::CreateTextureArrayFromAtlasFile(
-			blockAtlasMapBuffer, blockAtlasMapSRV, "../assets/block_atlas.png", format)) {
+			blockAtlasMapBuffer, blockAtlasMapSRV, "assets/block_atlas.png", format)) {
 		std::cout << "failed create texture from block atlas file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	if (!DXUtils::CreateTextureArrayFromAtlasFile(
-			normalAtlasMapBuffer, normalAtlasMapSRV, "../assets/normal_atlas.png", format)) {
+			normalAtlasMapBuffer, normalAtlasMapSRV, "assets/normal_atlas.png", format)) {
 		std::cout << "failed create texture from normal atlas file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	if (!DXUtils::CreateTextureArrayFromAtlasFile(
-			merAtlasMapBuffer, merAtlasMapSRV, "../assets/mer_atlas.png", format)) {
+			merAtlasMapBuffer, merAtlasMapSRV, "assets/mer_atlas.png", format)) {
 		std::cout << "failed create texture from mer atlas file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	if (!DXUtils::CreateTextureArrayFromAtlasFile(waterStillAtlasMapBuffer, waterStillAtlasMapSRV,
-		"../assets/water_still_atlas.png", format, 4, 16, 16, 1, 32)) {
+		"assets/water_still_atlas.png", format, 4, 16, 16, 1, 32)) {
 		std::cout << "failed create texture from water still atlas file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	if (!DXUtils::CreateTextureArrayFromAtlasFile(waterStillNormalAtlasMapBuffer, waterStillNormalAtlasMapSRV,
-			"../assets/water_still_normal_atlas.png", format, 4, 16, 16, 1, 32)) {
+			"assets/water_still_normal_atlas.png", format, 4, 16, 16, 1, 32)) {
 		std::cout << "failed create texture from water still normal atlas file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	if (!DXUtils::CreateTexture2DFromFile(
-			grassColorMapBuffer, grassColorMapSRV, "../assets/grass_colormap.png", format)) {
+			grassColorMapBuffer, grassColorMapSRV, "assets/grass_colormap.png", format)) {
 		std::cout << "failed create texture from grass file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	if (!DXUtils::CreateTexture2DFromFile(
-			foliageColorMapBuffer, foliageColorMapSRV, "../assets/foliage_colormap.png", format)) {
+			foliageColorMapBuffer, foliageColorMapSRV, "assets/foliage_colormap.png", format)) {
 		std::cout << "failed create texture from foliage file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	if (!DXUtils::CreateTexture2DFromFile(
-			waterColorMapBuffer, waterColorMapSRV, "../assets/water_colormap.png", format)) {
+			waterColorMapBuffer, waterColorMapSRV, "assets/water_colormap.png", format)) {
 		std::cout << "failed create texture from water file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	if (!DXUtils::CreateTexture2DFromFile(sunBuffer, sunSRV, "../assets/sun.png", format)) {
+	if (!DXUtils::CreateTexture2DFromFile(sunBuffer, sunSRV, "assets/sun.png", format)) {
 		std::cout << "failed create texture from sun file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	if (!DXUtils::CreateTexture2DFromFile(moonBuffer, moonSRV, "../assets/moon.png", format)) {
+	if (!DXUtils::CreateTexture2DFromFile(moonBuffer, moonSRV, "assets/moon.png", format)) {
 		std::cout << "failed create texture from moon file" << std::endl;
 		return false;
 	}
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	if (!DXUtils::CreateTexture2DFromFile(brdfBuffer, brdfSRV, "../assets/brdf.png", format)) {
+	if (!DXUtils::CreateTexture2DFromFile(brdfBuffer, brdfSRV, "assets/brdf.png", format)) {
 		std::cout << "failed create texture from brdf file" << std::endl;
 		return false;
 	}
@@ -831,7 +831,7 @@ bool Graphics::InitShaderResourceBuffers()
 
 	// world point
 	if (!DXUtils::CreateTexture2DFromFile(
-			worldPointBuffer, worldPointSRV, "../assets/point.png", format)) {
+			worldPointBuffer, worldPointSRV, "assets/point.png", format)) {
 		std::cout << "failed create texture from world point" << std::endl;
 		return false;
 	}
@@ -890,7 +890,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 	};
 
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"BasicVS.hlsl", basicVS, basicIL, elementDesc)) {
+			L"shaders/BasicVS.hlsl", basicVS, basicIL, elementDesc)) {
 		std::cout << "failed create basic vs" << std::endl;
 		return false;
 	}
@@ -900,7 +900,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 	macros.push_back({ "USE_ALPHA_CLIP", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"BasicVS.hlsl", basicAlphaClipVS, basicIL, elementDesc, macros.data())) {
+			L"shaders/BasicVS.hlsl", basicAlphaClipVS, basicIL, elementDesc, macros.data())) {
 		std::cout << "failed create basic alpha clip vs" << std::endl;
 		return false;
 	}
@@ -910,7 +910,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 	macros.push_back({ "USE_SHADOW", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"BasicVS.hlsl", basicShadowVS, basicIL, elementDesc, macros.data())) {
+			L"shaders/BasicVS.hlsl", basicShadowVS, basicIL, elementDesc, macros.data())) {
 		std::cout << "failed create basic shadow vs" << std::endl;
 		return false;
 	}
@@ -919,7 +919,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 	std::vector<D3D11_INPUT_ELEMENT_DESC> elementDesc2 = { { "POSITION", 0,
 		DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 } };
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"SkyboxVS.hlsl", skyboxVS, skyboxIL, elementDesc2)) {
+			L"shaders/SkyboxVS.hlsl", skyboxVS, skyboxIL, elementDesc2)) {
 		std::cout << "failed create skybox vs" << std::endl;
 		return false;
 	}
@@ -930,7 +930,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 		{ "FACE", 0, DXGI_FORMAT_R8_UINT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"CloudVS.hlsl", cloudVS, cloudIL, elementDesc3)) {
+			L"shaders/CloudVS.hlsl", cloudVS, cloudIL, elementDesc3)) {
 		std::cout << "failed create cloud vs" << std::endl;
 		return false;
 	}
@@ -941,7 +941,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"SamplingVS.hlsl", samplingVS, samplingIL, elementDesc4)) {
+			L"shaders/SamplingVS.hlsl", samplingVS, samplingIL, elementDesc4)) {
 		std::cout << "failed create sampling vs" << std::endl;
 		return false;
 	}
@@ -960,7 +960,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 
 	};
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"InstanceVS.hlsl", instanceVS, instanceIL, elementDesc6)) {
+			L"shaders/InstanceVS.hlsl", instanceVS, instanceIL, elementDesc6)) {
 		std::cout << "failed create instance vs" << std::endl;
 		return false;
 	}
@@ -970,7 +970,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 	macros.push_back({ "USE_SHADOW", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"InstanceVS.hlsl", instanceShadowVS, instanceIL, elementDesc6, macros.data())) {
+			L"shaders/InstanceVS.hlsl", instanceShadowVS, instanceIL, elementDesc6, macros.data())) {
 		std::cout << "failed create instance shadow vs" << std::endl;
 		return false;
 	}
@@ -981,7 +981,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	if (!DXUtils::CreateVertexShaderAndInputLayout(
-			L"PickingBlockVS.hlsl", pickingBlockVS, pickingBlockIL, elementDesc7)) {
+			L"shaders/PickingBlockVS.hlsl", pickingBlockVS, pickingBlockIL, elementDesc7)) {
 		std::cout << "failed create picking block vs" << std::endl;
 		return false;
 	}
@@ -992,7 +992,7 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 bool Graphics::InitGeometryShaders()
 {
 	// BasicShadowGS
-	if (!DXUtils::CreateGeometryShader(L"ShadowGS.hlsl", basicShadowGS)) {
+	if (!DXUtils::CreateGeometryShader(L"shaders/ShadowGS.hlsl", basicShadowGS)) {
 		std::cout << "failed create basic shadow gs" << std::endl;
 		return false;
 	}
@@ -1001,7 +1001,7 @@ bool Graphics::InitGeometryShaders()
 	std::vector<D3D_SHADER_MACRO> macros;
 	macros.push_back({ "USE_INSTANCE", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreateGeometryShader(L"ShadowGS.hlsl", instanceShadowGS, macros.data())) {
+	if (!DXUtils::CreateGeometryShader(L"shaders/ShadowGS.hlsl", instanceShadowGS, macros.data())) {
 		std::cout << "failed create instance shadow gs" << std::endl;
 		return false;
 	}
@@ -1012,7 +1012,7 @@ bool Graphics::InitGeometryShaders()
 bool Graphics::InitPixelShaders()
 {
 	// BasicPS
-	if (!DXUtils::CreatePixelShader(L"BasicPS.hlsl", basicPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BasicPS.hlsl", basicPS)) {
 		std::cout << "failed create basic ps" << std::endl;
 		return false;
 	}
@@ -1021,13 +1021,13 @@ bool Graphics::InitPixelShaders()
 	std::vector<D3D_SHADER_MACRO> macros;
 	macros.push_back({ "USE_ALPHA_CLIP", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"BasicPS.hlsl", basicAlphaClipPS, macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BasicPS.hlsl", basicAlphaClipPS, macros.data())) {
 		std::cout << "failed create basic alpha clip ps" << std::endl;
 		return false;
 	}
 
 	// basicMirrorPS
-	if (!DXUtils::CreatePixelShader(L"BasicPS.hlsl", basicMirrorPS, nullptr, "mainMirror")) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BasicPS.hlsl", basicMirrorPS, nullptr, "mainMirror")) {
 		std::cout << "failed create basic mirror ps" << std::endl;
 		return false;
 	}
@@ -1037,13 +1037,13 @@ bool Graphics::InitPixelShaders()
 	macros.push_back({ "USE_ALPHA_CLIP", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreatePixelShader(
-			L"BasicPS.hlsl", basicMirrorAlphaClipPS, macros.data(), "mainMirror")) {
+			L"shaders/BasicPS.hlsl", basicMirrorAlphaClipPS, macros.data(), "mainMirror")) {
 		std::cout << "failed create basic mirror alpha clip ps" << std::endl;
 		return false;
 	}
 
 	// SkyboxPS
-	if (!DXUtils::CreatePixelShader(L"SkyboxPS.hlsl", skyboxPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/SkyboxPS.hlsl", skyboxPS)) {
 		std::cout << "failed create skybox ps" << std::endl;
 		return false;
 	}
@@ -1052,43 +1052,43 @@ bool Graphics::InitPixelShaders()
 	macros.clear();
 	macros.push_back({ "USE_MIRROR", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"SkyboxPS.hlsl", skyboxMirrorPS, macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/SkyboxPS.hlsl", skyboxMirrorPS, macros.data())) {
 		std::cout << "failed create skybox ps" << std::endl;
 		return false;
 	}
 
 	// CloudPS
-	if (!DXUtils::CreatePixelShader(L"CloudPS.hlsl", cloudPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/CloudPS.hlsl", cloudPS)) {
 		std::cout << "failed create cloud ps" << std::endl;
 		return false;
 	}
 
 	// SamplingPS
-	if (!DXUtils::CreatePixelShader(L"SamplingPS.hlsl", samplingPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/SamplingPS.hlsl", samplingPS)) {
 		std::cout << "failed create sampling ps" << std::endl;
 		return false;
 	}
 
 	// fogFilterPS
-	if (!DXUtils::CreatePixelShader(L"FogFilterPS.hlsl", fogFilterPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/FogFilterPS.hlsl", fogFilterPS)) {
 		std::cout << "failed create fog filter ps" << std::endl;
 		return false;
 	}
 
 	// MirrorMaskingPS
-	if (!DXUtils::CreatePixelShader(L"MirrorMaskingPS.hlsl", mirrorMaskingPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/MirrorMaskingPS.hlsl", mirrorMaskingPS)) {
 		std::cout << "failed create mirrorMasking ps" << std::endl;
 		return false;
 	}
 
 	// WaterPlanePS
-	if (!DXUtils::CreatePixelShader(L"WaterPlanePS.hlsl", waterPlanePS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/WaterPlanePS.hlsl", waterPlanePS)) {
 		std::cout << "failed create water plane ps" << std::endl;
 		return false;
 	}
 
 	// WaterFilterPS
-	if (!DXUtils::CreatePixelShader(L"WaterFilterPS.hlsl", waterFilterPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/WaterFilterPS.hlsl", waterFilterPS)) {
 		std::cout << "failed create water filter ps" << std::endl;
 		return false;
 	}
@@ -1098,7 +1098,7 @@ bool Graphics::InitPixelShaders()
 	macros.push_back({ "USE_ALPHA_BLUR", "1" });
 	macros.push_back({ "BLUR_X", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"BlurPS.hlsl", blurMirrorPS[0], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurMirrorPS[0], macros.data())) {
 		std::cout << "failed create blur mirror x ps" << std::endl;
 		return false;
 	}
@@ -1106,84 +1106,84 @@ bool Graphics::InitPixelShaders()
 	macros.push_back({ "USE_ALPHA_BLUR", "1" });
 	macros.push_back({ "BLUR_Y", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"BlurPS.hlsl", blurMirrorPS[1], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurMirrorPS[1], macros.data())) {
 		std::cout << "failed create blur mirror y ps" << std::endl;
 		return false;
 	}
 	macros.clear();
 	macros.push_back({ "BLUR_X", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"BlurPS.hlsl", blurSsaoPS[0], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurSsaoPS[0], macros.data())) {
 		std::cout << "failed create blur ssao x ps" << std::endl;
 		return false;
 	}
 	macros.clear();
 	macros.push_back({ "BLUR_Y", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"BlurPS.hlsl", blurSsaoPS[1], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurSsaoPS[1], macros.data())) {
 		std::cout << "failed create blur ssao y ps" << std::endl;
 		return false;
 	}
 
 	// SsaoPS
-	if (!DXUtils::CreatePixelShader(L"SsaoPS.hlsl", ssaoPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/SsaoPS.hlsl", ssaoPS)) {
 		std::cout << "failed create ssao ps" << std::endl;
 		return false;
 	}
-	if (!DXUtils::CreatePixelShader(L"SsaoPS.hlsl", ssaoEdgePS, nullptr, "mainMSAA")) {
+	if (!DXUtils::CreatePixelShader(L"shaders/SsaoPS.hlsl", ssaoEdgePS, nullptr, "mainMSAA")) {
 		std::cout << "failed create ssao edge ps" << std::endl;
 		return false;
 	}
 
 	// EdgeMaskingPS
-	if (!DXUtils::CreatePixelShader(L"EdgeMaskingPS.hlsl", edgeMaskingPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/EdgeMaskingPS.hlsl", edgeMaskingPS)) {
 		std::cout << "failed create edge masking ps" << std::endl;
 		return false;
 	}
 
 	// ShadingBasicPS
-	if (!DXUtils::CreatePixelShader(L"ShadingBasicPS.hlsl", shadingBasicPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/ShadingBasicPS.hlsl", shadingBasicPS)) {
 		std::cout << "failed create shading basic ps" << std::endl;
 		return false;
 	}
 	if (!DXUtils::CreatePixelShader(
-			L"ShadingBasicPS.hlsl", shadingBasicEdgePS, nullptr, "mainMSAA")) {
+			L"shaders/ShadingBasicPS.hlsl", shadingBasicEdgePS, nullptr, "mainMSAA")) {
 		std::cout << "failed create shading basic edge ps" << std::endl;
 		return false;
 	}
 
 	// combineBloomPS
-	if (!DXUtils::CreatePixelShader(L"CombineBloomPS.hlsl", combineBloomPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/CombineBloomPS.hlsl", combineBloomPS)) {
 		std::cout << "failed create combine bloom ps" << std::endl;
 		return false;
 	}
 
 	// bloomDownPS
-	if (!DXUtils::CreatePixelShader(L"BloomDownPS.hlsl", bloomDownPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BloomDownPS.hlsl", bloomDownPS)) {
 		std::cout << "failed create bloom down ps" << std::endl;
 		return false;
 	}
 
 	// bloomUpPS
-	if (!DXUtils::CreatePixelShader(L"BloomUpPS.hlsl", bloomUpPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BloomUpPS.hlsl", bloomUpPS)) {
 		std::cout << "failed create bloom up ps" << std::endl;
 		return false;
 	}
 
 	// instanceShadowPS
-	if (!DXUtils::CreatePixelShader(L"InstanceShadowPS.hlsl", instanceShadowPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/InstanceShadowPS.hlsl", instanceShadowPS)) {
 		std::cout << "failed create instance shadow ps" << std::endl;
 		return false;
 	}
 
 	// biomeMapPS
-	if (!DXUtils::CreatePixelShader(L"BiomeMapPS.hlsl", biomeMapPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BiomeMapPS.hlsl", biomeMapPS)) {
 		std::cout << "failed create biome map ps" << std::endl;
 		return false;
 	}
 	
 	// pickingBlockPS
-	if (!DXUtils::CreatePixelShader(L"PickingBlockPS.hlsl", pickingBlockPS)) {
+	if (!DXUtils::CreatePixelShader(L"shaders/PickingBlockPS.hlsl", pickingBlockPS)) {
 		std::cout << "failed create picking block ps" << std::endl;
 		return false;
 	}
