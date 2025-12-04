@@ -142,20 +142,6 @@ psOutput
 #ifdef USE_ALPHA_CLIP 
     if (blockAtlasTextureArray.SampleLevel(pointWrapSS, float3(input.texcoord, input.texIndex), 0.0).a != 1.0)
         discard;
-    
-    [unroll]
-    for (uint i = 0; i < SAMPLE_COUNT; ++i)
-    {
-        float2 offsets[SAMPLE_COUNT] = { float2(0, -1), float2(0, 1), float2(-1, 0), float2(1, 0) };
-        // 주변이 alpha clip이라면 coverage를 직접 본인 샘플 인덱스로 설정
-        // 정확한 coverage값은 아님
-        // SSAO에서는 coverage에 따라 weight를 두고 연산하지만 weight가 모두 1인 상태라고 보면 됨
-        // Lighting에서는 coverage 구분 없이 그냥 4번 연산함 -> albedo가 다르기 때문
-        if (blockAtlasTextureArray.SampleLevel(pointWrapSS, float3(input.texcoord, input.texIndex), 0.0, offsets[i]).a != 1.0)
-        {
-            coverage = (1 << sampleIndex);
-        }
-    }
 #endif
     
     psOutput output;

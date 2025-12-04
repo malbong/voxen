@@ -313,7 +313,7 @@ void App::Render()
 		else {
 			RenderMirrorWorld();
 			RenderWaterPlane();
-			RenderFogFilter();
+			//RenderFogFilter();
 			RenderSkybox();
 			RenderCloud();
 		}
@@ -441,7 +441,7 @@ bool App::InitGUI()
 
 bool App::InitScene()
 {
-	if (!m_camera.Initialize(Vector3(-93.0f, 77.0f, 34.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+	if (!m_camera.Initialize(Vector3(-403.0f, 77.0f, 34.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
@@ -558,7 +558,7 @@ void App::RenderSSAO()
 	// blur
 	{
 		Graphics::SetPipelineStates(Graphics::samplingPSO);
-		m_postEffect.Blur(3, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
+		m_postEffect.Blur(2, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
 			Graphics::ssaoBlurRTV, Graphics::blurSsaoPS);
 	}
 }

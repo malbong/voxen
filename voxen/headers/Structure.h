@@ -121,11 +121,11 @@ struct WaterFilterConstantData {
 };
 
 struct SsaoConstantData {
-	Vector4 sampleKernel[64];
+	Vector4 sampleKernel[16];
 };
 
 struct SsaoNoiseConstantData {
-	Vector4 rotationNoise[16];
+	Vector4 rotationNoise[128];
 };
 
 struct AppConstantData {

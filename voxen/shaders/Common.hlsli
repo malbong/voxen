@@ -228,7 +228,7 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
     float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic);
     float3 specularTerm = getSpecularTerm(albedo, pixelToEye, normal, metallic, roughness);
     
-    float weight = 0.75;
+    float weight = 0.5;
     return ao * (diffuseTerm + specularTerm) * weight;
 }
 
