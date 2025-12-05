@@ -44,8 +44,8 @@ bool PostEffect::Initialize()
 		sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
 		sampleKernel.z = randomFloats(generator);
 		sampleKernel.w = 0.0f;
-
 		sampleKernel.Normalize();
+
 		sampleKernel *= randomFloats(generator);
 
 		float scale = (float)i / 16;
@@ -58,13 +58,14 @@ bool PostEffect::Initialize()
 		return false;
 	}
 
-	for (int i = 0; i < 128; ++i) {
+	for (int i = 0; i < 16; ++i) {
 		Vector4 rotationNoise;
 
 		rotationNoise.x = randomFloats(generator) * 2.0f - 1.0f;
 		rotationNoise.y = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.z = 0.0f;
+		rotationNoise.z = randomFloats(generator) * 2.0f - 1.0f;
 		rotationNoise.w = 0.0f;
+		rotationNoise.Normalize();
 
 		m_ssaoNoiseConstantData.rotationNoise[i] = rotationNoise;
 	}

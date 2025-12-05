@@ -125,7 +125,7 @@ struct SsaoConstantData {
 };
 
 struct SsaoNoiseConstantData {
-	Vector4 rotationNoise[128];
+	Vector4 rotationNoise[16];
 };
 
 struct AppConstantData {

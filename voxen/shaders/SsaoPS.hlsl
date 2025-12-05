@@ -11,7 +11,7 @@ cbuffer SsaoConstantBuffer : register(b0)
 
 cbuffer SsaoNoiseConstantBuffer : register(b1)
 {
-    float4 rotationNoise[128];
+    float4 rotationNoise[16];
 }
 
 struct psInput
@@ -29,16 +29,16 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
 {
     // linear Wrap Sampler·Î ·£´ý È¸Àü º¤ÅÍ ¾ò±â
     // 2x2px -> same random vector
-    float fx = frac(texcoord.x * appWidth / 2.0) * 15.0; // [0,15)
-    float fy = frac(texcoord.y * appHeight / 2.0) * 15.0; // [0,15)
+    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,15)
+    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,15)
     
     uint fx1 = uint(floor(fx));
     uint fx2 = uint(floor(fx + 1.0));
     uint fy1 = uint(floor(fy));
     uint fy2 = uint(floor(fy + 1.0));
     
-    float3 v1 = lerp(rotationNoise[fx1 + 16 * fy1].xyz, rotationNoise[fx2 + 16 * fy1].xyz, frac(fx));
-    float3 v2 = lerp(rotationNoise[fx1 + 16 * fy2].xyz, rotationNoise[fx2 + 16 * fy2].xyz, frac(fx));
+    float3 v1 = lerp(rotationNoise[fx1 + 4 * fy1].xyz, rotationNoise[fx2 + 4 * fy1].xyz, frac(fx));
+    float3 v2 = lerp(rotationNoise[fx1 + 4 * fy2].xyz, rotationNoise[fx2 + 4 * fy2].xyz, frac(fx));
     float3 randomVec = normalize(lerp(v1, v2, frac(fy)));
  
     float3 T = normalize(randomVec - viewNormal * dot(viewNormal, randomVec)); // R - proj.n(R)
@@ -46,7 +46,7 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
     float3x3 TBN = float3x3(T, B, viewNormal);
     
     float occlusionFactor = 0.0;
-    float radius = 0.5;
+    float radius = 0.75;
     float bias = 0.05;
     
     const uint COUNT = 16;
@@ -71,8 +71,8 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
         if (position.w == -1.0)
             storedViewPos.xyz = float3(0, 0, 1000.0);
         
-        float w = smoothstep(0.0, 1.0, radius / length(viewPos - storedViewPos.xyz));
-        float rangeCheck = pow(w, 3.0);
+        float w = smoothstep(0.0, 1.0, radius / max(1e-4, length(viewPos - storedViewPos.xyz)));
+        float rangeCheck = pow(w, 2.0);
         
         occlusionFactor += (storedViewPos.z + bias < samplePos.z ? 1.0 : 0.0) * rangeCheck;
     }
@@ -85,7 +85,7 @@ float main(psInput input) : SV_TARGET
     float3 worldNormal = normalEdgeTex.Load(input.posProj.xy, 0).xyz;
     if (length(worldNormal) == 0)
         return 1.0;
-    float3 viewNormal = mul(float4(worldNormal, 0.0), view).xyz; // [invWorld * invView]
+    float3 viewNormal = mul(float4(worldNormal, 0.0), view).xyz;
     viewNormal = normalize(viewNormal);
     
     float4 worldPos = positionTex.Load(input.posProj.xy, 0);
