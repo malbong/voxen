@@ -124,11 +124,6 @@ namespace Terrain {
 		float cNoise = Utils::PerlinFbm(x / scale, z / scale, 2.0f, 6);
 		float cValue = SplineContinentalness(cNoise);
 
-		if (cValue <= 0.1f)
-			cValue = cValue / 0.1f - 1.0f; // [-1.0f, 0.0f]
-		else
-			cValue = (cValue - 0.1f) / 0.9f; // [0.0f, 1.0f]
-
 		return cValue;
 	}
 
@@ -158,9 +153,14 @@ namespace Terrain {
 
 	static float GetElevation(float c, float e, float pv)
 	{
+		if (c <= 0.1f) 
+			c = c / 0.1f - 1.0f; // [-1.0f, 0.0f]
+		else 
+			c = (c - 0.1f) / 0.9f;
+
 		float elevation = 64.0f + 64.0f * c * (1.0f - e) + 64.0f * pv * powf((1.0f - e), 1.25f);
 
-		return max(elevation, 1.0f);
+		return std::clamp(elevation, 1.0f, 255.0f);
 	}
 
 	static bool IsCave(int x, int y, int z)
@@ -193,7 +193,7 @@ namespace Terrain {
 
 	static float GetHumidity(int x, int z)
 	{
-		float scale = 4048.0f;
+		float scale = 1048.0f;
 		float seed = 653.0f;
 
 		float hNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);

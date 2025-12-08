@@ -156,12 +156,12 @@ void App::Run()
 			float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
 			ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
 
-			float b = Terrain::GetElevation(c, e, pv);
 			float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
 			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
+			float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
 			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
 
-			BIOME_TYPE biomeType = Biome::GetBiomeType(b, t, h, pv, e);
+			BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h);
 			const char *biomeString = nullptr;
 			switch (biomeType) {
 			case BIOME_TYPE::BIOME_OCEAN:

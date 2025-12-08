@@ -163,10 +163,10 @@ RGBA_UINT WorldMap::GetBiomeMapColor(int x, int z)
 	float temperature = Terrain::GetTemperature(worldX, worldZ);
 	float humidity = Terrain::GetHumidity(worldX, worldZ);
 
-	float elevation = Terrain::GetElevation(continentalness, erosion, peaksValley);
+	float elevation = Biome::GetBiomeTerrainHeight(continentalness, erosion, peaksValley, temperature, humidity);
 
 	BIOME_TYPE biomeType =
-		Biome::GetBiomeType(elevation, temperature, humidity, peaksValley, erosion);
+		Biome::GetBiomeType(continentalness, erosion, temperature, humidity);
 
 	RGBA_UINT biomeBaseColor = Biome::GetBaseColor(biomeType);
 

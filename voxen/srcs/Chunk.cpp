@@ -175,8 +175,9 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 			memory->humidityNoises[x][z] = Terrain::GetHumidity(worldX, worldZ);
 			memory->distributionNoises[x][z] = Terrain::GetDistribution(worldX, worldZ);
 			memory->elevationNoises[x][z] =
-				Terrain::GetElevation(memory->continentalinessNoises[x][z],
-					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z]);
+				Biome::GetBiomeTerrainHeight(memory->continentalinessNoises[x][z],
+					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z],
+					memory->temperatureNoises[x][z], memory->humidityNoises[x][z]);
 		}
 	}
 }
@@ -188,9 +189,9 @@ void Chunk::InitBiomeMapAndCount(ChunkLoadMemory* memory)
 			int px = x + 1;
 			int pz = z + 1;
 
-			BIOME_TYPE biomeType = Biome::GetBiomeType(memory->elevationNoises[px][pz],
-				memory->temperatureNoises[px][pz], memory->humidityNoises[px][pz],
-				memory->peaksValleyNoises[px][pz], memory->erosionNoises[px][pz]);
+			BIOME_TYPE biomeType = Biome::GetBiomeType(memory->continentalinessNoises[px][pz],
+				memory->erosionNoises[px][pz], memory->temperatureNoises[px][pz],
+				memory->humidityNoises[px][pz]);
 
 			memory->biomeMap2D[x][z] = biomeType;
 
@@ -411,7 +412,8 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE tr
 				if (treeShape[dy][dz][dx] >= TREE_BLOCK_INDEX::VINE) {
 					INSTANCE_TYPE vineType = INSTANCE_TYPE::INSTANCE_VINE;
 
-					uint8_t faceFlag = (treeShape[dy][dz][dx] & (~TREE_BLOCK_INDEX::VINE)); // off vine flag
+					uint8_t faceFlag =
+						(treeShape[dy][dz][dx] & (~TREE_BLOCK_INDEX::VINE)); // off vine flag
 
 					SetTreeVines(tx, ty, tz, vineType, faceFlag, memory);
 				}
