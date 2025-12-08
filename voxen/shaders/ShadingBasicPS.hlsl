@@ -21,7 +21,12 @@ float4 main(psInput input) : SV_TARGET
     normal += normalEdgeTex.Load(input.posProj.xy, 3).xyz;
     normal /= SAMPLE_COUNT;
     
-    float4 position = positionTex.Load(input.posProj.xy, 0);
+    float3 position = float3(0.0, 0.0, 0.0);
+    position += positionTex.Load(input.posProj.xy, 0).xyz;
+    position += positionTex.Load(input.posProj.xy, 1).xyz;
+    position += positionTex.Load(input.posProj.xy, 2).xyz;
+    position += positionTex.Load(input.posProj.xy, 3).xyz;
+    position /= SAMPLE_COUNT;
     
     float3 albedo = float3(0.0, 0.0, 0.0); // Texture Albedo Edge 처리 -> 평균값
     albedo += albedoTex.Load(input.posProj.xy, 0).rgb;
@@ -41,7 +46,7 @@ float4 main(psInput input) : SV_TARGET
     float roughness = mer.b;
     
     float ao = ssaoTex.Sample(pointClampSS, input.texcoord).r;
-    ao = pow(abs(ao), 4.0);
+    ao = pow(ao, 4.0);
     
     float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
@@ -56,14 +61,20 @@ float4 mainMSAA(psInput input) : SV_TARGET
 {   
     float3 sumClampLighting = float3(0.0, 0.0, 0.0);
     
+    uint vaildSampleCount = 0;
+    
     [unroll]
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
     {
         // point clamp를 이용해서 albedo를 구성했기 때문에 다른 샘플사이에서 다른 컬러를 사용할 가능성이 높음
         // sampleWeight를 사용하지 않음
-        float3 normal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
-        
         float4 position = positionTex.Load(input.posProj.xy, i);
+        if (position.w == -1.0)
+            continue;
+        
+        vaildSampleCount++;
+        
+        float3 normal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
         
         float3 albedo = albedoTex.Load(input.posProj.xy, i).rgb; 
         
@@ -84,5 +95,5 @@ float4 mainMSAA(psInput input) : SV_TARGET
         sumClampLighting += clampLighting;
     }
     
-    return float4(sumClampLighting / SAMPLE_COUNT, 1.0);
+    return float4(sumClampLighting / max(1e-3, vaildSampleCount), 1.0);
 }

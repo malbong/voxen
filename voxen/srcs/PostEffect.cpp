@@ -37,18 +37,18 @@ bool PostEffect::Initialize()
 
 	std::uniform_real_distribution<float> randomFloats(0.0001f, 1.0f);
 	std::default_random_engine generator;
-	for (int i = 0; i < 64; ++i) {
+	for (int i = 0; i < 16; ++i) {
 		Vector4 sampleKernel;
 
 		sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;
 		sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
 		sampleKernel.z = randomFloats(generator);
 		sampleKernel.w = 0.0f;
-
 		sampleKernel.Normalize();
+
 		sampleKernel *= randomFloats(generator);
 
-		float scale = (float)i / 64;
+		float scale = (float)i / 16;
 		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale);
 
 		m_ssaoConstantData.sampleKernel[i] = sampleKernel;
@@ -63,8 +63,9 @@ bool PostEffect::Initialize()
 
 		rotationNoise.x = randomFloats(generator) * 2.0f - 1.0f;
 		rotationNoise.y = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.z = 0.0f;
+		rotationNoise.z = randomFloats(generator) * 2.0f - 1.0f;
 		rotationNoise.w = 0.0f;
+		rotationNoise.Normalize();
 
 		m_ssaoNoiseConstantData.rotationNoise[i] = rotationNoise;
 	}
