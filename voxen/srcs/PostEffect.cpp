@@ -102,7 +102,7 @@ void PostEffect::Update(float dt, bool isUnderWater)
 
 		m_fogFilterConstantData.fogDistMin = Camera::LOD_RENDER_DISTANCE;
 		m_fogFilterConstantData.fogDistMax = Camera::MAX_RENDER_DISTANCE;
-		m_fogFilterConstantData.fogStrength = 3.0f;
+		m_fogFilterConstantData.fogStrength = 2.0f;
 	}
 	DXUtils::UpdateConstantBuffer(m_fogFilterConstantBuffer, m_fogFilterConstantData);
 	DXUtils::UpdateConstantBuffer(m_waterFilterConstantBuffer, m_waterFilterConstantData);
