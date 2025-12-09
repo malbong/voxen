@@ -64,8 +64,11 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 	switch (biomeType) {
 
 	case BIOME_OCEAN:
-		if (d <= 0.42f) {
+		if (d <= 0.21f) {
 			return BLOCK_SAND;
+		}
+		else if (d <= 0.42f) {
+			return BLOCK_DIRT;
 		}
 		else if (d <= 0.66f) {
 			return BLOCK_DIRT;
@@ -78,20 +81,6 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 		}
 		break;
 
-	case BIOME_BEACH:
-		if (d <= 0.6f) {
-			return BLOCK_SAND;
-		}
-		else if (d <= 0.75f) {
-			return BLOCK_SANDSTONE;
-		}
-		else if (d <= 0.90f) {
-			return BLOCK_GRAVEL;
-		}
-		else {
-			return BLOCK_CLAY;
-		}
-
 	case BIOME_DESERT:
 		if (d <= 0.66f) {
 			return BLOCK_SAND;
@@ -102,7 +91,7 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 
 	case BIOME_TAIGA:
 		if (y == baseHeight) { // top
-			if (d <= 0.6f) {
+			if (d <= 0.7f) {
 				return BLOCK_GRASS;
 			}
 			else if (d <= 0.85f) {
@@ -241,7 +230,7 @@ BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float
 
 	if (y < elevation && !Terrain::IsCave(x, y, z)) {
 		int biomeLayer =
-			1 + (int)(6.0f * (1.0f - erosion) * powf(((-peaksValley + 1.0f) * 0.5f), 0.5f));
+			2 + (int)(6.0f * (1.0f - erosion) * powf(((-peaksValley + 1.0f) * 0.5f), 0.5f));
 
 		if (y <= elevation - biomeLayer) {
 			blockType = GetBlockTypeForInner(x, y, z, distribution);

@@ -176,11 +176,11 @@ RGBA_UINT WorldMap::GetBiomeMapColor(int x, int z)
 		biomeBaseColor.b = (uint8_t)(biomeBaseColor.b * 0.8 + 255 * 0.2);
 	}
 	biomeBaseColor.r =
-		(uint8_t)std::clamp((int)(biomeBaseColor.r * min(1.75f, (elevation / 63.0f))), 0, 255);
+		(uint8_t)std::clamp((int)(biomeBaseColor.r * min(1.5f, (elevation / 63.0f))), 0, 255);
 	biomeBaseColor.g =
-		(uint8_t)std::clamp((int)(biomeBaseColor.g * min(1.75f, (elevation / 63.0f))), 0, 255);
+		(uint8_t)std::clamp((int)(biomeBaseColor.g * min(1.5f, (elevation / 63.0f))), 0, 255);
 	biomeBaseColor.b =
-		(uint8_t)std::clamp((int)(biomeBaseColor.b * min(1.75f, (elevation / 63.0f))), 0, 255);
+		(uint8_t)std::clamp((int)(biomeBaseColor.b * min(1.5f, (elevation / 63.0f))), 0, 255);
 
 	return biomeBaseColor;
 }

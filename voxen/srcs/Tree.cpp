@@ -29,9 +29,6 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 	case BIOME_OCEAN:
 		return biomeTrees[0]; // none
 
-	case BIOME_BEACH:
-		return biomeTrees[0]; // none
-
 	case BIOME_TUNDRA:
 		return biomeTrees[0]; // spruce
 
@@ -54,7 +51,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(
 			return biomeTrees[1]; // birch
 
 	case BIOME_SHRUBLAND:
-		if (d < 0.6f)
+		if (d < 0.4f)
 			return biomeTrees[0]; // oak
 		else
 			return biomeTrees[1]; // cherry

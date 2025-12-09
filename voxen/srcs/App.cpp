@@ -160,16 +160,13 @@ void App::Run()
 			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
 			float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
 			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
+			Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
 
 			BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h);
 			const char *biomeString = nullptr;
 			switch (biomeType) {
 			case BIOME_TYPE::BIOME_OCEAN:
 				biomeString = "BIOME_OCEAN";
-				break;
-
-			case BIOME_TYPE::BIOME_BEACH:
-				biomeString = "BIOME_BEACH";
 				break;
 
 			case BIOME_TYPE::BIOME_TUNDRA:
@@ -210,6 +207,10 @@ void App::Run()
 
 			case BIOME_TYPE::BIOME_SAVANNA:
 				biomeString = "BIOME_SAVANNA";
+				break;
+
+			case BIOME_TYPE::BIOME_SNOWY_TAIGA:
+				biomeString = "BIOME_SNOWY_TAIGA";
 				break;
 
 			default:

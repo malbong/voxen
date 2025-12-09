@@ -119,7 +119,7 @@ namespace Terrain {
 
 	static float GetContinentalness(int x, int z)
 	{
-		float scale = 2024.0f;
+		float scale = 1024.0f;
 
 		float cNoise = Utils::PerlinFbm(x / scale, z / scale, 2.0f, 6);
 		float cValue = SplineContinentalness(cNoise);
@@ -129,7 +129,7 @@ namespace Terrain {
 
 	static float GetErosion(int x, int z)
 	{
-		float scale = 3024.0f;
+		float scale = 4024.0f;
 		float seed = 123.0f;
 
 		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
@@ -153,14 +153,14 @@ namespace Terrain {
 
 	static float GetElevation(float c, float e, float pv)
 	{
-		if (c <= 0.1f) 
+		if (c <= 0.1f)
 			c = c / 0.1f - 1.0f; // [-1.0f, 0.0f]
-		else 
+		else
 			c = (c - 0.1f) / 0.9f;
 
-		float elevation = 64.0f + 64.0f * c * (1.0f - e) + 64.0f * pv * powf((1.0f - e), 1.25f);
+		float elevation = 64.0f * c * (1.0f - e) + 64.0f * pv * powf((1.0f - e), 1.25f);
 
-		return std::clamp(elevation, 1.0f, 255.0f);
+		return std::clamp(elevation, -128.0f, 128.0f);
 	}
 
 	static bool IsCave(int x, int y, int z)
@@ -181,11 +181,11 @@ namespace Terrain {
 
 	static float GetTemperature(int x, int z)
 	{
-		float scale = 2024.0f;
-		float seed = 157.0f;
+		float scale = 5024.0f;
+		float seed = 653.0f;
 
-		float tNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
-		tNoise = std::clamp(tNoise * 1.5f, -1.0f, 1.0f);
+		float tNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 4.0f, 5);
+		tNoise = std::clamp(tNoise * 2.0f, -1.0f, 1.0f);
 
 		float tValue = (tNoise + 1.0f) * 0.5f;
 		return tValue;
@@ -193,11 +193,11 @@ namespace Terrain {
 
 	static float GetHumidity(int x, int z)
 	{
-		float scale = 1048.0f;
-		float seed = 653.0f;
+		float scale = 5048.0f;
+		float seed = 157.0f;
 
-		float hNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
-		hNoise = std::clamp(hNoise * 1.5f, -1.0f, 1.0f);
+		float hNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 4.0f, 5);
+		hNoise = std::clamp(hNoise * 2.0f, -1.0f, 1.0f);
 
 		float hValue = (hNoise + 1.0f) * 0.5f;
 		return hValue;

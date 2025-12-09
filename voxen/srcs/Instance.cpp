@@ -58,9 +58,6 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, P
 		else
 			return biomeInstances[1]; // kelp
 
-	case BIOME_BEACH:
-		return biomeInstances[0];
-
 	case BIOME_TUNDRA:
 		return biomeInstances[0]; // none
 
@@ -145,24 +142,27 @@ bool Instance::CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE 
 	if (!Block::IsTransparency(currentBlock))
 		return false;
 
+	if (type == INSTANCE_TYPE::INSTANCE_KELP && currentBlock != BLOCK_TYPE::BLOCK_WATER) {
+		return false;
+	}
+
 	if (type == INSTANCE_TYPE::INSTANCE_WATER_LILY) {
 		return (currentBlock == BLOCK_TYPE::BLOCK_AIR && bottomBlock == BLOCK_TYPE::BLOCK_WATER);
 	}
-	else {
-		if (bottomBlock == BLOCK_TYPE::BLOCK_DIRT)
-			return true;
-		if (bottomBlock == BLOCK_TYPE::BLOCK_GRASS)
-			return true;
-		if (bottomBlock == BLOCK_TYPE::BLOCK_SNOW_GRASS)
-			return true;
-		if (bottomBlock == BLOCK_TYPE::BLOCK_GRAVEL)
-			return true;
 
-		if (INSTANCE_TYPE::INSTANCE_DEAD_BUSH && bottomBlock == BLOCK_TYPE::BLOCK_SAND)
-			return true;
+	if (bottomBlock == BLOCK_TYPE::BLOCK_DIRT)
+		return true;
+	if (bottomBlock == BLOCK_TYPE::BLOCK_GRASS)
+		return true;
+	if (bottomBlock == BLOCK_TYPE::BLOCK_SNOW_GRASS)
+		return true;
+	if (bottomBlock == BLOCK_TYPE::BLOCK_GRAVEL)
+		return true;
 
-		return false;
-	}
+	if (INSTANCE_TYPE::INSTANCE_DEAD_BUSH && bottomBlock == BLOCK_TYPE::BLOCK_SAND)
+		return true;
+
+	return false;
 }
 
 INSTANCE_TYPE Instance::GetInstanceTypeForWaterPlane(

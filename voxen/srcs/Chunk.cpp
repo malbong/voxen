@@ -286,10 +286,11 @@ bool Chunk::CanPlaceTreeAt(
 
 	// checked place conditions
 	for (int i = -1; i <= 1; ++i) {
-		for (int j = -1; j <= 1; ++j) {
-			if (!CheckTreePlaceCondition(x + i, y, z + j)) {
-				return false;
-			}
+		if (!CheckTreePlaceCondition(x + i, y, z)) {
+			return false;
+		}
+		if (!CheckTreePlaceCondition(x, y, z + i)) {
+			return false;
 		}
 	}
 
