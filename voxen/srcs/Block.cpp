@@ -237,7 +237,7 @@ BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float
 		}
 		else {
 			BIOME_TYPE biomeType =
-				Biome::GetBiomeType(continentalness, erosion, temperature, humidity);
+				Biome::GetBiomeType(continentalness, erosion, temperature, humidity, x, z);
 			blockType = GetBlockTypeForBiome(biomeType, y, elevation, distribution);
 		}
 	}

@@ -189,9 +189,12 @@ void Chunk::InitBiomeMapAndCount(ChunkLoadMemory* memory)
 			int px = x + 1;
 			int pz = z + 1;
 
+			int worldX = (int)m_offsetPosition.x + x;
+			int worldZ = (int)m_offsetPosition.z + z;
+
 			BIOME_TYPE biomeType = Biome::GetBiomeType(memory->continentalinessNoises[px][pz],
 				memory->erosionNoises[px][pz], memory->temperatureNoises[px][pz],
-				memory->humidityNoises[px][pz]);
+				memory->humidityNoises[px][pz], worldX, worldZ);
 
 			memory->biomeMap2D[x][z] = biomeType;
 

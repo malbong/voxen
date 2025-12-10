@@ -19,7 +19,7 @@ public:
 	static const std::vector<INSTANCE_TYPE>& GetInstances(BIOME_TYPE type);
 	static const std::vector<TREE_TYPE>& GetTrees(BIOME_TYPE type);
 	static const BiomeWeightParams& GetWeightParams(BIOME_TYPE type);
-	static BIOME_TYPE GetBiomeType(float c, float e, float t, float h);
+	static BIOME_TYPE GetBiomeType(float c, float e, float t, float h, int x, int z);
 	static float GetBiomeTerrainHeight(float c, float e, float pv, float t, float h);
 		
 private:
@@ -88,7 +88,6 @@ public:
 		// BIOME_OCEAN
 		// instance: seagrass, kelp
 		// tree: none
-		// c: 0.1, e: 0.5, t: 0.5, h: 0.5, nS: 0.025, bH: 32
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetBaseColor(RGBA_UINT(0, 0, 255, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetMaxTreeCountPerChunk(0);
@@ -106,7 +105,6 @@ public:
 		// BIOME_TUNDRA
 		// instance: no instance
 		// tree: spruce
-		// c: 0.7, e: 0.4, t: 0.125, h: 0.2, nS: 0.025, bH: 90
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetBaseColor(RGBA_UINT(235, 235, 235, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetMaxInstanceCountPerChunk(0);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetMaxTreeCountPerChunk(3);
@@ -123,7 +121,6 @@ public:
 		// BIOME_TAIGA
 		// instance: grass, fern, sweet berry bush
 		// tree: spruce
-		// c: 0.7, e: 0.35, t: 0.34, h: 0.66, nS: 0.25, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetBaseColor(RGBA_UINT(59, 94, 84, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetMaxTreeCountPerChunk(8);
@@ -142,7 +139,6 @@ public:
 		// BIOME_PLAINS
 		// instance: grass, oxeye daisy, cornflower, tulips
 		// tree: oak
-		// c: 0.7, e: 0.3, t: 0.435, h: 0.16, nS: 0.025, bH: 80
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetBaseColor(RGBA_UINT(128, 169, 91, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxInstanceCountPerChunk(96);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxTreeCountPerChunk(4);
@@ -165,7 +161,6 @@ public:
 		// BIOME_SWAMP
 		// instance: grass, blue orchid, mushrooms, dead bush
 		// tree: oak, mangrove
-		// c: 0.55, e: 0.25, t: 0.53, h: 0.88, nS: 0.125, bH: 55
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetBaseColor(RGBA_UINT(20, 249, 183, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxInstanceCountPerChunk(128);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetMaxTreeCountPerChunk(12);
@@ -187,7 +182,6 @@ public:
 		// BIOME_FOREST
 		// instance: grass, Rose, Lily of the Valley, Allium
 		// tree: oak, birch
-		// c: 0.7, e: 0.35, t: 0.53, h: 0.66, nS: 1.0, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetBaseColor(RGBA_UINT(59, 123, 78, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetMaxInstanceCountPerChunk(160);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetMaxTreeCountPerChunk(32);
@@ -211,7 +205,6 @@ public:
 		// BIOME_SHRUBLAND
 		// instance: grass, Dandelion, Cornflower, Allium, Oxeye Daisy, tulips
 		// tree: oak, cherry
-		// c: 0.7, e: 0.45, t: 0.53, h: 0.44, nS: 0.01, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetBaseColor(RGBA_UINT(163, 184, 99, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxInstanceCountPerChunk(96);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetMaxTreeCountPerChunk(3);
@@ -237,7 +230,6 @@ public:
 		// BIOME_DESERT
 		// instance: dead bush
 		// tree: cactus
-		// c: 0.7, e: 0.5, t: 0.81, h: 0.125, nS: 0.1, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetBaseColor(RGBA_UINT(214, 131, 31, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxInstanceCountPerChunk(4);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetMaxTreeCountPerChunk(1);
@@ -254,7 +246,6 @@ public:
 		// BIOME_RAINFOREST
 		// instance: grass, Fern
 		// tree: oak, jungle
-		// c: 0.7, e: 0.4, t: 0.84, h: 0.88, nS: 1.0, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetBaseColor(RGBA_UINT(93, 130, 21, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxInstanceCountPerChunk(160);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetMaxTreeCountPerChunk(24);
@@ -273,7 +264,6 @@ public:
 		// BIOME_SEASONFOREST
 		// instance: grass, Allium, Lily of the Valley, Rose Bush, Various Tulips
 		// tree: oak, birch
-		// c: 0.7, e: 0.4, t: 0.84, h: 0.66, nS: 1.0, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetBaseColor(
 			RGBA_UINT(182, 219, 97, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetMaxInstanceCountPerChunk(160);
@@ -299,7 +289,6 @@ public:
 		// BIOME_SAVANNA
 		// instance: grass
 		// tree: oak, acacia
-		// c: 0.7, e: 0.35, t: 0.84, h: 0.44, nS: 0.2, bH: 64
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetBaseColor(RGBA_UINT(182, 173, 97, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetMaxInstanceCountPerChunk(64);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetMaxTreeCountPerChunk(3);
@@ -317,7 +306,6 @@ public:
 		// BIOME_SNOWY_TAIGA
 		// instance: grass, fern, sweet berry bush
 		// tree: spruce
-		// c: 0.7, e: 0.3, t: 0.28, h: 0.66, nS: 0.75, bH: 90
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetBaseColor(
 			RGBA_UINT(159, 239, 159, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxInstanceCountPerChunk(32);

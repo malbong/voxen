@@ -149,6 +149,17 @@ namespace Utils {
 		return hash;
 	}
 
+	static uint32_t HashInt3(uint32_t seedX, uint32_t seedY, uint32_t seedZ, uint32_t solt)
+	{
+		uint32_t hashX = HashInt(seedX, solt);
+		uint32_t hashY = HashInt(seedY, solt);
+		uint32_t hashZ = HashInt(seedZ, solt);
+
+		uint32_t hash = hashX ^ hashY ^ hashZ;
+
+		return hash;
+	}
+
 	static Vector2 Hash(uint32_t x, uint32_t y)
 	{
 		// https://www.shadertoy.com/view/3dVXDc
@@ -199,7 +210,7 @@ namespace Utils {
 
 		uint32_t length = max - min + 1;
 
-		uint32_t hash = HashInt(x * y * z, 100057u);
+		uint32_t hash = HashInt3(x, y, z, 100057u);
 
 		return min + hash % length;
 	}
@@ -212,7 +223,7 @@ namespace Utils {
 
 		uint32_t length = max - min + 1;
 
-		uint32_t hash = HashInt(x * y * z, seed);
+		uint32_t hash = HashInt3(x, y, z, seed);
 
 		return min + hash % length;
 	}
@@ -225,7 +236,7 @@ namespace Utils {
 
 		uint32_t length = max - min + 1;
 
-		uint32_t hash = HashInt(x * y * z, 100057u);
+		uint32_t hash = HashInt3(x, y, z, 100057u);
 		for (int i = 0; i < loop; ++i) {
 			hash = HashInt(hash, 100057u);
 		}
@@ -242,7 +253,7 @@ namespace Utils {
 
 		uint32_t length = max - min + 1;
 
-		uint32_t hash = HashInt(x * y * z, seed);
+		uint32_t hash = HashInt3(x, y, z, seed);
 		for (int i = 0; i < loop; ++i) {
 			hash = HashInt(hash, seed);
 		}
