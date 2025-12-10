@@ -286,19 +286,7 @@ void App::Render()
 	// 1. Deferred Render Pass
 	{
 		FillGBuffer();
-
-		if (m_keyToggled['L']) {
-			std::cout << "?" << std::endl;
-			MaskMSAAEdge();
-		}
-		else {
-			float clearColor[4] = { 0.0f, 0.0f, 0.0f, -1.0f };
-			Graphics::context->ClearRenderTargetView(Graphics::basicRTV.Get(), clearColor);
-			Graphics::context->ClearDepthStencilView(
-				Graphics::deferredDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		}
-			
-
+		MaskMSAAEdge();
 		RenderSSAO();
 		ShadingBasic();
 	}

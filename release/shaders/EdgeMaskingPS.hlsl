@@ -48,6 +48,5 @@ float4 main(psInput input) : SV_Target
     // coverage가 다르고, 유효한 위치이며, 노멀이 다르거나 위치가 다른 경우인데
     // 카메라와의 거리가 최소 샘플 중, 최솟값이 임계값보다 멀면 엣지가 아님
     
-    
     return float4(1, 0, 0, 0);
 }
