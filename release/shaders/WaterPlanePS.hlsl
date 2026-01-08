@@ -67,15 +67,14 @@ float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
     uint dateAmountPerIndex = dateAmountPerSecond / waterStillTextureArraySize; // 800 / 32 -> 25
     uint waterStillTextureIndex = (dateTime % dateAmountPerSecond) / dateAmountPerIndex;
     
-    float3 normal = input.normal;
-    if (normal.y <= 0 || input.posWorld.y < 64.0 - 1e-4 || 64.0 + 1e-4 < input.posWorld.y)
+    if (input.normal.y <= 0 || input.posWorld.y < 64.0 - 1e-4 || 64.0 + 1e-4 < input.posWorld.y)
         discard;
     
     float3 mappedNormal = normalMapping(input.texcoord, waterStillTextureIndex);
-    float roughness = 0.02 / max(dot(normal, input.normal), 1e-3);
+    float roughness = 0.2 / max(dot(mappedNormal, input.normal), 1e-3);
     
     // absorption color
-    float3 albedo = getWaterAlbedo(input.texcoord, waterStillTextureIndex, input.posWorld, normal);
+    float3 albedo = getWaterAlbedo(input.texcoord, waterStillTextureIndex, input.posWorld, mappedNormal);
     
     float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, mappedNormal, 0.0, roughness);
     
