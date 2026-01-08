@@ -301,9 +301,8 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
     float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metallic);
     float3 diffuseBRDF = kd * albedo;
     
-    float shadowFactor = 1.0;
-    if (useShadow)
-        shadowFactor = getShadowFactor(position, normal);
+    float shadowFactor = useShadow ? getShadowFactor(position, normal) : 1.0;
+    shadowFactor = pow(shadowFactor, 3.0);
     
     float3 radiance = radianceWeight * radianceColor * shadowFactor;
     
