@@ -1,0 +1,240 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="srcs">
+      <UniqueIdentifier>{f0baf25f-2d97-4397-b43b-d0b1d4c8d4fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="headers">
+      <UniqueIdentifier>{fd5690f6-6070-40bd-a378-dfbbe9e0fc74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{8bd0ea8a-954f-4e9f-a62e-1aed3ee2570d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\App.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Biome.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Block.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Camera.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Chunk.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\ChunkManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Cloud.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Date.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\DXUtils.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Enums.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Graphics.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\GraphicsPSO.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Instance.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\light.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\MeshGenerator.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\PatchData.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Pos.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\PostEffect.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\SimpleQuadRenderer.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Skybox.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Structure.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Terrain.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Tree.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Utils.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\WorldMap.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".clang-format" />
+    <None Include="..\.gitignore" />
+    <None Include="shaders\Common.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="srcs\App.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Biome.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Block.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Camera.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Chunk.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\ChunkManager.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Cloud.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Date.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Graphics.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\GraphicsPSO.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Instance.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Light.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\main.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\PostEffect.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\SimpleQuadRenderer.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Skybox.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\Tree.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\WorldMap.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\BasicPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BasicVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BiomeMapPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BloomDownPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BloomUpPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BlurPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\CloudPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\CloudVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\CombineBloomPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\EdgeMaskingPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\FogFilterPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\InstancePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\InstanceShadowPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\InstanceVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\MirrorMaskingPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\NormalPassBasicPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\NormalPassInstancePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\PickingBlockPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\PickingBlockVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SamplingPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SamplingVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\ShadingBasicPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\ShadowGS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SkyboxPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SkyboxVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SsaoPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\WaterFilterPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\WaterPlanePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

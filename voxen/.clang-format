@@ -1,0 +1,47 @@
+# Visual Studio에서 생성한 .clang 형식 파일입니다.
+
+# 이 파일의 스타일 옵션은 도구 > 옵션에서
+# 현재 IDE 서식 구성을 복제하려는 최선의 시도입니다. 그러나 다음
+# 스타일 옵션을 확인해야 합니다:
+# AfterClass, AfterControlStatement, AfterEnum, AfterFunction, AfterNamespace, 
+# AfterStruct, AfterUnion
+
+AccessModifierOffset: -4
+AlignAfterOpenBracket: DontAlign
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+BasedOnStyle: LLVM
+BraceWrapping:
+  AfterClass: false    # TODO: 확인
+  AfterControlStatement: false    # TODO: 확인
+  AfterEnum: false    # TODO: 확인
+  AfterFunction: true    # TODO: 확인
+  AfterNamespace: false    # TODO: 확인
+  AfterStruct: false    # TODO: 확인
+  AfterUnion: false    # TODO: 확인
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+BreakBeforeBraces: Custom
+ColumnLimit: 100
+Cpp11BracedListStyle: false
+FixNamespaceComments: false
+IndentCaseLabels: false
+IndentPPDirectives: None
+IndentWidth: 4
+MaxEmptyLinesToKeep: 10
+NamespaceIndentation: All
+PointerAlignment: Left
+SortIncludes: false
+SortUsingDeclarations: false
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+TabWidth: 4
+UseTab: true
