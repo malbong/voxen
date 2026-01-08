@@ -141,3 +141,12 @@ struct DateConstantData {
 	uint32_t dayCycleRealTime;
 	uint32_t dayCycleAmount;
 };
+
+struct BiomeWeightParams {
+	float continentalness;
+	float erosion;
+	float temperature;
+	float humidity;
+	float elevationScale;
+	float baseHeight;
+};

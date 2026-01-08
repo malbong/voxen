@@ -1,4 +1,8 @@
 #include "Biome.h"
+#include "Terrain.h"
+#include "Utils.h"
+
+#include <algorithm>
 
 BiomeTypeInfoSet Biome::m_biomeTypeInfoSet;
 
@@ -13,7 +17,7 @@ uint32_t Biome::GetMaxTreeCountPerChunk(BIOME_TYPE type)
 }
 
 uint32_t Biome::GetMaxInstanceCountPerChunk(BIOME_TYPE type)
-{ 
+{
 	return m_biomeTypeInfoSet.GetInfo(type).GetMaxInstanceCountPerChunk();
 }
 
@@ -27,62 +31,81 @@ const std::vector<TREE_TYPE>& Biome::GetTrees(BIOME_TYPE type)
 	return m_biomeTypeInfoSet.GetInfo(type).GetTrees();
 }
 
-BIOME_TYPE Biome::GetBiomeType(
-	float elevation, float temperature, float humidity, float peaksValley, float erosion)
+const BiomeWeightParams& Biome::GetWeightParams(BIOME_TYPE type)
 {
-	// Biome Block
-	float pvRange = 32.0f * peaksValley * powf((1.0f - erosion), 1.25f);
-	float newElevation = elevation - pvRange;
+	return m_biomeTypeInfoSet.GetInfo(type).GetWeightParams();
+}
 
-	if (newElevation < 64.0f) {
-		return BIOME_OCEAN;
-	}
-	else if (newElevation < 68.0f) {
-		return BIOME_BEACH;
-	}
+BIOME_TYPE Biome::GetBiomeType(float c, float e, float t, float h, int x, int z)
+{
+	float coEffi[4] = { 10.0f, 1.0f, 3.0f, 3.0f };
+	std::vector<std::pair<float, BIOME_TYPE>> weights;
 
-	if (temperature < 0.25f) {
-		return BIOME_TUNDRA; // t < 0.25 && h < 1
-	}
+	for (int i = 0; i < (int)BIOME_TYPE::BIOME_COUNT; ++i) {
+		const BiomeWeightParams& wParams = GetWeightParams((BIOME_TYPE)i);
 
-	if (humidity < 0.33f) {
-		if (temperature < 0.625f) {
-			return BIOME_PLAINS; // 0.25 < t < 0.625 && h < 0.33
-		}
-		else {
-			return BIOME_DESERT; // 0.625 < t && h < 0.33
-		}
+		float cWeight = coEffi[0] * std::powf(std::fabs(c - wParams.continentalness), 2.0f);
+		float eWeight = coEffi[1] * std::powf(std::fabs(e - wParams.erosion), 2.0f);
+		float tWeight = coEffi[2] * std::powf(std::fabs(t - wParams.temperature), 2.0f);
+		float hWeight = coEffi[3] * std::powf(std::fabs(h - wParams.humidity), 2.0f);
+		float weight = std::sqrtf(cWeight + eWeight + tWeight + hWeight);
+
+		weights.push_back(std::make_pair(weight, (BIOME_TYPE)i));
 	}
 
-	if (temperature < 0.3125f) {
-		return BIOME_SNOWY_TAIGA; // 0.25 < t < 0.3125 && 0.33 < h < 1
+	std::sort(weights.begin(), weights.end(),
+		[](const std::pair<float, BIOME_TYPE>& a, const std::pair<float, BIOME_TYPE>& b) {
+			return (a.first < b.first);
+		});
+
+	float weightDiff = std::fabsf(weights[0].first - weights[1].first);
+	float threshold = 0.005f;
+
+	if (weightDiff < threshold) { // blending
+		uint32_t hashX = Utils::HashInt(x, 27551u);
+		uint32_t hashZ = Utils::HashInt(z, 35251u);
+
+		uint32_t hash = hashX ^ hashZ;
+
+		if (hash % 11 == 0) {
+			return weights[1].second;
+		}
 	}
-	if (temperature < 0.375f) { // 0.3125 < t < 0.375 && 0.33 < h < 1
-		return BIOME_TAIGA;
+	
+	return weights[0].second;
+}
+
+float Biome::GetBiomeTerrainHeight(float c, float e, float pv, float t, float h)
+{
+	// biomeBaseHeight + (scale * Elevation(c, e, pv));
+
+	float sumBiomeBaseHeight = 0.0f;
+	float sumElevationScale = 0.0f;
+	float sumWeight = 0.0f;
+
+	float coEffi[4] = { 10.0f, 1.0f, 5.0f, 5.0f };
+	for (int i = 0; i < (int)BIOME_TYPE::BIOME_COUNT; ++i) {
+		const BiomeWeightParams& wParams = GetWeightParams((BIOME_TYPE)i);
+
+		float cDiff = coEffi[0] * std::powf(std::fabs(c - wParams.continentalness), 2.0f);
+		float eDiff = coEffi[1] * std::powf(std::fabs(e - wParams.erosion), 2.0f);
+		float tDiff = coEffi[2] * std::powf(std::fabs(t - wParams.temperature), 2.0f);
+		float hDiff = coEffi[3] * std::powf(std::fabs(h - wParams.humidity), 2.0f);
+		float diff = max(1e-5f, std::sqrtf(cDiff + eDiff + tDiff + hDiff));
+
+		float weight = 1.0f / (diff * diff);
+		float weight2 = std::powf(weight, 5.0f);
+
+		sumBiomeBaseHeight += weight2 * wParams.baseHeight;
+		sumElevationScale += weight2 * wParams.elevationScale;
+		sumWeight += weight2;
 	}
 
-	if (temperature < 0.6875f) {
-		if (humidity < 0.55f) {
-			return BIOME_SHRUBLAND; // 0.375 < t < 0.6875 && 0.33 < h < 0.55
-		}
-		else if (humidity < 0.77f) { 
-			return BIOME_FOREST; // 0.375 < t < 0.6875 && 0.55 < h < 0.77
-		}
-		else {
-			return BIOME_SWAMP; // 0.375 < t < 0.6875 && 0.77 < h
-		}
-	}
-	else {
-		if (humidity < 0.55f) { // 0.6875 < t && 0.33 < h < 0.55
-			return BIOME_SAVANNA;
-		}
-		else if (humidity < 0.77f) { // 0.6875 < t && 0.55 < h < 0.77
-			return BIOME_SEASONFOREST;
-		}
-		else {
-			return BIOME_RAINFOREST; // // 0.6875 < t && 0.77 < h
-		}
-	}
+	float biomeBaseHeight = sumBiomeBaseHeight / sumWeight;
+	float elevationScale = sumElevationScale / sumWeight;
+	float elevation = Terrain::GetElevation(c, e, pv);
 
-	return BIOME_PLAINS;
+	float height = biomeBaseHeight + (elevationScale * elevation);
+
+	return std::clamp(height, 1.0f, 255.0f);
 }

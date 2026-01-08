@@ -18,9 +18,10 @@ public:
 	static uint32_t GetMaxTreeCountPerChunk(BIOME_TYPE type);
 	static const std::vector<INSTANCE_TYPE>& GetInstances(BIOME_TYPE type);
 	static const std::vector<TREE_TYPE>& GetTrees(BIOME_TYPE type);
-	static BIOME_TYPE GetBiomeType(
-		float elevation, float temperature, float humidity, float peaksValley, float erosion);
-
+	static const BiomeWeightParams& GetWeightParams(BIOME_TYPE type);
+	static BIOME_TYPE GetBiomeType(float c, float e, float t, float h, int x, int z);
+	static float GetBiomeTerrainHeight(float c, float e, float pv, float t, float h);
+		
 private:
 	static BiomeTypeInfoSet m_biomeTypeInfoSet;
 };
@@ -31,7 +32,7 @@ class BiomeTypeInfo {
 public:
 	BiomeTypeInfo()
 		: m_baseColor(RGBA_UINT(0, 0, 0, 0)), m_maxTreeCountPerChunk(0),
-		  m_maxInstanceCountPerChunk(0), m_instances(), m_trees()
+		  m_maxInstanceCountPerChunk(0), m_instances(), m_trees(), m_weightParams()
 	{
 	}
 	~BiomeTypeInfo() {}
@@ -60,12 +61,19 @@ public:
 	inline const std::vector<TREE_TYPE>& GetTrees() const { return m_trees; }
 	inline void SetTrees(std::vector<TREE_TYPE>&& trees) { m_trees = std::move(trees); }
 
+	inline const BiomeWeightParams& GetWeightParams() const { return m_weightParams; }
+	inline void SetWeightParams(const BiomeWeightParams& weightParams)
+	{
+		m_weightParams = weightParams;
+	}
+
 private:
 	RGBA_UINT m_baseColor;
 	uint32_t m_maxTreeCountPerChunk;
 	uint32_t m_maxInstanceCountPerChunk;
 	std::vector<INSTANCE_TYPE> m_instances;
 	std::vector<TREE_TYPE> m_trees;
+	BiomeWeightParams m_weightParams;
 };
 
 
@@ -90,20 +98,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_NONE);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetTrees(std::move(tmpTrees));
-		
-
-		// BIOME_BEACH
-		// instance: none
-		// tree: none
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetBaseColor(RGBA_UINT(255, 223, 128, 255));
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxInstanceCountPerChunk(16);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetMaxTreeCountPerChunk(0);
-		tmpInstances.clear();
-		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_NONE);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetInstances(std::move(tmpInstances));
-		tmpTrees.clear();
-		tmpTrees.push_back(TREE_TYPE::TREE_NONE);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_BEACH].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_OCEAN].SetWeightParams(
+			{ 0.0f, 0.5f, 0.5f, 0.5f, 0.025f, 32.0f });
 
 
 		// BIOME_TUNDRA
@@ -118,6 +114,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetWeightParams(
+			{ 0.7f, 0.5f, 0.125f, 0.2f, 0.025f, 108.0f });
 
 
 		// BIOME_TAIGA
@@ -134,6 +132,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetWeightParams(
+			{ 0.7f, 0.5f, 0.34f, 0.66f, 0.25f, 96.0f });
 
 
 		// BIOME_PLAINS
@@ -141,7 +141,7 @@ public:
 		// tree: oak
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetBaseColor(RGBA_UINT(128, 169, 91, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxInstanceCountPerChunk(96);
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxTreeCountPerChunk(12);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetMaxTreeCountPerChunk(4);
 		tmpInstances.clear();
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_GRASS);
 		tmpInstances.push_back(INSTANCE_TYPE::INSTANCE_OXEYE_DAISY);
@@ -154,6 +154,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_PLAINS].SetWeightParams(
+			{ 0.7f, 0.5f, 0.435f, 0.16f, 0.025f, 64.0f });
 
 
 		// BIOME_SWAMP
@@ -173,6 +175,8 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_MANGROVE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SWAMP].SetWeightParams(
+			{ 0.7f, 0.5f, 0.53f, 0.88f, 0.025f, 56.0f });
 
 
 		// BIOME_FOREST
@@ -193,6 +197,9 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_BIRCH_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_FOREST].SetWeightParams(
+			{ 0.7f, 0.5f, 0.53f, 0.66f, 1.5f, 64.0f });
+
 
 
 		// BIOME_SHRUBLAND
@@ -216,6 +223,8 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_CHERRY_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SHRUBLAND].SetWeightParams(
+			{ 0.7f, 0.5f, 0.53f, 0.44f, 0.01f, 64.0f });
 
 
 		// BIOME_DESERT
@@ -230,6 +239,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_CACTUS);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_DESERT].SetWeightParams(
+			{ 0.7f, 0.5f, 0.81f, 0.125f, 0.01f, 80.0f });
 
 
 		// BIOME_RAINFOREST
@@ -246,6 +257,8 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_JUNGLE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_RAINFOREST].SetWeightParams(
+			{ 0.7f, 0.5f, 0.84f, 0.88f, 1.5f, 64.0f });
 
 
 		// BIOME_SEASONFOREST
@@ -269,6 +282,8 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_BIRCH_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SEASONFOREST].SetWeightParams(
+			{ 0.7f, 0.5f, 0.84f, 0.66f, 1.5f, 64.0f });
 
 
 		// BIOME_SAVANNA
@@ -284,13 +299,15 @@ public:
 		tmpTrees.push_back(TREE_TYPE::TREE_OAK_LOG);
 		tmpTrees.push_back(TREE_TYPE::TREE_ACACIA_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SAVANNA].SetWeightParams(
+			{ 0.7f, 0.5f, 0.84f, 0.44f, 0.01f, 70.0f });
 
 
 		// BIOME_SNOWY_TAIGA
 		// instance: grass, fern, sweet berry bush
 		// tree: spruce
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetBaseColor(
-			RGBA_UINT(200, 255, 239, 255));
+			RGBA_UINT(159, 239, 159, 255));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxInstanceCountPerChunk(32);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetMaxTreeCountPerChunk(2);
 		tmpInstances.clear();
@@ -301,6 +318,8 @@ public:
 		tmpTrees.clear();
 		tmpTrees.push_back(TREE_TYPE::TREE_SPRUCE_LOG);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetTrees(std::move(tmpTrees));
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_SNOWY_TAIGA].SetWeightParams(
+			{ 0.7f, 0.5f, 0.28f, 0.66f, 0.75f, 96.0f });
 	}
 
 	inline const BiomeTypeInfo& GetInfo(BIOME_TYPE type) const { return m_biomeTypeInfoSet[type]; }

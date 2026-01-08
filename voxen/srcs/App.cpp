@@ -156,20 +156,17 @@ void App::Run()
 			float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
 			ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
 
-			float b = Terrain::GetElevation(c, e, pv);
 			float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
 			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
+			float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
 			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
+			Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
 
-			BIOME_TYPE biomeType = Biome::GetBiomeType(b, t, h, pv, e);
+			BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h, (int)worldX, (int)worldZ);
 			const char *biomeString = nullptr;
 			switch (biomeType) {
 			case BIOME_TYPE::BIOME_OCEAN:
 				biomeString = "BIOME_OCEAN";
-				break;
-
-			case BIOME_TYPE::BIOME_BEACH:
-				biomeString = "BIOME_BEACH";
 				break;
 
 			case BIOME_TYPE::BIOME_TUNDRA:
@@ -210,6 +207,10 @@ void App::Run()
 
 			case BIOME_TYPE::BIOME_SAVANNA:
 				biomeString = "BIOME_SAVANNA";
+				break;
+
+			case BIOME_TYPE::BIOME_SNOWY_TAIGA:
+				biomeString = "BIOME_SNOWY_TAIGA";
 				break;
 
 			default:
@@ -313,7 +314,7 @@ void App::Render()
 		else {
 			RenderMirrorWorld();
 			RenderWaterPlane();
-			//RenderFogFilter();
+			RenderFogFilter();
 			RenderSkybox();
 			RenderCloud();
 		}
@@ -441,7 +442,7 @@ bool App::InitGUI()
 
 bool App::InitScene()
 {
-	if (!m_camera.Initialize(Vector3(-403.0f, 77.0f, 34.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+	if (!m_camera.Initialize(Vector3(-50.0f, 177.0f, 84.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))

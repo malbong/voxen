@@ -5,7 +5,7 @@
 #define SAMPLE_COUNT 4
 
 #define CHUNK_SIZE 32
-#define CHUNK_COUNT 17
+#define CHUNK_COUNT 21
 
 SamplerState pointWrapSS : register(s0);
 SamplerState linearWrapSS : register(s1);
