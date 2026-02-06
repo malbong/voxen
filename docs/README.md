@@ -6,81 +6,86 @@
 
 ## 목록
 
-### **GPU**
+### **GPU 관점**
 
-- Cascade ShadowMap
-  - 그림자 구현을 위한 쉐도우맵 구현
+**Cascade ShadowMap**
 
-- MSAA Bleeding 해결
-  - Extrapolation으로 생긴 Seams 문제 해결
+- 그림자 구현을 위한 쉐도우맵 구현
 
-- Deferred Shading For MSAA
-  - G-Buffer 구성 후 Edge Masking으로 Edge에 대한 연산을 따로 MSAA로 쉐이딩
+**MSAA Bleeding 해결**
 
-- SSAO
-  - 블록의 간접 음영처리를 위한 SSAO
+- Extrapolation으로 생긴 Seams 문제 해결
 
-- Lighting
-  - 다양한 텍스쳐(Normal, Metalic, Roughness)와 HDR로 semi unreal PBR 구현
+**Deferred Shading For MSAA**
 
-- Water
-  - Water의 반사와 Depth 차이를 활용한 투영
-  - Under Water 상황에서의 필터
+- G-Buffer 구성 후 Edge Masking과 Edge를 MSAA로 쉐이딩
 
-- Frustum Culling
-  - View Frustum 최적화
+**SSAO**
 
-- Shaders
-  - Fog
-    - Depth를 활용한 안개
+- 간접광의 음영을 위한 SSAO
 
-  - Skybox
-    - 큐브맵을 사용하지 않고 쉐이더만을 이용하여 실시간 동적 하늘 구현
+**Lighting**
 
-  - Cloud
-    - 노이즈를 활용한 구름 형태 및 메쉬 생성
-    - 반투명 렌더링
+- 다양한 텍스쳐(Normal, Metallic, Roughness)와 HDR로 semi unreal PBR 구현
 
-  - Grass Leaf Color
-    - 불연속적인 잔디 색 경계를 없애기 위한 Color Map 활용
+**Water**
 
-  - PostEffect
-    - Bloom 및 선형톤맵핑
+- Water의 반사와 Depth 차이를 활용한 투영
+- Under Water 상황에서의 필터
 
-### **CPU**
+**Frustum Culling**
 
-- Chunk Management
-  - Chunk & Update
-    - 32x32x32 청크 구성 및 관리
+- View Frustum 최적화
 
-  - Load / Unload
-    - 멀티쓰레드로 청크 로딩 관리
+**Shaders**
 
-  - Patch
-    - 멀티쓰레드로 청크 패치 관리
-    - Tree나 사용자에 의한 인접한 Chunk 수정을 포함
+- Fog
+  - Depth Buffer를 활용한 안개
+- Skybox
+  - 큐브맵 없이 쉐이더만을 이용한 실시간 동적 하늘 구현
+- Cloud
+  - 노이즈를 활용한 구름 형태 및 메쉬 생성
+  - 반투명 렌더링
+- Grass Leaf Color
+  - 불연속적인 잔디 색 경계를 없애기 위한 Color Map 활용
+- PostEffect
+  - Bloom 및 선형 톤맵핑
 
-  - Picking
-    - 3D DDA를 활용한 마우스 피킹
+---
 
-- Mesh Optimization
-  - Binary Block Info
-    - 메모리를 아끼기 위한 비트단위 블록 데이터 구성
+### **CPU 관점**
 
-  - Binary Greedy Meshing
-    - Chunk Load 속도와 GPU 렌더링 속도를 위한 비트단위 청크 메싱
+**Chunk Management**
 
-- World Generation
-  - Terrain
-    - 지형 결정 방법
+- Chunk & Update
+  - 32x32x32 청크 구성 및 관리
+- Load / Unload
+  - 멀티쓰레드로 청크 로딩 관리
+- Patch
+  - 멀티쓰레드로 청크 패치 관리
+  - Tree나 사용자에 의한 인접한 Chunk 수정을 포함
+- Picking
+  - 3D DDA를 활용한 블록 마우스 피킹
 
-  - Biome
-    - 바이옴 결정 방법
+**Mesh Optimization**
 
-  - Tree
-    - 바이옴에 따른 트리 결정 방법 및 예외사항
+- Binary Block Info
+  - 메모리를 아끼기 위한 비트단위 데이터 구성
+- Binary Greedy Meshing
+  - Load 속도를 위한 그리디 비트연산
+  - GPU 렌더속도를 위한 그리디 메싱
 
-  - BlockType
-    - 다양한 매개변수를 활용한 Block 타입 결정 방법
-  - Worldmap
-    - 전체를 한눈에 볼 수 있는 2D 월드맵
+**World Generation**
+
+- Terrain
+  - 지형 결정 방법
+- Biome
+  - 바이옴 결정 방법
+- Tree
+  - 바이옴에 따른 트리 결정 방법 및 예외사항
+- BlockType
+  - 여러 매개변수를 활용한 Block 타입 결정 방법
+- Worldmap
+  - 전체를 한눈에 볼 수 있는 2D 월드맵
+
+---
