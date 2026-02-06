@@ -8,54 +8,61 @@
 
 ### **GPU 관점**
 
-**Cascade ShadowMap**
+**01. Cascade ShadowMap**
 
 - 그림자 구현을 위한 쉐도우맵 구현
 
-**MSAA Bleeding 해결**
+**02. MSAA Bleeding 해결**
 
 - Extrapolation으로 생긴 Seams 문제 해결
 
-**Deferred Shading For MSAA**
+**03. Deferred Shading For MSAA**
 
 - G-Buffer 구성 후 Edge Masking과 Edge를 MSAA로 쉐이딩
 
-**SSAO**
+**04. SSAO**
 
 - 간접광의 음영을 위한 SSAO
 
-**Lighting**
+**05. Lighting**
 
 - 다양한 텍스쳐(Normal, Metallic, Roughness)와 HDR로 semi unreal PBR 구현
 
-**Water**
+**06. Water**
 
 - Water의 반사와 Depth 차이를 활용한 투영
 - Under Water 상황에서의 필터
 
-**Frustum Culling**
+**07. Frustum Culling**
 
 - View Frustum 최적화
 
-**Shaders**
+**08. Fog**
 
-- Fog
-  - Depth Buffer를 활용한 안개
-- Skybox
-  - 큐브맵 없이 쉐이더만을 이용한 실시간 동적 하늘 구현
-- Cloud
-  - 노이즈를 활용한 구름 형태 및 메쉬 생성
-  - 반투명 렌더링
-- Grass Leaf Color
-  - 불연속적인 잔디 색 경계를 없애기 위한 Color Map 활용
-- PostEffect
-  - Bloom 및 선형 톤맵핑
+- Depth Buffer를 활용한 안개
+
+**09. Skybox**
+
+- 큐브맵 없이 쉐이더만을 이용한 실시간 동적 하늘 구현
+
+**10. Cloud**
+
+- 노이즈를 활용한 구름 형태 및 메쉬 생성
+- 반투명 렌더링
+
+**11. Grass Leaf Color**
+
+- 불연속적인 잔디 색 경계를 없애기 위한 Color Map 활용
+
+**12. PostEffect**
+
+- Bloom 및 선형 톤맵핑
 
 ---
 
 ### **CPU 관점**
 
-**Chunk Management**
+**01. Chunk Management**
 
 - Chunk & Update
   - 32x32x32 청크 구성 및 관리
@@ -67,7 +74,7 @@
 - Picking
   - 3D DDA를 활용한 블록 마우스 피킹
 
-**Mesh Optimization**
+**02. Mesh Optimization**
 
 - Binary Block Info
   - 메모리를 아끼기 위한 비트단위 데이터 구성
@@ -75,7 +82,7 @@
   - Load 속도를 위한 그리디 비트연산
   - GPU 렌더속도를 위한 그리디 메싱
 
-**World Generation**
+**03. World Generation**
 
 - Terrain
   - 지형 결정 방법
