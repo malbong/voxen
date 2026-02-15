@@ -56,27 +56,20 @@
 
 Comment
 
-- MSAA_Issues 를 작성할거야
-- Voxel을 렌더링하면서 GreedyMeshing이나 Data 메모리를 아끼다보니 다양한 문제가 발생했어
-- 문제점은 아래와 같아
-  - Frac연산과 Texture 좌표가 작은 구간에 크게 변동되어 Mipmap이 높은 레벨을 설정하게 됨
-  - Extrapolation으로 Bleeding이 발생
-
-1. Bleeding 문제 해결
-
-- Linear, Centroid, Sample Interpolation에 대한 설명과 Sample Interpolation을 사용한 이유에 대해서 중점적으로 서술해야해
-  - Linear를 사용한 경우 Extrapolation됨
-  - Centroid도 적절하지만 하나의 블록 내부에서 Sample의 개수가 4개여도 같은 Interpolation값을 사용하게 되기에 PointSS를 사용하지 못함
-  - 그 결과 Sample Interpolation 방식을 사용했음
-
-2. mipmap 문제 해결
-
-- Sample Interpolation과 Texture 좌표 frac연산을 하지 않음
+- Water를 정리하려고 해
+- 아래는 내가 중요하다고 생각하는 것들이야
+  - Mirror World 기반의 반사
+  - Water Color 결정 방법 (투영 + 미러 + Water자체 +@기타 보정값)
+  - Under Water에서의 Filter와 렌더링 순서 변경
 
 A
 
-- srcs/App.cpp, shaders/BasicVS.hlsl, shaders/BasicPS.hlsl
+- srcs/App.cpp (RenderMirrorWorld, RenderWaterPlane)
+- srcs/Graphics.cpp (water 관련 PSO, mirror 관련 PSO)
+- shaders/MirrorMasking.hlsl
+- shaders/WaterPlanePS.hlsl
+- shaders/WaterFilterPS.hlsl
 
 B
 
-- docs/gpu/MSAA_Issues/README.md
+- docs/gpu/Water/README.md
