@@ -12,11 +12,11 @@
 
 - 그림자 구현을 위한 쉐도우맵 구현
 
-**02. MSAA Bleeding 해결**
+**02. MSAA Issue 해결**
 
-- Extrapolation으로 생긴 Seams 문제 해결
+- Extrapolation으로 생긴 Seams 문제와 uv 값의 ddx/ddy mipmap문제 해결
 
-**03. Deferred Shading For MSAA**
+**03. Deferred Shading MSAA**
 
 - G-Buffer 구성 후 Edge Masking과 Edge를 MSAA로 쉐이딩
 
