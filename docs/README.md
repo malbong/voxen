@@ -25,7 +25,7 @@
 
 ---
 
-### **CPU 관점**
+## **CPU 관점**
 
 ### 1. Chunk Management
 
