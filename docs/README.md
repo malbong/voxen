@@ -5,6 +5,7 @@
 - Claude Code를 활용하여 README.md를 작성했습니다.
 
 <br />
+<br />
 
 ## **GPU 관점**
 
@@ -24,6 +25,9 @@
 | Water                | Plane 반사와 Depth를 이용한 투영 및 물속필터   | `docs/gpu/Water/`                |
 
 ---
+
+<br />
+<br />
 
 ## **CPU 관점**
 
