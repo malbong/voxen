@@ -1,4 +1,4 @@
-## 개요
+# 개요
 
 - 프로젝트를 진행하면서 활용한 기능들을 정리한 문서입니다.
 - 복습용 기능 정리 문서입니다.
@@ -6,9 +6,7 @@
 
 <br />
 
-## 목록
-
-### **GPU 관점**
+## **GPU 관점**
 
 | 목차                 | 내용                                           | 문서 경로                        |
 | -------------------- | ---------------------------------------------- | -------------------------------- |
@@ -29,22 +27,29 @@
 
 ### **CPU 관점**
 
-| 목차                 | 내용                                              | 문서 경로                                        |
-| -------------------- | ------------------------------------------------- | ------------------------------------------------ |
-| 1. Chunk Management  |                                                   |                                                  |
-| Chunk Life Cycle     | 청크의 생성 -> 패치 -> 소멸의 내부연산            | `docs/cpu/ChunkManagement/ChunkLifecycle/`       |
-| Chunk Structure      | 블록의 집합 청크와 청크의 집합 청크매니저         | `docs/cpu/ChunkManagement/ChunkStructure/`       |
-| Chunk Update         | 매프레임 청크 리스트 관리                         | `docs/cpu/ChunkManagement/ChunkUpdate/`          |
-| -------------------- |                                                   |                                                  |
-| 2. Mesh Optimization |                                                   |                                                  |
-| BinaryBlockInfo      | 메모리를 아끼기 위한 비트단위 데이터 구성         | `docs/cpu/MeshOptimization/BinaryBlockInfo/`     |
-| BinaryGreedyMeshing  | 비트연산기반 Greedy Meshing 알고리즘              | `docs/cpu/MeshOptimization/BinaryGreedyMeshing/` |
-| -------------------- |                                                   |                                                  |
-| 3. World Generation  |                                                   |                                                  |
-| Biome                | 노이즈 매개변수를 이용한 13 바이옴 결정 방식      | `docs/cpu/Biome/`                                |
-| BlockType            | 3단계 선택 로직으로 다양한 블록 타입 결정 방식    | `docs/cpu/BlockType/`                            |
-| Terrain              | 노이즈를 활용한 절차적 지형 생성                  | `docs/cpu/Terrain/`                              |
-| Tree                 | 8 트리 타입 및 형태 결정 그리고 Chunk Patch 전파  | `docs/cpu/Tree/`                                 |
-| WorldMap             | Biome과 지형에 대한 2D 월드맵 텍스쳐 구성 및 렌더 | `docs/cpu/WorldMap/`                             |
+### 1. Chunk Management
+
+| 목차             | 내용                                      | 문서 경로                                  |
+| ---------------- | ----------------------------------------- | ------------------------------------------ |
+| Chunk Life Cycle | 청크의 생성 -> 패치 -> 소멸의 내부연산    | `docs/cpu/ChunkManagement/ChunkLifecycle/` |
+| Chunk Structure  | 블록의 집합 청크와 청크의 집합 청크매니저 | `docs/cpu/ChunkManagement/ChunkStructure/` |
+| Chunk Update     | 매프레임 청크 리스트 관리                 | `docs/cpu/ChunkManagement/ChunkUpdate/`    |
+
+### 2. Mesh Optimization
+
+| 목차                | 내용                                      | 문서 경로                                        |
+| ------------------- | ----------------------------------------- | ------------------------------------------------ |
+| BinaryBlockInfo     | 메모리를 아끼기 위한 비트단위 데이터 구성 | `docs/cpu/MeshOptimization/BinaryBlockInfo/`     |
+| BinaryGreedyMeshing | 비트연산기반 Greedy Meshing 알고리즘      | `docs/cpu/MeshOptimization/BinaryGreedyMeshing/` |
+
+### 3. World Generation
+
+| 목차      | 내용                                              | 문서 경로             |
+| --------- | ------------------------------------------------- | --------------------- |
+| Biome     | 노이즈 매개변수를 이용한 13 바이옴 결정 방식      | `docs/cpu/Biome/`     |
+| BlockType | 3단계 선택 로직으로 다양한 블록 타입 결정 방식    | `docs/cpu/BlockType/` |
+| Terrain   | 노이즈를 활용한 절차적 지형 생성                  | `docs/cpu/Terrain/`   |
+| Tree      | 8 트리 타입 및 형태 결정 그리고 Chunk Patch 전파  | `docs/cpu/Tree/`      |
+| WorldMap  | Biome과 지형에 대한 2D 월드맵 텍스쳐 구성 및 렌더 | `docs/cpu/WorldMap/`  |
 
 ---
