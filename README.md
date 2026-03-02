@@ -22,25 +22,23 @@
 
 이 프로젝트는 Visual Studio 2022를 사용하여 빌드합니다.
 
-**빌드 방법:**
+- **빌드 방법:**
+  - 직접 빌드를 진행하지 않아도 `release/` 폴더에 `voxen.exe`가 존재합니다
+  - Visual Studio 2022에서 `voxen.sln`을 열고 release x64 빌드
+  - 빌드 시 `release/` 폴더가 생성되며, 실행에 필요한 파일이 자동으로 배치됩니다
 
-- Visual Studio 2022에서 `voxen.sln`을 열고 release x64 빌드
-- 빌드 시 `release/` 폴더가 생성되며, 실행에 필요한 파일이 자동으로 배치됩니다
-- 빌드를 진행하지 않고 `release/` 폴더에 `voxen.exe`가 존재합니다
+- **실행 방법:**
+  - `release\voxen.exe` 실행
 
-**실행 방법:**
+- **`release/` 폴더 구조:**
 
-`release\voxen.exe` 실행
-
-**`release/` 폴더 구조:**
-
-```
-release/
-├── voxen.exe        # 실행 파일
-├── assets/          # 텍스쳐, 모델 등 리소스
-├── shaders/         # HLSL 쉐이더 파일
-└── imgui.ini        # GUI 설정
-```
+  ```
+  release/
+  ├── voxen.exe        # 실행 파일
+  ├── assets/          # 텍스쳐, 모델 등 리소스
+  ├── shaders/         # HLSL 쉐이더 파일
+  └── imgui.ini        # GUI 설정
+  ```
 
 <br />
 
