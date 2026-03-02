@@ -53,15 +53,15 @@ Chunk::Initialize(ChunkLoadMemory* memory)
 
 패딩 포함 `CHUNK_SIZE_P(34) x CHUNK_SIZE_P(34)` 범위에서 7종의 노이즈를 샘플링한다. 패딩(±1)은 인접 청크와의 경계에서 블록 타입과 바이옴을 정확히 판단하기 위해 필요하다.
 
-| 노이즈 | 용도 |
-|--------|------|
-| continentalness | 대륙/해양 구분 |
-| erosion | 침식 정도 |
-| peaksValley | 산/계곡 지형 |
-| temperature | 기온 → 바이옴 결정 |
-| humidity | 습도 → 바이옴 결정 |
-| distribution | 오브젝트 분포 시드 |
-| elevation | 최종 지형 높이 (위 5개 노이즈 조합) |
+| 노이즈          | 용도                                |
+| --------------- | ----------------------------------- |
+| continentalness | 대륙/해양 구분                      |
+| erosion         | 침식 정도                           |
+| peaksValley     | 산/계곡 지형                        |
+| temperature     | 기온 → 바이옴 결정                  |
+| humidity        | 습도 → 바이옴 결정                  |
+| distribution    | 오브젝트 분포 시드                  |
+| elevation       | 최종 지형 높이 (위 5개 노이즈 조합) |
 
 #### [2] InitBiomeMapAndCount
 
@@ -76,6 +76,7 @@ Chunk::Initialize(ChunkLoadMemory* memory)
 시드 기반 랜덤으로 `TREE_PLACE_MAX_COUNT_PER_CHUNK(64)`개의 후보 위치를 생성한 뒤, 각 위치에서 배치 조건을 검사한다.
 
 **배치 조건 (`CanPlaceTreeAt`)**:
+
 - 바이옴별 최대 나무 수 비율 제한 (`GetMaxPlaceCountByBiomeRatio`)
 - 청크 로컬 범위 내 (0~31)
 - 바이옴에 맞는 나무 타입이 존재
@@ -95,10 +96,10 @@ TreeShape[dy][dz][dx]의 각 요소:
 
 나무는 최대 `TREE_SIZE(11)` 블록 크기로, 청크 경계를 넘을 수 있다. 이때 3가지 경우로 분기한다:
 
-| 블록 위치 | 처리 |
-|-----------|------|
-| 청크 내부 + 패딩 범위 (-1~32) | `m_blocks`에 직접 기록 |
-| 청크 외부 | `PatchData` 생성 → `chunkPatchDataMap`에 저장 |
+| 블록 위치                          | 처리                                                       |
+| ---------------------------------- | ---------------------------------------------------------- |
+| 청크 내부 + 패딩 범위 (-1~32)      | `m_blocks`에 직접 기록                                     |
+| 청크 외부                          | `PatchData` 생성 → `chunkPatchDataMap`에 저장              |
 | 내부/외부 경계 (0, 31 또는 -1, 32) | `GenerateEdgePatchEntry()`로 인접 청크 전파 패치 추가 생성 |
 
 `chunkPatchDataMap`은 `ChunkLoadMemory`에 저장되며, Initialize 완료 후 메인 스레드에서 의존성 맵에 등록된다.
@@ -116,12 +117,12 @@ TreeShape[dy][dz][dx]의 각 요소:
 
 블록 배열을 Binary Greedy Meshing으로 버텍스/인덱스 데이터로 변환한다. 4종류의 메시를 독립적으로 생성한다:
 
-| 메시 타입 | 대상 블록 | 용도 |
-|-----------|----------|------|
-| LowLod | Opaque + SemiAlpha | 원거리 LOD 렌더링 |
-| Opaque | 불투명 블록 | 메인 렌더링 |
-| Transparency | 투명 블록 (물 등) | 투명 패스 렌더링 |
-| SemiAlpha | 반투명 블록 (잎 등) | 반투명 패스 렌더링 |
+| 메시 타입    | 대상 블록           | 용도               |
+| ------------ | ------------------- | ------------------ |
+| LowLod       | Opaque + SemiAlpha  | 원거리 LOD 렌더링  |
+| Opaque       | 불투명 블록         | 메인 렌더링        |
+| Transparency | 투명 블록 (물 등)   | 투명 패스 렌더링   |
+| SemiAlpha    | 반투명 블록 (잎 등) | 반투명 패스 렌더링 |
 
 ### 2.3 Initialize 완료 후 처리 (메인 스레드)
 
@@ -277,11 +278,11 @@ Unload 시 `m_cameraPatchChunkMap`은 정리 대상에서 **제외**된다.
 
 패치가 `m_patchChunkMap`에 등록되는 3가지 경로:
 
-| 경로 | 시점 | 원인 |
-|------|------|------|
-| Picking | Update 초반 | 플레이어 블록 추가/제거 |
-| Initialize 완료 | Load 시 | 나무/인스턴스의 크로스 청크 전파 |
-| 역방향 조회 | Load 시 | 인접 청크가 나를 위해 미리 만든 패치 |
+| 경로            | 시점        | 원인                                 |
+| --------------- | ----------- | ------------------------------------ |
+| Picking         | Update 초반 | 플레이어 블록 추가/제거              |
+| Initialize 완료 | Load 시     | 나무/인스턴스의 크로스 청크 전파     |
+| 역방향 조회     | Load 시     | 인접 청크가 나를 위해 미리 만든 패치 |
 
 ### 5.2 UpdatePatchChunkMap 처리 흐름
 
