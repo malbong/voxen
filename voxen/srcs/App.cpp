@@ -129,6 +129,147 @@ LRESULT App::EventHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return true;
 }
 
+bool App::Initialize()
+{
+	if (!InitWindow())
+		return false;
+
+	if (!InitDirectX())
+		return false;
+
+	if (!InitGUI())
+		return false;
+
+	if (!InitScene())
+		return false;
+
+	return true;
+}
+
+bool App::InitWindow()
+{
+	// Window 초기화
+	{
+		const wchar_t CLASS_NAME[] = L"Voxen Class";
+		HINSTANCE hInstance = GetModuleHandle(0);
+
+		WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WindowProc, 0L, 0L, GetModuleHandle(NULL),
+			NULL, NULL, NULL, NULL,
+			CLASS_NAME, // lpszClassName, L-string
+			NULL };
+
+		if (!RegisterClassEx(&wc))
+			return false;
+
+		RECT wr = { 0, 0, (LONG)APP_WIDTH, (LONG)APP_HEIGHT };
+		AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
+
+		DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 100, 100, wr.right - wr.left,
+			wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+
+		if (m_hwnd == NULL)
+			return false;
+
+		ShowWindow(m_hwnd, SW_SHOWDEFAULT);
+		UpdateWindow(m_hwnd);
+	}
+
+	// RAW INPUT 등록
+	{
+		RAWINPUTDEVICE rid;
+		rid.usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
+		rid.usUsage = 0x02;		// HID_USAGE_GENERIC_MOUSE
+		rid.dwFlags = RIDEV_INPUTSINK;
+		rid.hwndTarget = m_hwnd;
+
+		RegisterRawInputDevices(&rid, 1, sizeof(rid));
+	}
+
+	return true;
+}
+
+bool App::InitDirectX()
+{
+	DXGI_FORMAT pixelFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	if (!Graphics::InitGraphicsCore(pixelFormat, m_hwnd)) {
+		return false;
+	}
+
+	if (!Graphics::InitGraphicsBuffer()) {
+		return false;
+	}
+
+	if (!Graphics::InitGraphicsState()) {
+		return false;
+	}
+
+	Graphics::InitGraphicsPSO();
+
+	return true;
+}
+
+bool App::InitGUI()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
+	io.DisplaySize = ImVec2(float(APP_WIDTH), float(APP_HEIGHT));
+	ImGui::StyleColorsLight();
+
+	// Setup Platform/Renderer backends
+	if (!ImGui_ImplDX11_Init(Graphics::device.Get(), Graphics::context.Get())) {
+		return false;
+	}
+
+	if (!ImGui_ImplWin32_Init(m_hwnd)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool App::InitScene()
+{
+	if (!m_camera.Initialize(
+			Vector3(-50.0f, 177.0f, 84.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+		return false;
+
+	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
+		return false;
+
+	if (!m_skybox.Initialize(550.0f))
+		return false;
+
+	if (!m_cloud.Initialize(m_camera.GetPosition()))
+		return false;
+
+	if (!m_light.Initialize())
+		return false;
+
+	if (!m_postEffect.Initialize())
+		return false;
+
+	if (!m_worldMap.Initialize(m_camera.GetPosition()))
+		return false;
+
+	if (!m_date.Initialize()) {
+		return false;
+	}
+
+	m_constantData.appWidth = APP_WIDTH;
+	m_constantData.appHeight = APP_HEIGHT;
+	m_constantData.mirrorWidth = MIRROR_WIDTH;
+	m_constantData.mirrorHeight = MIRROR_HEIGHT;
+	if (!DXUtils::CreateConstantBuffer(m_constantBuffer, m_constantData)) {
+		std::cout << "failed create constant buffer in app" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
 void App::Run()
 {
 	MSG msg = { 0 };
@@ -299,7 +440,7 @@ void App::Render()
 	// 3. Picking Block
 	{
 		if (m_camera.HasPickingObject()) {
-			m_camera.RenderPickingBlock();
+			RenderPickingBlock();
 		}
 	}
 
@@ -329,155 +470,15 @@ void App::Render()
 			RenderWaterFilter();
 		}
 
-		m_postEffect.Bloom();
+		RenderBloom();
 	}
 
 	// 6. Biome Map
 	{
-		if (m_keyToggled['M'])
-			m_worldMap.RenderBiomeMap();
+		if (m_keyToggled['M']) {
+			RenderWorldMap();
+		}
 	}
-}
-
-bool App::Initialize()
-{
-	if (!InitWindow())
-		return false;
-
-	if (!InitDirectX())
-		return false;
-
-	if (!InitGUI())
-		return false;
-
-	if (!InitScene())
-		return false;
-
-	return true;
-}
-
-bool App::InitWindow()
-{
-	// Window 초기화
-	{
-		const wchar_t CLASS_NAME[] = L"Voxen Class";
-		HINSTANCE hInstance = GetModuleHandle(0);
-
-		WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WindowProc, 0L, 0L, GetModuleHandle(NULL),
-			NULL, NULL, NULL, NULL,
-			CLASS_NAME, // lpszClassName, L-string
-			NULL };
-
-		if (!RegisterClassEx(&wc))
-			return false;
-
-		RECT wr = { 0, 0, (LONG)APP_WIDTH, (LONG)APP_HEIGHT };
-		AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
-
-		DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
-		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 100, 100, wr.right - wr.left,
-			wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
-
-		if (m_hwnd == NULL)
-			return false;
-
-		ShowWindow(m_hwnd, SW_SHOWDEFAULT);
-		UpdateWindow(m_hwnd);
-	}
-
-	// RAW INPUT 등록
-	{
-		RAWINPUTDEVICE rid;
-		rid.usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
-		rid.usUsage = 0x02;		// HID_USAGE_GENERIC_MOUSE
-		rid.dwFlags = RIDEV_INPUTSINK;
-		rid.hwndTarget = m_hwnd;
-
-		RegisterRawInputDevices(&rid, 1, sizeof(rid));
-	}
-
-	return true;
-}
-
-bool App::InitDirectX()
-{
-	DXGI_FORMAT pixelFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	if (!Graphics::InitGraphicsCore(pixelFormat, m_hwnd)) {
-		return false;
-	}
-
-	if (!Graphics::InitGraphicsBuffer()) {
-		return false;
-	}
-
-	if (!Graphics::InitGraphicsState()) {
-		return false;
-	}
-
-	Graphics::InitGraphicsPSO();
-
-	return true;
-}
-
-bool App::InitGUI()
-{
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	(void)io;
-	io.DisplaySize = ImVec2(float(APP_WIDTH), float(APP_HEIGHT));
-	ImGui::StyleColorsLight();
-
-	// Setup Platform/Renderer backends
-	if (!ImGui_ImplDX11_Init(Graphics::device.Get(), Graphics::context.Get())) {
-		return false;
-	}
-
-	if (!ImGui_ImplWin32_Init(m_hwnd)) {
-		return false;
-	}
-
-	return true;
-}
-
-bool App::InitScene()
-{
-	if (!m_camera.Initialize(
-			Vector3(-50.0f, 177.0f, 84.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
-		return false;
-
-	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
-		return false;
-
-	if (!m_skybox.Initialize(550.0f))
-		return false;
-
-	if (!m_cloud.Initialize(m_camera.GetPosition()))
-		return false;
-
-	if (!m_light.Initialize())
-		return false;
-
-	if (!m_postEffect.Initialize())
-		return false;
-
-	if (!m_worldMap.Initialize(m_camera.GetPosition()))
-		return false;
-
-	if (!m_date.Initialize()) {
-		return false;
-	}
-
-	m_constantData.appWidth = APP_WIDTH;
-	m_constantData.appHeight = APP_HEIGHT;
-	m_constantData.mirrorWidth = MIRROR_WIDTH;
-	m_constantData.mirrorHeight = MIRROR_HEIGHT;
-	if (!DXUtils::CreateConstantBuffer(m_constantBuffer, m_constantData)) {
-		std::cout << "failed create constant buffer in app" << std::endl;
-		return false;
-	}
-
-	return true;
 }
 
 void App::FillGBuffer()
@@ -517,8 +518,7 @@ void App::MaskMSAAEdge()
 	Graphics::context->ClearDepthStencilView(
 		Graphics::deferredDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	Graphics::context->OMSetRenderTargets(
-		0, nullptr, Graphics::deferredDSV.Get());
+	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::deferredDSV.Get());
 
 	std::vector<ID3D11ShaderResourceView*> ppSRVs;
 	ppSRVs.push_back(Graphics::normalEdgeSRV.Get());
@@ -620,40 +620,6 @@ void App::RenderCloud()
 	m_cloud.Render();
 }
 
-void App::RenderFogFilter()
-{
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->CopyResource(
-		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
-
-	std::vector<ID3D11ShaderResourceView*> ppSRVs;
-	ppSRVs.push_back(Graphics::copyForwardSRV.Get());
-	ppSRVs.push_back(Graphics::basicDepthSRV.Get());
-	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-
-	Graphics::context->PSSetConstantBuffers(
-		0, 1, m_postEffect.m_fogFilterConstantBuffer.GetAddressOf());
-
-	Graphics::SetPipelineStates(Graphics::fogFilterPSO);
-	SimpleQuadRenderer::GetInstance()->Render();
-}
-
-void App::RenderWaterFilter()
-{
-	Graphics::context->CopyResource(Graphics::bloomBuffer[0].Get(), Graphics::basicBuffer.Get());
-
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[0].GetAddressOf());
-
-	Graphics::context->PSSetConstantBuffers(
-		0, 1, m_postEffect.m_waterFilterConstantBuffer.GetAddressOf());
-
-	Graphics::SetPipelineStates(Graphics::waterFilterPSO);
-	SimpleQuadRenderer::GetInstance()->Render();
-}
-
 void App::RenderMirrorWorld()
 {
 	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewPort);
@@ -664,7 +630,7 @@ void App::RenderMirrorWorld()
 	Graphics::context->ClearDepthStencilView(
 		Graphics::mirrorWorldDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// stencil
+	// stencil and water depth
 	{
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::mirrorDepthRTV.GetAddressOf(), Graphics::mirrorWorldDSV.Get());
@@ -770,6 +736,16 @@ void App::RenderShadowMap()
 
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
+
+void App::RenderPickingBlock() { m_camera.RenderPickingBlock(); }
+
+void App::RenderWorldMap() { m_worldMap.RenderMap(); }
+
+void App::RenderFogFilter() { m_postEffect.FogFilter(); }
+
+void App::RenderWaterFilter() { m_postEffect.WaterFilter(); }
+
+void App::RenderBloom() { m_postEffect.Bloom(); }
 
 void App::LockCursor()
 {

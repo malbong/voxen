@@ -91,7 +91,7 @@ void WorldMap::Update(Vector3 cameraPosition)
 	}
 }
 
-void WorldMap::RenderBiomeMap()
+void WorldMap::RenderMap()
 {
 	Graphics::context->RSSetViewports(1, &Graphics::worldMapViewport);
 

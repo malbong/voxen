@@ -20,6 +20,8 @@ public:
 		ComPtr<ID3D11ShaderResourceView> blurSRV[2], ComPtr<ID3D11RenderTargetView> blurRTV[2],
 		ComPtr<ID3D11PixelShader> blurPS[2]);
 	void Bloom();
+	void FogFilter();
+	void WaterFilter();
 
 	ComPtr<ID3D11Buffer> m_fogFilterConstantBuffer;
 	ComPtr<ID3D11Buffer> m_waterFilterConstantBuffer;

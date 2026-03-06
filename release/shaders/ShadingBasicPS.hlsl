@@ -94,6 +94,6 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float3 clampLighting = clamp(lighting, 0.0f, 1000.0f);
         sumClampLighting += clampLighting;
     }
-    return float4(1, 0, 0,1);
+    
     return float4(sumClampLighting / max(1e-3, vaildSampleCount), 1.0);
 }

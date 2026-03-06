@@ -189,3 +189,35 @@ void PostEffect::Bloom()
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 }
+
+void PostEffect::FogFilter()
+{
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
+
+	Graphics::context->CopyResource(
+		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
+
+	std::vector<ID3D11ShaderResourceView*> ppSRVs;
+	ppSRVs.push_back(Graphics::copyForwardSRV.Get());
+	ppSRVs.push_back(Graphics::basicDepthSRV.Get());
+	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+
+	Graphics::context->PSSetConstantBuffers(0, 1, m_fogFilterConstantBuffer.GetAddressOf());
+
+	Graphics::SetPipelineStates(Graphics::fogFilterPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void PostEffect::WaterFilter()
+{
+	Graphics::context->CopyResource(Graphics::bloomBuffer[0].Get(), Graphics::basicBuffer.Get());
+
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[0].GetAddressOf());
+
+	Graphics::context->PSSetConstantBuffers(0, 1, m_waterFilterConstantBuffer.GetAddressOf());
+
+	Graphics::SetPipelineStates(Graphics::waterFilterPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
+}

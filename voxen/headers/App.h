@@ -53,13 +53,16 @@ private:
 	void RenderSkybox();
 	void RenderCloud();
 
-	void RenderFogFilter();
-	void RenderWaterFilter();
+	void RenderShadowMap();
 
 	void RenderMirrorWorld();
 	void RenderWaterPlane();
 
-	void RenderShadowMap();
+	void RenderPickingBlock();
+	void RenderWorldMap();
+	void RenderFogFilter();
+	void RenderWaterFilter();
+	void RenderBloom();
 
 	void LockCursor();
 	void UnlockCursor();
