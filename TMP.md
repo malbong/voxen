@@ -589,56 +589,411 @@ App::Render()
 
 ## 버퍼 흐름도
 
+### 버퍼 목록
+
 ```
-┌────────────┐
-│ Shadow DSV │ ─────────────────────────────────────────────────┐
-└────────────┘                                                  │
-                                                                ▼
-┌──────────────────────── G-Buffer (MSAA 4x) ──────────────────────────┐
-│  NormalEdge │ Position │ Albedo │ Coverage │ MER                      │
-└──────┬──────┴────┬─────┴───┬────┴────┬─────┴──┬─────────────────────┘
-       │           │         │         │        │
-       ▼           ▼         │         ▼        │
-┌──────────┐ ┌──────────┐   │  ┌──────────┐    │
-│ Edge     │ │ SSAO     │   │  │ Coverage │    │
-│ Masking  │ │          │   │  │ Analysis │    │
-│ →Stencil │ │ →ssaoSRV │   │  │          │    │
-└──────────┘ └────┬─────┘   │  └──────────┘    │
-                  │         │                   │
-                  ▼         ▼                   ▼
-          ┌───────────────────────────────────────────┐
-          │         Deferred Shading (PBR)             │
-          │  Ambient (IBL 근사) + Direct (Cook-Torrance)│◄── shadowSRV
-          │  + SSAO + Shadow                           │◄── brdfSRV
-          │                                            │
-          │  → basicMSRTV (HDR, MSAA 4x)               │
-          └─────────────────┬──────────────────────────┘
-                            │
-                   ConvertToMSAA
-                            │
-                            ▼
-          ┌───────────────────────────────────────────┐
-          │         Forward Rendering                  │
-          │                                            │
-          │  Mirror World → Water Plane                │
-          │  Fog Filter → Skybox → Cloud               │
-          │                                            │
-          │  → basicMSRTV (HDR, MSAA 4x)               │
-          └─────────────────┬──────────────────────────┘
-                            │
-                   ResolveSubresource
-                   (MSAA → Non-MSAA)
-                            │
-                            ▼
-          ┌───────────────────────────────────────────┐
-          │         Post Effect                        │
-          │                                            │
-          │  [수중] Water Filter                        │
-          │  Bloom Down (4단계) → Bloom Up (4단계)       │
-          │  Combine (HG Phase) + Tone Mapping (1/2.2) │
-          │                                            │
-          │  → backBufferRTV (LDR, 디스플레이)            │
-          └────────────────────────────────────────────┘
+[정적 텍스처 — 초기화 시 1회 로드, 읽기 전용]
+  blockAtlasMapSRV              블록 Albedo 텍스처 아틀라스
+  normalAtlasMapSRV             블록 Normal Map 아틀라스
+  merAtlasMapSRV                블록 MER (Metallic/Emission/Roughness) 아틀라스
+  waterStillAtlasMapSRV         수면 Albedo 아틀라스
+  waterStillNormalAtlasMapSRV   수면 Normal Map 아틀라스
+  grassColorMapSRV              잔디 색상 LUT (기후 기반)
+  foliageColorMapSRV            잎 색상 LUT (기후 기반)
+  waterColorMapSRV              수면 색상 LUT
+  climateMapSRV                 기후 노이즈 텍스처 (온도/습도)
+  brdfSRV                       BRDF LUT (PBR 스페큘러 적분 테이블)
+  sunSRV / moonSRV              태양/달 텍스처 (Skybox 내부 사용)
+
+[동적 버퍼 — 매 프레임 갱신]
+  shadowBuffer      / shadowDSV + shadowSRV
+                    D32_FLOAT   Cascade Shadow Depth  (1024 × 1024 × 3)
+
+  normalEdgeBuffer  / normalEdgeRTV + normalEdgeSRV
+                    R16G16B16A16_FLOAT  G-Buffer 법선(RGB) + Edge Flag(A)  MSAA 4x
+
+  positionBuffer    / positionRTV + positionSRV
+                    R16G16B16A16_FLOAT  G-Buffer 월드 좌표(RGB) + 유효성(A)  MSAA 4x
+
+  albedoBuffer      / albedoRTV + albedoSRV
+                    R16G16B16A16_FLOAT  G-Buffer Base Color  MSAA 4x
+
+  coverageBuffer    / coverageRTV + coverageSRV
+                    R32_UINT            G-Buffer SV_COVERAGE 비트마스크  MSAA 4x
+
+  merBuffer         / merRTV + merSRV
+                    R16G16B16A16_FLOAT  G-Buffer MER  MSAA 4x
+
+  basicDepthBuffer  / basicDSV + basicDepthSRV
+                    D24_UNORM_S8  메인 Depth-Stencil (G-Buffer / Forward 공용)
+
+  deferredDepthBuffer / deferredDSV
+                    D24_UNORM_S8  Deferred Stencil 전용 (Edge 마스크 기록/판독)
+
+  ssaoBuffer        / ssaoRTV + ssaoSRV
+                    R16_FLOAT   SSAO 차폐도
+
+  ssaoBlurBuffer[0] / ssaoBlurRTV[0] + ssaoBlurSRV[0]
+  ssaoBlurBuffer[1] / ssaoBlurRTV[1] + ssaoBlurSRV[1]
+                    R16_FLOAT   SSAO Separable Gaussian Blur 핑퐁 버퍼
+
+  basicBuffer       / basicRTV + basicSRV
+                    R16G16B16A16_FLOAT  Non-MSAA HDR (Deferred Shading 출력 / Bloom 입력)
+
+  basicMSBuffer     / basicMSRTV + basicMSSRV
+                    R16G16B16A16_FLOAT  MSAA 4x HDR (Forward 렌더링 누적)
+
+  copyForwardRenderBuffer / copyForwardSRV
+                    R16G16B16A16_FLOAT  basicMSBuffer 스냅샷 (Fog / Water 읽기용, MSAA 4x)
+
+  mirrorDepthRenderBuffer / mirrorDepthRTV + mirrorDepthSRV
+                    R16G16B16A16_FLOAT  수면 영역 깊이 (Mirror Block 렌더링 마스크용)
+
+  mirrorWorldBuffer / mirrorWorldRTV + mirrorWorldSRV
+                    R16G16B16A16_FLOAT  수면 반사 이미지 (절반 해상도)
+
+  mirrorWorldDepthBuffer / mirrorWorldDSV
+                    D24_UNORM_S8  Mirror 렌더링 Depth-Stencil
+
+  mirrorBlurBuffer[0] / mirrorBlurRTV[0] + mirrorBlurSRV[0]
+  mirrorBlurBuffer[1] / mirrorBlurRTV[1] + mirrorBlurSRV[1]
+                    R16G16B16A16_FLOAT  Mirror Blur 핑퐁 버퍼 (절반 해상도)
+
+  bloomBuffer[0]    / bloomRTV[0] + bloomSRV[0]   원본 해상도  (Bloom 최종 / WaterFilter 임시)
+  bloomBuffer[1]    / bloomRTV[1] + bloomSRV[1]   1/2  해상도
+  bloomBuffer[2]    / bloomRTV[2] + bloomSRV[2]   1/4  해상도
+  bloomBuffer[3]    / bloomRTV[3] + bloomSRV[3]   1/8  해상도
+  bloomBuffer[4]    / bloomRTV[4] + bloomSRV[4]   1/16 해상도
+
+  backBuffer        / backBufferRTV
+                    R8G8B8A8_UNORM  SwapChain 최종 출력
+```
+
+---
+
+### 패스별 버퍼 바인딩
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 0  Shadow Map                                                               │
+│  PSO : basicShadowPSO  / instanceShadowPSO                                      │
+│  GS  : basicShadowGS   / instanceShadowGS  (삼각형 1개 → 3 캐스케이드로 복제)     │
+│  Viewport : shadowViewPorts[3]  (Cascade 0~2, 각 1024 × 1024)                   │
+│  Geo : RenderBasicShadowMap (LowLod)  +  RenderInstance                         │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ blockAtlasMapSRV      ← Instance Alpha Clip 용           │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ DSV  CLEAR + WRITE   │ shadowDSV             → shadowSRV로 이후 참조             │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 1  G-Buffer Fill                                                            │
+│  PSO : basicPSO (Opaque)  / semiAlphaPSO (SemiAlpha)  / instancePSO            │
+│  Viewport : basicViewport                                                        │
+│  Geo : RenderBasic (Opaque + SemiAlpha + Instance)                              │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ blockAtlasMapSRV      ← Albedo                          │
+│ SRV t1               │ normalAtlasMapSRV     ← Normal Map (Tangent Space)      │
+│ SRV t2               │ merAtlasMapSRV        ← Metallic / Emission / Roughness │
+│ SRV t3               │ grassColorMapSRV      ← 기후 기반 잔디 색상 LUT           │
+│ SRV t4               │ foliageColorMapSRV    ← 기후 기반 잎 색상 LUT             │
+│ SRV t5               │ climateMapSRV         ← 온도/습도 노이즈                  │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ normalEdgeRTV         법선(RGB) + Edge Flag(A)  MSAA 4x  │
+│ RTV 1  WRITE         │ positionRTV           월드 좌표(RGB) + 유효성(A)  MSAA 4x │
+│ RTV 2  WRITE         │ albedoRTV             Base Color  MSAA 4x                │
+│ RTV 3  WRITE         │ coverageRTV           SV_COVERAGE 비트마스크  MSAA 4x     │
+│ RTV 4  WRITE         │ merRTV                MER  MSAA 4x                       │
+│ DSV  DEPTH           │ basicDSV                                                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 2  MSAA Edge Masking                                                        │
+│  PSO : edgeMaskingPSO  (stencilMaskDSS, Stencil Write = 1)                     │
+│  Geo : Full-screen Quad                                                          │
+│  목적 : Edge 픽셀을 Stencil = 1로 마킹하여 이후 SSAO / Shading 분기에 사용          │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ normalEdgeSRV         ← Edge Flag 채널 분석              │
+│ SRV t1               │ positionSRV           ← position.w == -1 → 빈 픽셀 제외  │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  (쓰기 없음)    │ basicRTV              ← 바인딩만 (Stencil 기록이 목적)      │
+│ DSV  CLEAR+STENCIL W │ deferredDSV           Edge 픽셀 = 1 기록                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 3  SSAO                                                                     │
+│  PSO : ssaoPSO (Stencil=0, Non-Edge)  / ssaoEdgePSO (Stencil=1, Edge)          │
+│  Geo : Full-screen Quad × 2                                                      │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ CB  0                │ ssaoConstantBuffer       ← 16개 반구 샘플 커널             │
+│ CB  1                │ ssaoNoiseConstantBuffer  ← 4×4 회전 노이즈 벡터           │
+│ SRV t0               │ normalEdgeSRV            ← World Normal                  │
+│ SRV t1               │ positionSRV              ← World Position (깊이 비교)    │
+│ SRV t2               │ coverageSRV              ← MSAA 샘플 가중치              │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ ssaoRTV                  차폐도 (R 채널)                   │
+│ DSV  STENCIL READ    │ deferredDSV              ← Edge / Non-Edge 분기          │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 3-blur  SSAO Separable Gaussian Blur × 2회                                  │
+│  PSO : samplingPSO + blurSsaoPS[0] (수평) / blurSsaoPS[1] (수직)                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  Round 1-H  ssaoSRV        →  ssaoBlurRTV[0]                                    │
+│  Round 1-V  ssaoBlurSRV[0] →  ssaoBlurRTV[1]                                    │
+│  Round 2-H  ssaoBlurSRV[1] →  ssaoBlurRTV[0]                                    │
+│  Round 2-V  ssaoBlurSRV[0] →  ssaoRTV          (최종 덮어쓰기)                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 4  Deferred Shading (PBR)                                                   │
+│  PSO : shadingBasicPSO (Stencil=0)  / shadingBasicEdgePSO (Stencil=1)          │
+│  Geo : Full-screen Quad × 2                                                      │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ normalEdgeSRV    ← World Normal                          │
+│ SRV t1               │ positionSRV      ← World Position                        │
+│ SRV t2               │ albedoSRV        ← Base Color                            │
+│ SRV t3               │ merSRV           ← Metallic / Emission / Roughness       │
+│ SRV t4               │ ssaoSRV          ← AO (pow(ssao, 4.0) 적용)              │
+│ SRV t10              │ brdfSRV          ← BRDF LUT (스페큘러 적분)               │
+│ SRV t11              │ shadowSRV        ← Cascade Shadow Depth                  │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicRTV         HDR Non-MSAA                            │
+│ DSV  STENCIL READ    │ deferredDSV      ← Edge / Non-Edge 분기                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 5  ConvertToMSAA                                                            │
+│  PSO : samplingPSO                                                               │
+│  Geo : Full-screen Quad                                                          │
+│  목적 : Deferred 결과(Non-MSAA basicBuffer)를 Forward 패스용 MSAA 버퍼로 복사      │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ basicSRV         ← Deferred Shading 결과                 │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicMSRTV       MSAA 4x                                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 6  Mirror World  [수면 위 only]                                              │
+│  Viewport : mirrorWorldViewPort (절반 해상도)                                     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  6-①  Mirror Stencil Masking  (mirrorMaskingPSO)                                │
+│        Geo : RenderTransparency (수면 메시로 수면 영역 마킹)                        │
+│        SRV t0  positionSRV         ← 월드 좌표로 수면 위치 판단                    │
+│        RTV 0   mirrorDepthRTV      WRITE (수면 깊이)                              │
+│        DSV     mirrorWorldDSV      STENCIL WRITE (수면 영역 = 1)                  │
+│                                                                                  │
+│  6-②  Mirror Skybox  (skyboxMirrorPSO)                                          │
+│        Geo : Skybox mesh (반전 카메라)                                            │
+│        RTV 0   mirrorWorldRTV      WRITE                                         │
+│        DSV     mirrorWorldDSV      STENCIL READ (수면 영역만 그림)                 │
+│                                                                                  │
+│  6-③  Mirror Cloud  (cloudMirrorPSO)                                             │
+│        Geo : Cloud mesh (mirrorConstantBuffer → 반전 카메라 VP)                  │
+│        RTV 0   mirrorWorldRTV      WRITE                                         │
+│        DSV     mirrorWorldDSV      DEPTH                                         │
+│                                                                                  │
+│  6-④  Mirror Block  (basicMirrorPSO / instanceMirrorPSO)                        │
+│        Geo : RenderMirrorWorld (LowLod + Instance, 반전 카메라)                  │
+│        SRV t0  blockAtlasMapSRV          ← Albedo                               │
+│        SRV t1  normalAtlasMapSRV         ← Normal Map                           │
+│        SRV t2  merAtlasMapSRV            ← MER                                  │
+│        SRV t3  grassColorMapSRV          ← 잔디 색상                             │
+│        SRV t4  foliageColorMapSRV        ← 잎 색상                              │
+│        SRV t5  climateMapSRV             ← 기후 노이즈                            │
+│        SRV t6  mirrorDepthSRV            ← 수면 깊이 (수면 아래 차단)              │
+│        RTV 0   mirrorWorldRTV      WRITE                                         │
+│        DSV     mirrorWorldDSV      DEPTH                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 6-blur  Mirror Blur × 3회                                                   │
+│  PSO : samplingPSO + blurMirrorPS[0] (수평) / blurMirrorPS[1] (수직)             │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  Round 1-H  mirrorWorldSRV   →  mirrorBlurRTV[0]                                │
+│  Round 1-V  mirrorBlurSRV[0] →  mirrorBlurRTV[1]                                │
+│  Round 2-H  mirrorBlurSRV[1] →  mirrorBlurRTV[0]                                │
+│  Round 2-V  mirrorBlurSRV[0] →  mirrorBlurRTV[1]                                │
+│  Round 3-H  mirrorBlurSRV[1] →  mirrorBlurRTV[0]                                │
+│  Round 3-V  mirrorBlurSRV[0] →  mirrorWorldRTV   (최종 덮어쓰기)                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 7  Water Plane  [수면 위 : 마지막 / 수중 : 마지막]                              │
+│  PSO : waterPlanePSO                                                             │
+│  Geo : RenderTransparency (Water 메시)                                           │
+│  사전 : CopyResource(copyForwardRenderBuffer ← basicMSBuffer)                    │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ copyForwardSRV             ← 현재 씬 색상 (굴절 / 흡수용) │
+│ SRV t1               │ mirrorWorldSRV             ← 반사 이미지 (Fresnel 혼합)  │
+│ SRV t2               │ positionSRV                ← 수중 통과 거리 계산          │
+│ SRV t3               │ waterColorMapSRV           ← 수면 색상 LUT               │
+│ SRV t4               │ climateMapSRV              ← 기후 노이즈 (수면 틴팅)       │
+│ SRV t5               │ waterStillAtlasMapSRV      ← 수면 Albedo                 │
+│ SRV t6               │ waterStillNormalAtlasMapSRV ← 수면 Normal Map            │
+│ SRV t11              │ shadowSRV                  ← 수면 그림자                  │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicMSRTV                                                │
+│ DSV  DEPTH           │ basicDSV                                                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 8  Fog Filter                                                                │
+│  PSO : fogFilterPSO                                                              │
+│  Geo : Full-screen Quad                                                          │
+│  사전 : CopyResource(copyForwardRenderBuffer ← basicMSBuffer)                    │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ CB  0                │ fogFilterConstantBuffer  ← distMin / distMax / strength  │
+│ SRV t0               │ copyForwardSRV           ← 현재 씬 색상                  │
+│ SRV t1               │ basicDepthSRV            ← Depth (카메라 거리 계산)       │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicMSRTV                                                │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 9  Skybox                                                                    │
+│  PSO : skyboxPSO                                                                 │
+│  Geo : Skybox mesh  (SkyboxVS / SkyboxPS 내부에서 sunSRV / moonSRV 사용)         │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicMSRTV                                                │
+│ DSV  DEPTH           │ basicDSV                  ← Far plane 활용                │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 10  Cloud                                                                    │
+│  PSO : cloudPSO                                                                  │
+│  Geo : Cloud mesh                                                                │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicMSRTV                                                │
+│ DSV  DEPTH           │ basicDSV                                                  │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 11  Resolve MSAA                                                             │
+│  API : ResolveSubresource                                                        │
+│  목적 : MSAA 4x Forward 누적 결과를 Non-MSAA로 변환하여 Post Effect 입력 준비       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  basicMSBuffer  (MSAA 4x)  →  basicBuffer  (Non-MSAA)                           │
+│  이후 basicSRV / basicRTV 로 접근                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 12  Water Filter  [수중 only]                                                │
+│  PSO : waterFilterPSO                                                            │
+│  Geo : Full-screen Quad                                                          │
+│  사전 : CopyResource(bloomBuffer[0] ← basicBuffer)  ← 덮어쓰기 전 스냅샷          │
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ CB  0                │ waterFilterConstantBuffer  ← filterColor / filterStrength │
+│ SRV t0               │ bloomSRV[0]               ← basicBuffer 스냅샷            │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ basicRTV                  결과를 basicBuffer에 덮어씀      │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 13  Bloom Down  (4단계, 13-tap 가중 필터)                                    │
+│  PSO : bloomDownPSO                                                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  Down 0  basicSRV    → bloomRTV[1]   (1/2  해상도)                               │
+│  Down 1  bloomSRV[1] → bloomRTV[2]   (1/4  해상도)                               │
+│  Down 2  bloomSRV[2] → bloomRTV[3]   (1/8  해상도)                               │
+│  Down 3  bloomSRV[3] → bloomRTV[4]   (1/16 해상도)                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 14  Bloom Up  (4단계, 3×3 텐트 필터 + 하드웨어 Bilinear)                      │
+│  PSO : bloomUpPSO                                                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  Up 3  bloomSRV[4] → bloomRTV[3]   (1/8  해상도)                                 │
+│  Up 2  bloomSRV[3] → bloomRTV[2]   (1/4  해상도)                                 │
+│  Up 1  bloomSRV[2] → bloomRTV[1]   (1/2  해상도)                                 │
+│  Up 0  bloomSRV[1] → bloomRTV[0]   (원본 해상도, 최종 bloom 결과)                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ PASS 15  Combine Bloom + Tone Mapping                                             │
+│  PSO : combineBloomPSO                                                           │
+│  Geo : Full-screen Quad                                                          │
+│  HG Phase Function으로 태양 방향 Bloom 보너스 → lerp → Linear Tone Map → pow(1/2.2)│
+├──────────────────────┬──────────────────────────────────────────────────────────┤
+│ SRV t0               │ basicSRV      ← HDR 씬 색상                               │
+│ SRV t1               │ bloomSRV[0]   ← Bloom 결과 (원본 해상도)                   │
+├──────────────────────┼──────────────────────────────────────────────────────────┤
+│ RTV 0  WRITE         │ backBufferRTV ← LDR 최종 출력 → SwapChain Present         │
+└──────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 버퍼 라이프사이클
+
+```
+버퍼                           WRITE 패스                    READ 패스 (SRV 슬롯)
+───────────────────────────────────────────────────────────────────────────────────
+shadowDSV / shadowSRV          P0  Shadow Map                P4  Deferred Shading   (t11)
+                                                             P7  Water Plane        (t11)
+
+normalEdgeBuffer               P1  G-Buffer Fill             P2  Edge Masking       (t0)
+  normalEdgeSRV                                              P3  SSAO               (t0)
+                                                             P4  Deferred Shading   (t0)
+
+positionBuffer                 P1  G-Buffer Fill             P2  Edge Masking       (t1)
+  positionSRV                                                P3  SSAO               (t1)
+                                                             P4  Deferred Shading   (t1)
+                                                             P6-① Mirror Stencil   (t0)
+                                                             P7  Water Plane        (t2)
+
+albedoBuffer                   P1  G-Buffer Fill             P4  Deferred Shading   (t2)
+  albedoSRV
+
+coverageBuffer                 P1  G-Buffer Fill             P3  SSAO               (t2)
+  coverageSRV
+
+merBuffer                      P1  G-Buffer Fill             P4  Deferred Shading   (t3)
+  merSRV
+
+basicDepthBuffer               P1  G-Buffer Fill             P8  Fog Filter         (t1)
+  basicDepthSRV                (DSV로 Depth 기록)
+
+deferredDepthBuffer            P2  Edge Masking (Stencil W)  P3  SSAO    (Stencil R)
+  deferredDSV                                                P4  Deferred Shading   (Stencil R)
+
+ssaoBuffer                     P3  SSAO                      P4  Deferred Shading   (t4)
+  ssaoSRV                      P3b SSAO Blur (최종 출력)
+
+ssaoBlurBuffer[0/1]            P3b SSAO Blur 핑퐁             P3b SSAO Blur 핑퐁
+  ssaoBlurSRV[0/1]
+
+basicBuffer                    P4  Deferred Shading          P5  ConvertToMSAA      (t0)
+  basicSRV / basicRTV          P11 Resolve (MSAA → Non-MSAA) P13 Bloom Down        (t0)
+                               P12 Water Filter (수중, 덮어씀) P15 Combine           (t0)
+
+basicMSBuffer                  P5  ConvertToMSAA             P11 Resolve → basicBuffer
+  basicMSRTV                   P7  Water Plane               (CopyResource 전에
+                               P8  Fog Filter                 copyForwardRenderBuffer로
+                               P9  Skybox                     스냅샷 후 사용됨)
+                               P10 Cloud
+
+copyForwardRenderBuffer        CopyResource ← basicMSBuffer   P7  Water Plane       (t0)
+  copyForwardSRV               (P7 직전, P8 직전에 각 1회)      P8  Fog Filter        (t0)
+
+mirrorDepthRenderBuffer        P6-① Mirror Stencil            P6-④ Mirror Block     (t6)
+  mirrorDepthSRV
+
+mirrorWorldBuffer              P6-②③④ Mirror 렌더링           P7  Water Plane        (t1)
+  mirrorWorldSRV               P6b Mirror Blur (최종 덮어씀)
+
+mirrorBlurBuffer[0/1]          P6b Mirror Blur 핑퐁            P6b Mirror Blur 핑퐁
+  mirrorBlurSRV[0/1]
+
+bloomBuffer[0]                 P12 Water Filter 임시 스냅샷    P12 Water Filter       (t0)
+  bloomSRV[0] / bloomRTV[0]    P14 Bloom Up 최종 출력          P15 Combine           (t1)
+
+bloomBuffer[1~4]               P13 Bloom Down / P14 Bloom Up   P13 Bloom Down / P14 Bloom Up
+  bloomSRV[1~4] / bloomRTV[1~4]
+
+backBuffer                     P15 Combine + Tone Mapping      SwapChain::Present
+  backBufferRTV
 ```
 
 ## CPU 파이프라인 — 청크가 렌더링되기까지
