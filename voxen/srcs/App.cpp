@@ -518,7 +518,7 @@ void App::MaskMSAAEdge()
 		Graphics::deferredDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	Graphics::context->OMSetRenderTargets(
-		1, Graphics::basicRTV.GetAddressOf(), Graphics::deferredDSV.Get());
+		0, nullptr, Graphics::deferredDSV.Get());
 
 	std::vector<ID3D11ShaderResourceView*> ppSRVs;
 	ppSRVs.push_back(Graphics::normalEdgeSRV.Get());
