@@ -634,7 +634,7 @@ void App::RenderMirrorWorld()
 	{
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::mirrorDepthRTV.GetAddressOf(), Graphics::mirrorWorldDSV.Get());
-		Graphics::context->PSSetShaderResources(0, 1, Graphics::positionSRV.GetAddressOf());
+		Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
 		Graphics::SetPipelineStates(Graphics::mirrorMaskingPSO);
 		ChunkManager::GetInstance()->RenderTransparency();
 	}
