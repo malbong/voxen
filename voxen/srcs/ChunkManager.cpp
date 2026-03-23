@@ -9,10 +9,9 @@
 #include <iostream>
 #include <algorithm>
 
-ChunkManager* ChunkManager::chunkManager = nullptr;
-
 ChunkManager* ChunkManager::GetInstance()
 {
+	static ChunkManager* chunkManager = nullptr;
 	if (chunkManager == nullptr) {
 		chunkManager = new ChunkManager();
 	}

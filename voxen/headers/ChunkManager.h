@@ -65,7 +65,6 @@ public:
 	
 
 private:
-	static ChunkManager* chunkManager;
 
 	ChunkManager();
 	~ChunkManager();
