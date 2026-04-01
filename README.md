@@ -61,7 +61,7 @@ App::Render()
 
 ### 버퍼 흐름 도식화
 
-<img width="1996" height="1154" alt="Image" src="https://github.com/user-attachments/assets/54e1cf0c-7067-4b76-bec1-c9c960c83e85" />
+<img width="1982" height="1145" alt="Image" src="https://github.com/user-attachments/assets/1266bcda-bf79-40ef-bfce-e9af3ce52a32" />
 
 ### CPU Chunk Update 도식화
 
