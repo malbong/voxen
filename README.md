@@ -59,7 +59,11 @@ App::Render()
 └── 6. UI (Biome Map)
 ```
 
-### 버퍼 흐름도
+### 버퍼 도식화
+
+<img width="731" height="1138" alt="Image" src="https://github.com/user-attachments/assets/c7852698-18c6-43a1-8fd2-b1ea74168ce3" />
+
+### 버퍼 전체 흐름도 (상세)
 
 <img width="1982" height="1145" alt="Image" src="https://github.com/user-attachments/assets/1266bcda-bf79-40ef-bfce-e9af3ce52a32" />
 
