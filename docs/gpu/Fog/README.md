@@ -1,6 +1,10 @@
-# Fog Rendering
+# Fog Filter
 
 <img width="1910" height="1054" alt="Image" src="https://github.com/user-attachments/assets/c132fdf8-faa1-470e-9af1-9f82172c2be4" />
+
+<img width="1916" height="1070" alt="Image" src="https://github.com/user-attachments/assets/8b2713e5-9a6c-4829-a735-e6e8135c69da" />
+
+<img width="1917" height="1080" alt="Image" src="https://github.com/user-attachments/assets/4417bd89-f3a8-4204-b93e-e2968680cb51" />
 
 ## 1. 개요
 
