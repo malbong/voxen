@@ -192,7 +192,7 @@ LOD 전환 거리(260)부터 안개가 시작되어 최대 렌더 거리(320)에
 
 duration은 `m_waterAdaptationTime / m_waterMaxDuration`으로 0→1 범위를 갖는다. 입수 시 0에서 시작하여 2.5초에 걸쳐 1.0에 도달하며, 수면 위로 나오면 즉시 0으로 리셋된다.
 
-## 6. 회고
+## 5. 회고
 
 - DepthBuffer와 Render결과를 이용한 간단한 Fog
 - Beer-Lambert를 활용한 Fog로 결과적으로는 만족함
