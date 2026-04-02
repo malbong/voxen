@@ -33,10 +33,10 @@ float getFogFactor(float3 pos)
     //Beer-Lambert law
     float dist = length(pos.xyz);
         
-    float distFog = saturate((dist - fogDistMin) / (fogDistMax - fogDistMin));
-    float fogFactor = exp(-fogStrength * distFog);
+    float distFactor = saturate((dist - fogDistMin) / (fogDistMax - fogDistMin));
+    float beerLambert = exp(-fogStrength * distFactor);
     
-    return fogFactor;
+    return 1.0 - beerLambert;
 } 
 
 float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
@@ -49,7 +49,7 @@ float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
     
     float fogFactor = getFogFactor(viewPos);
     
-    float3 blendColor = lerp(fogColor, renderColor, fogFactor);
+    float3 blendColor = lerp(renderColor, fogColor, fogFactor);
     
     return float4(blendColor, 1.0);
 }
