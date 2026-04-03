@@ -148,11 +148,11 @@ bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 o
 
 이 변환은 3단계로 진행된다:
 
-1. 3차원 방향 벡터를 천체의 방향에 맞춰 내적 후 크기 결정
+1. **3차원 방향 벡터를 천체의 방향에 맞춰 내적 후 크기 결정**
 
 ![Image](https://github.com/user-attachments/assets/9c4b9cbd-47b6-49ef-8b81-713543a1a577)
 
-2. 천체 내외부 판단 후 TBN 좌표로 변환
+2. **천체 내외부 판단 후 TBN 좌표로 변환**
 
 - 단순히 각도와 투영된 벡터의 길이를 기준으로 내외부 판단
 - 현재 투영된 좌표(`p`)는 월드 좌표
@@ -175,7 +175,7 @@ if (PDotP > 0.0 && length(p) < size)
     }
 ```
 
-3. TBN 좌표를 적절히 텍스쳐 좌표로 변환
+3. **TBN 좌표를 적절히 텍스쳐 좌표로 변환**
 
 - `vTBN.xy`의 범위가 `[-size, size]`이기에 텍스쳐 좌표`[0, 1]`에 맞게 적절히 스케일링
 - 여기서 y값은 TBN에서 B가 아랫방향이라 부호를 뒤집지 않아도 옳은 방향임
