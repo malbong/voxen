@@ -9,9 +9,9 @@ struct psInput
     float3 posWorld : POSITION;
 };
 
-bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 texcoord)
+bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 outTexcoord)
 {
-    texcoord = float2(0.0, 0.0);
+    outTexcoord = float2(0.0, 0.0);
     bool ret = false;
     
     float PDotP = dot(planetDir, posDir);
@@ -29,8 +29,8 @@ bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 t
         // 월드좌표 * 월드좌표기준정의된TBN직교행렬의역행렬 -> TBN좌표
         float3 vTBN = mul(p, transpose(TBNMatrix)); // 직교 행렬의 역행렬은 전치행렬
         
-        texcoord.x = 0.5 + vTBN.x * (0.5 / size);
-        texcoord.y = 0.5 + vTBN.y * (0.5 / size);
+        outTexcoord.x = (vTBN.x / size + 1.0) * 0.5; // vTBN.x => [-size, size]
+        outTexcoord.y = (vTBN.y / size + 1.0) * 0.5; // vTBN.x => [-size, size]
         ret = true;
     }
     
@@ -69,7 +69,6 @@ float4 main(psInput input) : SV_TARGET
         uint row = 2;
         
         uint index = days % 8; // 0 ~ 7
-
         uint2 indexUV = uint2(index % col, index / col); // [0,0]~[3,1]
         
         moonTexcoord += indexUV; // moonTexcoord : [0,0]~[4,2] 
@@ -87,7 +86,6 @@ float4 main(psInput input) : SV_TARGET
     float sunDirWeight = 0.0;
     if (sunAltitude > showSectionAltitude)
         sunDirWeight = max(dot(lightDir, eyeDir), 0.0);
-    float posAltitude = posDir.y;
    
     float3 horizonColor = lerp(normalHorizonColor, sunHorizonColor, sunDirWeight);
     float3 zenithColor = lerp(normalZenithColor, sunZenithColor, sunDirWeight);
@@ -96,7 +94,8 @@ float4 main(psInput input) : SV_TARGET
     // 최대한 구별된 색 선택하도록 결정
     float3 mixColor = (horizonColor + zenithColor) * 0.5;
     float horizonAltitude = sin(PI / 24.0);
-    
+    float posAltitude = posDir.y;
+
     if (posAltitude <= horizonAltitude)
         retColor += lerp(horizonColor, mixColor, pow((posAltitude + 1.0) / (1.0 + horizonAltitude), 15.0));
     else
