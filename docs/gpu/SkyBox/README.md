@@ -1,8 +1,8 @@
 # Dynamic Skybox — 셰이더 기반 절차적 하늘 렌더링
 
-<img width="1916" height="1100" alt="Image" src="https://github.com/user-attachments/assets/766a6919-d729-4296-9f77-575a359d18d5" />
-<img width="1915" height="1104" alt="Image" src="https://github.com/user-attachments/assets/6703c1dd-1501-4ca8-ac60-5788c59d849f" />
-<img width="1913" height="1105" alt="Image" src="https://github.com/user-attachments/assets/343f50d8-43be-4317-b774-802be186387f" />
+<img width="800" height="459" alt="Image" src="https://github.com/user-attachments/assets/766a6919-d729-4296-9f77-575a359d18d5" />
+<img width="800" height="459" alt="Image" src="https://github.com/user-attachments/assets/6703c1dd-1501-4ca8-ac60-5788c59d849f" />
+<img width="800" height="459" alt="Image" src="https://github.com/user-attachments/assets/343f50d8-43be-4317-b774-802be186387f" />
 
 ## 1. 개요
 
