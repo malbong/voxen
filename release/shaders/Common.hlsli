@@ -160,15 +160,17 @@ float schlickGGX(float NdotI, float NdotO, float roughness)
 
 float3 getAmbientColor()
 {
-    float sunAniso = max(dot(lightDir, eyeDir), 0.0);
-    float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
-    
     float3 ambientColor = float3(1.0, 1.0, 1.0);
+    
     float sunAltitude = lightDir.y;
     float dayAltitude = sin(PI / 24.0);
-    float maxHorizonColorAltitude = -sin(PI / 24.0);
     if (sunAltitude <= dayAltitude)
     {
+        float maxHorizonColorAltitude = -sin(PI / 24.0);
+        
+        float sunAniso = max(dot(lightDir, eyeDir), 0.0);
+        float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
+        
         float w = smoothstep(maxHorizonColorAltitude, dayAltitude, sunAltitude);
         ambientColor = lerp(eyeHorizonColor, ambientColor, w);
     }
