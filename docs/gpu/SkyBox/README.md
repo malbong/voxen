@@ -248,6 +248,10 @@ else
 
 `getAmbientColor()`는 Skybox와 동일한 상수(b9)를 사용하여 씬의 간접 조명 색상을 결정한다.
 
+- `dayAltitude`보다 높은 경우 단순히 백색을 간접광을 사용
+- `dayAltitude`보다 낮은 경우 수평색(HorizonColor)에 맞는 색으로 결정함
+  - 임의로 정한 `maxHorizonColorAltitude`보다 낮은 경우 눈으로 보는 HorizonColor로 치환됨
+
 ```hlsl
 float3 getAmbientColor()
 {
@@ -270,11 +274,9 @@ float3 getAmbientColor()
 }
 ```
 
-이 함수가 하는 일:
-
 1. **카메라가 바라보는 방향에 따라** Horizon 색상을 Normal/Sun으로 보간한다 (`sunAniso`). 태양을 바라보면 태양빛 색조가, 반대면 일반 하늘 색조가 간접 조명에 반영된다
 
-2. **태양 고도에 따라** 간접 조명을 어둡게 한다. 태양이 `dayAltitude`(π/12 ≈ 15°) 이상이면 완전한 백색(1, 1, 1)이지만, 수평선(`-π/24`) 이하로 내려가면 Horizon 색으로 치환된다. `smoothstep`으로 부드럽게 전환된다
+2. **태양 고도에 따라** 간접 조명을 어둡게 한다. 태양이 `dayAltitude`(π/12 ≈ 15°) 이상이면 완전한 백색(1, 1, 1)이지만, 수평선(`-π/24`) 이하로 내려가면 Horizon 색으로 치환.
 
 이 ambient 색상은 `getDiffuseTerm()`과 `getSpecularTerm()`에서 IBL 근사 조명으로 사용되므로, **하늘 색이 바뀌면 씬 전체의 조명 톤이 함께 바뀐다**. 석양 때 세상이 붉게 물들고, 밤에는 어두운 청색조를 띄는 것이 이 구조에서 자연스럽게 나온다.
 
