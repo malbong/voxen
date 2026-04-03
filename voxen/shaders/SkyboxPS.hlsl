@@ -39,14 +39,14 @@ bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 t
 
 float4 main(psInput input) : SV_TARGET
 {
-    float3 color = float3(0.0, 0.0, 0.0);
+    float3 retColor = float3(0.0, 0.0, 0.0);
     float3 posDir = normalize(input.posWorld);
 #ifdef USE_MIRROR
     posDir.y *= -1;
 #endif
     
     float sunAltitude = lightDir.y;
-    float showSectionAltitude = -PI * 0.5 * (1.7 / 6.0);
+    float showSectionAltitude = -sin(PI * 0.25);
     
     // sun
     float sunSize = lerp(0.25, 0.6, pow(max(dot(lightDir, eyeDir), 0.0), 3.0));
@@ -54,9 +54,9 @@ float4 main(psInput input) : SV_TARGET
     if (sunAltitude > showSectionAltitude && getPlanetTexcoord(posDir, lightDir, sunSize, sunTexcoord))
     {
 #ifdef USE_MIRROR
-        color += sunTexture.SampleLevel(linearClampSS, sunTexcoord, 0.0).rgb * radianceWeight;
+        retColor += sunTexture.SampleLevel(linearClampSS, sunTexcoord, 0.0).rgb * radianceWeight;
 #else
-        color += sunTexture.SampleLevel(pointWrapSS, sunTexcoord, 0.0).rgb * radianceWeight;
+        retColor += sunTexture.SampleLevel(pointWrapSS, sunTexcoord, 0.0).rgb * radianceWeight;
 #endif
     }
     
@@ -77,9 +77,9 @@ float4 main(psInput input) : SV_TARGET
         
         float moonRadianceWeight = (maxRadianceWeight - radianceWeight) / maxRadianceWeight;
 #ifdef USE_MIRROR
-        color += moonTexture.SampleLevel(linearClampSS, moonTexcoord, 0.0).rgb * moonRadianceWeight;
+        retColor += moonTexture.SampleLevel(linearClampSS, moonTexcoord, 0.0).rgb * moonRadianceWeight;
 #else
-        color += moonTexture.SampleLevel(pointWrapSS, moonTexcoord, 0.0).rgb * moonRadianceWeight;
+        retColor += moonTexture.SampleLevel(pointWrapSS, moonTexcoord, 0.0).rgb * moonRadianceWeight;
 #endif
     }
     
@@ -87,7 +87,7 @@ float4 main(psInput input) : SV_TARGET
     float sunDirWeight = 0.0;
     if (sunAltitude > showSectionAltitude)
         sunDirWeight = max(dot(lightDir, eyeDir), 0.0);
-    float posAltitude = sin(posDir.y);
+    float posAltitude = posDir.y;
    
     float3 horizonColor = lerp(normalHorizonColor, sunHorizonColor, sunDirWeight);
     float3 zenithColor = lerp(normalZenithColor, sunZenithColor, sunDirWeight);
@@ -95,14 +95,14 @@ float4 main(psInput input) : SV_TARGET
     // zenith와 horizon 구별 고도 고려
     // 최대한 구별된 색 선택하도록 결정
     float3 mixColor = (horizonColor + zenithColor) * 0.5;
-    float horizonAltitude = PI / 24.0;
+    float horizonAltitude = sin(PI / 24.0);
     
     if (posAltitude <= horizonAltitude)
-        color += lerp(horizonColor, mixColor, pow((posAltitude + 1.0) / (1.0 + horizonAltitude), 15.0));
+        retColor += lerp(horizonColor, mixColor, pow((posAltitude + 1.0) / (1.0 + horizonAltitude), 15.0));
     else
-        color += lerp(mixColor, zenithColor, pow((posAltitude - horizonAltitude) / (1.0 - horizonAltitude), 0.5));
+        retColor += lerp(mixColor, zenithColor, pow((posAltitude - horizonAltitude) / (1.0 - horizonAltitude), 0.5));
     
-    return float4(color, 1.0);
+    return float4(retColor, 1.0);
 }
 
 
