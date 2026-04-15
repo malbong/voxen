@@ -79,6 +79,7 @@ bool Camera::Initialize(Vector3 pos)
 void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY)
 {
 	UpdatePosition(keyPressed, dt);
+	UpdateViewDirection(keyPressed, dt);
 	UpdateViewDirection(mouseDeltaX, mouseDeltaY);
 
 	DDAPickingBlock();
@@ -125,7 +126,7 @@ void Camera::UpdatePosition(bool keyPressed[256], float dt)
 	}
 
 	if (m_isOnConstantDirtyFlag) {
-		SetIsUnderWater();
+		CheckUnderWater();
 
 		Vector3 newChunkPos = Utils::CalcOffsetPos(m_eyePos, Chunk::CHUNK_SIZE);
 		if (newChunkPos != m_chunkPos) {
@@ -135,16 +136,8 @@ void Camera::UpdatePosition(bool keyPressed[256], float dt)
 	}
 }
 
-void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
+void Camera::UpdateBasis()
 {
-	if (mouseDeltaX == 0 && mouseDeltaY == 0)
-		return;
-
-	m_isOnConstantDirtyFlag = true;
-
-	m_yaw += mouseDeltaX * m_mouseSensitiveX;
-	m_pitch += mouseDeltaY * m_mouseSensitiveY;
-
 	float thetaHorizontal = DirectX::XM_PI * m_yaw;
 	float thetaVertical = DirectX::XM_PIDIV2 * m_pitch;
 	// using Quaternion not Euler
@@ -163,11 +156,38 @@ void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
 	m_up = Vector3::Transform(basisY, Matrix::CreateFromQuaternion(qPitch));
 }
 
+void Camera::UpdateViewDirection(bool keyPressed[256], float dt) 
+{ 
+	if (!keyPressed[VK_LEFT] && !keyPressed[VK_RIGHT])
+		return;
+
+	m_isOnConstantDirtyFlag = true;
+		
+	int sign = keyPressed[VK_LEFT] ? -1 : 1;
+
+	m_yaw += sign * dt * 0.5f;
+	
+	UpdateBasis();
+}
+
+void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
+{
+	if (mouseDeltaX == 0 && mouseDeltaY == 0)
+		return;
+
+	m_isOnConstantDirtyFlag = true;
+
+	m_yaw += mouseDeltaX * m_mouseSensitiveX;
+	m_pitch += mouseDeltaY * m_mouseSensitiveY;
+
+	UpdateBasis();
+}
+
 void Camera::MoveForward(float dt) { m_eyePos += m_forward * m_speed * dt; }
 
 void Camera::MoveRight(float dt) { m_eyePos += m_right * m_speed * dt; }
 
-void Camera::SetIsUnderWater()
+void Camera::CheckUnderWater()
 {
 	m_isUnderWater = false;
 

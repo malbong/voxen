@@ -46,12 +46,14 @@ public:
 
 private:
 	void UpdatePosition(bool keyPressed[256], float dt);
+	void UpdateBasis();
+	void UpdateViewDirection(bool keyPressed[256], float dt);
 	void UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY);
 
 	void MoveForward(float dt);
 	void MoveRight(float dt);
 
-	void SetIsUnderWater();
+	void CheckUnderWater();
 
 	void DDAPickingBlock();
 
