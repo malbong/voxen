@@ -201,6 +201,10 @@ Blend State 설정으로 얻는 결과
   - Ex) 알파의 평균이 `0.251`이면 `0.5`로 양자화되어 Blending
   - 그 결과 구간이 나뉘어지는 문제 발생 -> 프로젝트 환경에서는 단순히 옵션을 끄고 진행
     <img width="800" height="460" alt="Image" src="https://github.com/user-attachments/assets/4c986217-ebf6-496a-9f4b-e3854043fc37" />
+- 철조망 렌더링 같이 얇은 메쉬의 MSAA 렌더링을 위한 옵션
+  - 맺히지 않는 부분은 Clip → Alpha 0
+  - 맺히는 부분은 그대로 렌더링 → Alpha 1
+  - 평균적으로 서브샘플의 개수에 따라 평균 Alpha값이 양자화되어 섞일 수 있음
 
 ### 4.6 구름 색상 결정 Pixel Shader
 
