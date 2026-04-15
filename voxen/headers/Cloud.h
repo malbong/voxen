@@ -27,8 +27,8 @@ private:
 
 	std::vector<std::vector<bool>> m_map;
 	std::vector<std::vector<bool>> m_dataMap;
-	Vector3 m_mapCenterPosition;
-	Vector3 m_mapDataOffset;
+	Vector3 m_offsetPosition;
+	Vector3 m_worldPosition;
 	float m_speed;
 	float m_height;
 

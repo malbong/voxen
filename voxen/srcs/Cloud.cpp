@@ -6,7 +6,7 @@
 
 #include <algorithm>
 Cloud::Cloud()
-	: m_mapCenterPosition(0.0f, 0.0f, 0.0f), m_mapDataOffset(0.0f, 0.0f, 0.0f), m_speed(10.0f),
+	: m_speed(10.0f), m_offsetPosition(0.0f, 0.0f, 0.0f), m_worldPosition(0.0f, 0.0f, 0.0f),
 	  m_height(192.0f), m_stride(sizeof(CloudVertex)), m_offset(0)
 {
 	m_map.resize(CLOUD_MAP_SIZE);
@@ -22,7 +22,7 @@ Cloud::Cloud()
 	}
 };
 
-Cloud::~Cloud(){};
+Cloud::~Cloud() {};
 
 bool Cloud::Initialize(Vector3 cameraPosition)
 {
@@ -36,9 +36,9 @@ bool Cloud::Initialize(Vector3 cameraPosition)
 		}
 	}
 
-	m_mapCenterPosition = Utils::CalcOffsetPos(cameraPosition, CLOUD_SCALE_SIZE);
-	m_mapCenterPosition.y = 0.0f;
-	m_mapDataOffset = m_mapCenterPosition;
+	m_offsetPosition = Utils::CalcOffsetPos(cameraPosition, CLOUD_SCALE_SIZE);
+	m_offsetPosition.y = 0.0f;
+	m_worldPosition = m_offsetPosition;
 
 	if (!BuildCloud())
 		return false;
@@ -48,39 +48,41 @@ bool Cloud::Initialize(Vector3 cameraPosition)
 
 void Cloud::Update(float dt, Vector3 cameraPosition)
 {
-	m_mapCenterPosition.x -= m_speed * dt;
+	m_worldPosition.x -= m_speed * dt;
 
-	Vector3 newMapCenterPosition = m_mapCenterPosition;
-	Vector3 diffPos = cameraPosition - m_mapCenterPosition;
+	Vector3 newWorldPosition = m_worldPosition;
+	Vector3 diffPos = cameraPosition - m_worldPosition;
+
 	if (diffPos.x > CLOUD_SCALE_SIZE) {
-		newMapCenterPosition.x += CLOUD_SCALE_SIZE;
-		m_mapDataOffset.x += CLOUD_SCALE_SIZE;
+		newWorldPosition.x += CLOUD_SCALE_SIZE;
+		m_offsetPosition.x += CLOUD_SCALE_SIZE;
 	}
 	if (diffPos.z > CLOUD_SCALE_SIZE) {
-		newMapCenterPosition.z += CLOUD_SCALE_SIZE;
-		m_mapDataOffset.z += CLOUD_SCALE_SIZE;
+		newWorldPosition.z += CLOUD_SCALE_SIZE;
+		m_offsetPosition.z += CLOUD_SCALE_SIZE;
 	}
 	if (diffPos.x < 0.0f) {
-		newMapCenterPosition.x -= CLOUD_SCALE_SIZE;
-		m_mapDataOffset.x -= CLOUD_SCALE_SIZE;
+		newWorldPosition.x -= CLOUD_SCALE_SIZE;
+		m_offsetPosition.x -= CLOUD_SCALE_SIZE;
 	}
 	if (diffPos.z < 0.0f) {
-		newMapCenterPosition.z -= CLOUD_SCALE_SIZE;
-		m_mapDataOffset.z -= CLOUD_SCALE_SIZE;
+		newWorldPosition.z -= CLOUD_SCALE_SIZE;
+		m_offsetPosition.z -= CLOUD_SCALE_SIZE;
 	}
 
-	if (newMapCenterPosition != m_mapCenterPosition) {
-		m_mapCenterPosition = newMapCenterPosition;
+	if (newWorldPosition != m_worldPosition) {
+		m_worldPosition = newWorldPosition;
 		BuildCloud();
 	}
 
 	if (m_vertices.empty())
 		return;
 
-	Vector3 worldPosition = m_mapCenterPosition + Vector3(0.0f, m_height, 0.0f);
+	Vector3 worldPosition = m_worldPosition + Vector3(0.0f, m_height, 0.0f);
 	Matrix worldMatrix = Matrix::CreateScale(CLOUD_SCALE_SIZE, 4.0f, CLOUD_SCALE_SIZE) *
-						  Matrix::CreateTranslation(worldPosition);
+						 Matrix::CreateTranslation(worldPosition);
 	m_constantData.world = worldMatrix.Transpose();
+
 	DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
 }
 
@@ -98,14 +100,14 @@ void Cloud::Render()
 
 bool Cloud::BuildCloud()
 {
+	const int HALF_CLOUD_MAP_SIZE = CLOUD_MAP_SIZE / 2;
+	const int GRID_OFFSET_X = (int)m_offsetPosition.x / CLOUD_SCALE_SIZE;
+	const int GRID_OFFSET_Z = (int)m_offsetPosition.z / CLOUD_SCALE_SIZE;
+
 	for (int i = 0; i < CLOUD_MAP_SIZE; ++i) {
 		for (int j = 0; j < CLOUD_MAP_SIZE; ++j) {
-			int x =
-				((int)(m_mapDataOffset.x / CLOUD_SCALE_SIZE) + i - (int)(CLOUD_MAP_SIZE * 0.5f)) %
-				CLOUD_DATA_MAP_SIZE;
-			int z =
-				((int)(m_mapDataOffset.z / CLOUD_SCALE_SIZE) + j - (int)(CLOUD_MAP_SIZE * 0.5f)) %
-				CLOUD_DATA_MAP_SIZE;
+			int x = (GRID_OFFSET_X + i - HALF_CLOUD_MAP_SIZE) % CLOUD_DATA_MAP_SIZE;
+			int z = (GRID_OFFSET_Z + j - HALF_CLOUD_MAP_SIZE) % CLOUD_DATA_MAP_SIZE;
 
 			if (x < 0)
 				x += CLOUD_DATA_MAP_SIZE;
@@ -141,25 +143,31 @@ bool Cloud::BuildCloud()
 	}
 
 	if (!m_vertices.empty()) {
-		m_vertexBuffer.Reset();
-		m_indexBuffer.Reset();
-		m_constantBuffer.Reset();
-		if (!DXUtils::CreateVertexBuffer(m_vertexBuffer, m_vertices)) {
-			std::cout << "failed create vertex buffer in cloud" << std::endl;
+		if (!DXUtils::ResizeBuffer(m_vertexBuffer, m_vertices, D3D11_BIND_VERTEX_BUFFER)) {
+			std::cout << "failed resize vertex buffer in cloud" << std::endl;
+			return false;
+		}
+		if (!DXUtils::UpdateBuffer(m_vertexBuffer, m_vertices)) {
+			std::cout << "failed update vertex buffer in cloud" << std::endl;
 			return false;
 		}
 
-		if (!DXUtils::CreateIndexBuffer(m_indexBuffer, m_indices)) {
-			std::cout << "failed create index buffer in cloud" << std::endl;
+		if (!DXUtils::ResizeBuffer(m_indexBuffer, m_indices, D3D11_BIND_INDEX_BUFFER)) {
+			std::cout << "failed resize index buffer in cloud" << std::endl;
+			return false;
+		}
+		if (!DXUtils::UpdateBuffer(m_indexBuffer, m_indices)) {
+			std::cout << "failed update index buffer in cloud" << std::endl;
 			return false;
 		}
 
-		m_constantData.world = Matrix();
-		m_constantData.cloudScale = CLOUD_SCALE_SIZE * CLOUD_MAP_SIZE * 0.5;
-		m_constantData.volumeColor = Vector3(1.0f, 1.0f, 1.0f);
-		if (!DXUtils::CreateConstantBuffer(m_constantBuffer, m_constantData)) {
-			std::cout << "failed create constant buffer in cloud" << std::endl;
-			return false;
+		if (!m_constantBuffer) {
+			m_constantData.cloudScale = CLOUD_SCALE_SIZE * CLOUD_MAP_SIZE * 0.5;
+			m_constantData.volumeColor = Vector3(1.0f, 1.0f, 1.0f);
+			if (!DXUtils::CreateConstantBuffer(m_constantBuffer, m_constantData)) {
+				std::cout << "failed create constant buffer in cloud" << std::endl;
+				return false;
+			}
 		}
 	}
 
