@@ -49,6 +49,11 @@ dataMap[i][j] = noise1 > 0.2 || noise2 > 0.45
 구름은 카메라에서 멀어질수록 투명해져 자연스럽게 사라진다.
 청크가 렌더링 되는 `maxRenderDistance`에서는 `alpha`를 `0.75`, 그 외의 멀리 있는 구름은 `0.0`에 가깝게 알파값을 조정하여 블랜딩한다.
 
+```
+maxRenderDistance : 청크가 렌더링되는 거리 (320)
+cloudScale: 구름의 최대 거리 (512)
+```
+
 - maxRenderDistance ~ cloudScale 구간에서 alpha가 0.75 → 0으로 감소
 - 최대 불투명도가 0.75로 제한되어 항상 반투명한 느낌을 유지
 
@@ -233,7 +238,14 @@ float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
 **[3단계] 거리(distance) 기반 Horizon Color 블렌딩**
 카메라에서 가까운 구름은 본래 흰색을 유지하고, 먼 구름일수록 2단계에서 결정한 horizon color로 전환된다.
 
+거리 범위
+
 - maxRenderDistance 이내의 거리는 기본색(`volumeColor`)로, 그보다 멀어지면 horizon color로 보간
+
+```
+maxRenderDistance : 청크가 렌더링되는 거리 (320)
+cloudScale: 구름의 최대 거리 (512)
+```
 
 ```hlsl
 float distance = length(input.posWorld.xz - eyePos.xz);
