@@ -3,10 +3,11 @@
 #include "Terrain.h"
 #include "DXUtils.h"
 #include "MeshGenerator.h"
+#include "Date.h"
 
 #include <algorithm>
 Cloud::Cloud()
-	: m_speed(10.0f), m_offsetPosition(0.0f, 0.0f, 0.0f), m_worldPosition(0.0f, 0.0f, 0.0f),
+	: m_speed(8.0f), m_offsetPosition(0.0f, 0.0f, 0.0f), m_worldPosition(0.0f, 0.0f, 0.0f),
 	  m_height(192.0f), m_stride(sizeof(CloudVertex)), m_offset(0)
 {
 	m_map.resize(CLOUD_MAP_SIZE);
@@ -32,7 +33,7 @@ bool Cloud::Initialize(Vector3 cameraPosition)
 				(float)j / CLOUD_DATA_MAP_SIZE, CLOUD_DATA_MAP_SIZE * 0.125f, 3);
 			float noise2 = Utils::PerlinFbm((float)i / CLOUD_DATA_MAP_SIZE,
 				(float)j / CLOUD_DATA_MAP_SIZE, CLOUD_DATA_MAP_SIZE * 0.5f, 1);
-			m_dataMap[i][j] = noise1 > 0.2f || noise2 > 0.45f;
+			m_dataMap[i][j] = noise1 > 0.25f || noise2 > 0.45f;
 		}
 	}
 

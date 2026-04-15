@@ -16,16 +16,15 @@ struct psInput
 
 float4 main(psInput input) : SV_TARGET
 {   
-    // distance 범위 clamp
-    float distance = length(input.posWorld.xz - eyePos.xz);
-    float clampedDistance = clamp(distance, maxRenderDistance, cloudScale);
-    
-    // 거리가 멀면 horizon color 선택 
-    float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clampedDistance);
-    
     // 바라보는 방향에 대한 anisotropy 
     float sunAniso = max(dot(lightDir, eyeDir), 0.0);
     float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
+
+    // 거리가 멀면 horizon color 선택 
+    // distance 범위 clamp
+    float distance = length(input.posWorld.xz - eyePos.xz);
+    float clampedDistance = clamp(distance, maxRenderDistance, cloudScale);
+    float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clampedDistance);
     float albedo = lerp(volumeColor, eyeHorizonColor, horizonWeight);
     
     // ambient lighting
