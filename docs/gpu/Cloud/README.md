@@ -2,11 +2,12 @@
 
 ## 1. 개요
 
-구름은 노이즈 기반 2D 맵에서 복셀 스타일 메시를 생성하고, Forward 렌더링 패스에서 Alpha Blending으로 반투명하게 그리는 시스템이다. 일정 높이(192)에 떠 있는 평면 구름이 바람에 의해 한 방향으로 이동하며, 카메라를 따라 무한하게 펼쳐지는 것처럼 보이도록 타일링 방식으로 맵을 반복 참조한다.
+구름은 노이즈 기반 2D 그리드를 활용하여 복셀 스타일 메시를 생성하고, Forward 렌더링 패스에서 Alpha Blending으로 반투명하게 그리는 시스템이다.
+일정 높이(192)에 떠 있는 구름이 바람에 의해 한 방향으로 이동하며, 카메라를 따라 무한하게 펼쳐지는 것처럼 보이도록 타일링 방식으로 맵을 반복 참조한다.
 
 ## 2. 도입 동기
 
-복셀 월드에서 하늘이 단색이면 공간감이 부족하다. 구름을 추가하면 깊이감과 스케일감을 크게 향상시킬 수 있지만, 볼류메트릭 구름은 레이마칭 비용이 높다. Minecraft 스타일의 플랫 복셀 구름을 채택하여, 최소한의 연산으로 복셀 월드에 어울리는 구름을 구현했다.
+Minecraft 스타일의 플랫 복셀 구름을 채택하여, 최소한의 연산으로 복셀 월드에 어울리는 구름을 구현했다.
 
 ## 3. 핵심 아이디어
 
@@ -14,12 +15,12 @@
 
 구름의 형태를 결정하는 데이터 맵과, 실제로 메시를 생성하는 뷰포트 맵을 분리했다.
 
-| 맵 | 크기 | 역할 |
-|----|------|------|
-| `m_dataMap` | 512 x 512 | Perlin FBM 노이즈로 구름 존재 여부를 미리 계산한 전체 맵 |
-| `m_map` | 64 x 64 | 카메라 주변을 기준으로 dataMap에서 샘플링한 현재 뷰포트 맵 |
+| 맵          | 크기      | 역할                                                       |
+| ----------- | --------- | ---------------------------------------------------------- |
+| `m_dataMap` | 512 x 512 | Perlin FBM 노이즈로 구름 존재 여부를 미리 계산한 전체 맵   |
+| `m_map`     | 64 x 64   | 카메라 주변을 기준으로 dataMap에서 샘플링한 현재 뷰포트 맵 |
 
-dataMap은 초기화 시 한 번만 생성하고, 카메라가 이동하면 m_map만 dataMap에서 다시 샘플링하여 메시를 재생성한다. dataMap은 모듈러 인덱싱으로 참조하므로 맵 경계를 넘어도 자연스럽게 타일링된다.
+`m_dataMap`은 초기화 시 한 번만 생성하고, 카메라가 이동하면 `m_map`만 `m_dataMap`에서 다시 샘플링하여 메시를 재생성한다.
 
 ### 3.2 노이즈 기반 형태 생성
 
@@ -35,18 +36,25 @@ dataMap[i][j] = noise1 > 0.2 || noise2 > 0.45
 - noise2: 높은 주파수(256), 1옥타브로 흩어진 작은 구름 조각 생성
 - OR 조합으로 두 패턴을 합쳐 다양한 크기의 구름 형태를 만듦
 
+<img width="640" height="640" alt="Image" src="https://github.com/user-attachments/assets/00037e00-e422-4e13-8dd0-62c900f66c65" />
+
 ### 3.3 거리 기반 투명도 페이드아웃
 
-구름은 카메라에서 멀어질수록 투명해져 자연스럽게 사라진다. 이를 통해 구름 메시의 하드 엣지가 보이지 않는다.
-
-```
-distance = length(posWorld.xz - eyePos.xz)
-alphaWeight = smoothstep(maxRenderDistance, cloudScale, distance)
-alpha = (1.0 - alphaWeight) * 0.75
-```
+구름은 카메라에서 멀어질수록 투명해져 자연스럽게 사라진다.
+청크가 렌더링 되는 `maxRenderDistance`에서는 `alpha`를 `0.75`, 그 외의 멀리 있는 구름은 `0.0`에 가깝게 알파값을 조정하여 블랜딩한다.
 
 - maxRenderDistance ~ cloudScale 구간에서 alpha가 0.75 → 0으로 감소
 - 최대 불투명도가 0.75로 제한되어 항상 반투명한 느낌을 유지
+
+```
+// distance 범위 clamp
+float distance = length(input.posWorld.xz - eyePos.xz);
+float clampedDistance = clamp(distance, maxRenderDistance, cloudScale);
+
+// distance alpha
+float alphaWeight = 1.0 - smoothstep(maxRenderDistance, cloudScale, clampedDistance);
+float alpha = alphaWeight * 0.75; // [0, 0.75]
+```
 
 ## 4. 구현 내용
 
@@ -64,10 +72,10 @@ m_map[64][64] 순회:
 
 **CloudVertex 구조:**
 
-| 필드 | 타입 | 용도 |
-|------|------|------|
-| `position` | Vector3 | 로컬 공간 꼭짓점 좌표 (0~1 단위 큐브) |
-| `face` | uint8_t | 면 방향 인덱스 (0~5: -X, +X, -Y, +Y, -Z, +Z) |
+| 필드       | 타입    | 용도                                         |
+| ---------- | ------- | -------------------------------------------- |
+| `position` | Vector3 | 로컬 공간 꼭짓점 좌표 (0~1 단위 큐브)        |
+| `face`     | uint8_t | 면 방향 인덱스 (0~5: -X, +X, -Y, +Y, -Z, +Z) |
 
 메시의 각 셀은 1x1x1 단위이며, World Matrix의 Scale로 실제 크기(16x4x16)로 변환된다.
 
@@ -78,23 +86,25 @@ Matrix worldMatrix = Matrix::CreateScale(CLOUD_SCALE_SIZE, 4.0f, CLOUD_SCALE_SIZ
                    * Matrix::CreateTranslation(worldPosition);
 ```
 
-| 상수 | 값 | 의미 |
-|------|-----|------|
-| `CLOUD_SCALE_SIZE` | 16 | 셀 하나의 월드 XZ 크기 (16블록) |
-| Y 스케일 | 4.0 | 구름의 높이 (4블록) |
-| `m_height` | 192.0 | 구름 높이 (y=192 위치에 배치) |
-| `CLOUD_MAP_SIZE` | 64 | 뷰포트 맵 크기 → 실제 범위 = 64 * 16 = 1024블록 |
+| 상수               | 값    | 의미                                             |
+| ------------------ | ----- | ------------------------------------------------ |
+| `CLOUD_SCALE_SIZE` | 16    | 셀 하나의 월드 XZ 크기 (16블록)                  |
+| Y 스케일           | 4.0   | 구름의 높이 (4블록)                              |
+| `m_height`         | 192.0 | 구름 높이 (y=192 위치에 배치)                    |
+| `CLOUD_MAP_SIZE`   | 64    | 뷰포트 맵 크기 → 실제 범위 = 64 \* 16 = 1024블록 |
 
 ### 4.3 이동과 카메라 추적
 
 구름은 두 가지 움직임을 가진다:
 
 **바람에 의한 이동:**
+
 ```cpp
 m_mapCenterPosition.x -= m_speed * dt;  // 초당 10블록 속도로 -X 방향 이동
 ```
 
 **카메라 추적:**
+
 ```
 카메라와 맵 중심의 차이(diffPos) 계산
 ├─ diffPos.x > CLOUD_SCALE_SIZE  → 맵 중심을 +X로 한 칸 이동
@@ -189,10 +199,10 @@ float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
 
 하늘과 맞닿는 구름 가장자리에 어떤 색을 입힐지를 시선 방향과 태양 방향의 관계로 결정한다. `lightDir`과 `eyeDir`의 내적은 플레이어가 태양 쪽을 바라보는 정도를 나타내며, 이 값에 따라 두 가지 horizon color를 보간한다.
 
-| 조건 | sunAniso | 결과 |
-|------|----------|------|
+| 조건                       | sunAniso   | 결과                             |
+| -------------------------- | ---------- | -------------------------------- |
 | 태양 반대 방향을 바라볼 때 | 0에 가까움 | `normalHorizonColor` (차가운 톤) |
-| 태양 방향을 바라볼 때 | 1에 가까움 | `sunHorizonColor` (따뜻한 톤) |
+| 태양 방향을 바라볼 때      | 1에 가까움 | `sunHorizonColor` (따뜻한 톤)    |
 
 이 방향별 색상 차이가 구름에 시간대(일출/일몰)와 방향에 따른 색감 변화를 부여한다.
 
@@ -204,7 +214,7 @@ float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clamp(distance, 
 albedo = lerp(albedo, eyeHorizonColor, horizonWeight);
 ```
 
-카메라에서 가까운 구름은 본래 흰색을 유지하고, 먼 구름일수록 2단계에서 결정한 horizon color로 전환된다. `smoothstep`으로 `maxRenderDistance`부터 `cloudScale`(= 64 * 16 * 0.5 = 512) 구간에서 부드럽게 보간한다.
+카메라에서 가까운 구름은 본래 흰색을 유지하고, 먼 구름일수록 2단계에서 결정한 horizon color로 전환된다. `smoothstep`으로 `maxRenderDistance`부터 `cloudScale`(= 64 _ 16 _ 0.5 = 512) 구간에서 부드럽게 보간한다.
 
 ```
 가까운 구름 ─── maxRenderDistance ─────── cloudScale ─── 먼 구름
@@ -223,11 +233,11 @@ float3 directLighting  = getDirectLighting(normal, position, albedo, 0.0, 0.75, 
 
 3단계까지 결정된 albedo에 PBR 조명을 적용하여 최종 RGB를 산출한다.
 
-| 파라미터 | 값 | 의미 |
-|----------|-----|------|
-| AO | 1.0 | 차폐 없음 (구름은 평면이므로 주변 차폐가 의미 없음) |
-| metallic | 0.0 | 비금속 - 구름은 빛을 반사하지 않고 산란시킴 |
-| roughness | 0.75 | 높은 거칠기 - 확산 반사 위주의 부드러운 외관 |
+| 파라미터  | 값    | 의미                                                                         |
+| --------- | ----- | ---------------------------------------------------------------------------- |
+| AO        | 1.0   | 차폐 없음 (구름은 평면이므로 주변 차폐가 의미 없음)                          |
+| metallic  | 0.0   | 비금속 - 구름은 빛을 반사하지 않고 산란시킴                                  |
+| roughness | 0.75  | 높은 거칠기 - 확산 반사 위주의 부드러운 외관                                 |
 | useShadow | false | 그림자 미수신 - 구름은 월드보다 높이 있어 다른 오브젝트의 그림자를 받지 않음 |
 
 노멀은 텍스처 없이 면 방향(face)으로 결정되므로, 면마다 균일한 조명이 적용된다. 윗면(+Y)은 태양빛을 직접 받아 밝고, 아랫면(-Y)은 어두워져 자연스러운 명암 대비가 생긴다.
@@ -245,11 +255,11 @@ float alphaWeight = smoothstep(maxRenderDistance, cloudScale, clamp(distance, ma
 float alpha = (1.0 - alphaWeight) * 0.75;
 ```
 
-| 거리 구간 | alphaWeight | alpha | 의미 |
-|-----------|-------------|-------|------|
-| distance ≤ maxRenderDistance | 0.0 | 0.75 | 가장 불투명 (최대 75%) |
-| maxRenderDistance < distance < cloudScale | 0.0 ~ 1.0 | 0.75 ~ 0.0 | 서서히 투명해짐 |
-| distance ≥ cloudScale | 1.0 | 0.0 | 완전 투명 |
+| 거리 구간                                 | alphaWeight | alpha      | 의미                   |
+| ----------------------------------------- | ----------- | ---------- | ---------------------- |
+| distance ≤ maxRenderDistance              | 0.0         | 0.75       | 가장 불투명 (최대 75%) |
+| maxRenderDistance < distance < cloudScale | 0.0 ~ 1.0   | 0.75 ~ 0.0 | 서서히 투명해짐        |
+| distance ≥ cloudScale                     | 1.0         | 0.0        | 완전 투명              |
 
 최대 alpha를 0.75로 제한한 이유는 구름이 완전 불투명하면 하늘을 가려 답답한 느낌을 주기 때문이다. 75% 불투명도는 구름 뒤로 하늘이 살짝 비치면서도 구름의 존재감을 충분히 유지하는 균형점이다.
 
@@ -260,13 +270,14 @@ Output.RGB = Src.RGB * Src.A  +  Dest.RGB * (1 - Src.A)
 Output.A   = Src.A  * 1      +  Dest.A   * 1
 ```
 
-| 설정 | 값 | 역할 |
-|------|-----|------|
-| SrcBlend | `SRC_ALPHA` | 구름 색상에 자신의 alpha를 곱함 |
+| 설정      | 값              | 역할                                     |
+| --------- | --------------- | ---------------------------------------- |
+| SrcBlend  | `SRC_ALPHA`     | 구름 색상에 자신의 alpha를 곱함          |
 | DestBlend | `INV_SRC_ALPHA` | 기존 화면(스카이박스)에 (1-alpha)를 곱함 |
-| BlendOp | `ADD` | 두 결과를 더함 |
+| BlendOp   | `ADD`           | 두 결과를 더함                           |
 
 예를 들어 가까운 구름(alpha=0.75)이 스카이박스 위에 그려지면:
+
 ```
 최종 색 = 구름색 × 0.75 + 스카이박스색 × 0.25
 ```
