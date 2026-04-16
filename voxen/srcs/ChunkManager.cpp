@@ -653,44 +653,49 @@ bool ChunkManager::FrustumCulling(
 		invMat = (camera.GetViewMatrix() * camera.GetProjectionMatrix()).Invert();
 	}
 
-	std::vector<Vector3> worldPos = { Vector3::Transform(Vector3(-1.0f, 1.0f, 0.0f), invMat),
+	// Transformed view frustum NDC Position to world position
+	std::vector<Vector3> worldPos = { 
+		Vector3::Transform(Vector3(-1.0f, 1.0f, 0.0f), invMat),
 		Vector3::Transform(Vector3(1.0f, 1.0f, 0.0f), invMat),
 		Vector3::Transform(Vector3(1.0f, -1.0f, 0.0f), invMat),
 		Vector3::Transform(Vector3(-1.0f, -1.0f, 0.0f), invMat),
 		Vector3::Transform(Vector3(-1.0f, 1.0f, 1.0f), invMat),
 		Vector3::Transform(Vector3(1.0f, 1.0f, 1.0f), invMat),
 		Vector3::Transform(Vector3(1.0f, -1.0f, 1.0f), invMat),
-		Vector3::Transform(Vector3(-1.0f, -1.0f, 1.0f), invMat) };
+		Vector3::Transform(Vector3(-1.0f, -1.0f, 1.0f), invMat) 
+	};
 
-	std::vector<Vector4> planes = { DirectX::XMPlaneFromPoints(
-										worldPos[0], worldPos[1], worldPos[2]),
-		DirectX::XMPlaneFromPoints(worldPos[7], worldPos[6], worldPos[5]),
-		DirectX::XMPlaneFromPoints(worldPos[4], worldPos[5], worldPos[1]),
-		DirectX::XMPlaneFromPoints(worldPos[3], worldPos[2], worldPos[6]),
-		DirectX::XMPlaneFromPoints(worldPos[4], worldPos[0], worldPos[3]),
-		DirectX::XMPlaneFromPoints(worldPos[1], worldPos[5], worldPos[6]) };
+	std::vector<Vector4> vfPlanes = { 
+		DirectX::XMPlaneFromPoints(worldPos[0], worldPos[1], worldPos[2]), // front
+		DirectX::XMPlaneFromPoints(worldPos[7], worldPos[6], worldPos[5]), // back
+		DirectX::XMPlaneFromPoints(worldPos[4], worldPos[5], worldPos[1]), // top
+		DirectX::XMPlaneFromPoints(worldPos[3], worldPos[2], worldPos[6]), // bottom
+		DirectX::XMPlaneFromPoints(worldPos[4], worldPos[0], worldPos[3]), // left
+		DirectX::XMPlaneFromPoints(worldPos[1], worldPos[5], worldPos[6])  // right
+	};
 
 	float x = (float)Chunk::CHUNK_SIZE;
 	float y = (float)Chunk::CHUNK_SIZE;
 	float z = (float)Chunk::CHUNK_SIZE;
 	if (useMirror)
 		y *= -1;
-	for (int i = 0; i < 6; ++i) {
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position)) < 0.0f)
+
+	for (int i = 0; i < vfPlanes.size(); ++i) {
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position)) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(x, 0.0f, 0.0f))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(x, 0.0f, 0.0f))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(0.0f, y, 0.0f))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(0.0f, y, 0.0f))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(x, y, 0.0f))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(x, y, 0.0f))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(0.0f, 0.0f, z))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(0.0f, 0.0f, z))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(x, 0.0f, z))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(x, 0.0f, z))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(0.0f, y, z))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(0.0f, y, z))) <= 0.0f)
 			continue;
-		if (XMVectorGetX(XMPlaneDotCoord(planes[i], position + Vector3(x, y, z))) <= 0.0f)
+		if (XMVectorGetX(XMPlaneDotCoord(vfPlanes[i], position + Vector3(x, y, z))) <= 0.0f)
 			continue;
 		return false;
 	}
@@ -916,7 +921,8 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 position)
 	BLOCK_TYPE blockType =
 		position.y <= Terrain::WATER_HEIGHT_LEVEL ? BLOCK_TYPE::BLOCK_WATER : BLOCK_TYPE::BLOCK_AIR;
 
-	PatchData patchData = MakePatchData(blockLocalPos, blockType, Instance(), Chunk::CHUNK_SIZE, false);
+	PatchData patchData =
+		MakePatchData(blockLocalPos, blockType, Instance(), Chunk::CHUNK_SIZE, false);
 
 	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
@@ -969,8 +975,8 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 	PropagatePatchByEdgeBlock(blockLocalPos, chunkOffsetPos, blockType);
 }
 
-PatchData ChunkManager::MakePatchData(int x, int y, int z, Block block,
-	Instance instance, int baseSize, bool needWrap)
+PatchData ChunkManager::MakePatchData(
+	int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap)
 {
 	PatchData patchData;
 
