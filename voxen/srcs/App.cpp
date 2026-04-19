@@ -804,8 +804,6 @@ void App::RenderFrustumCullingViewer()
 
 	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
-
-	
 }
 
 void App::LockCursor()
