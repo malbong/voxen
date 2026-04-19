@@ -1,5 +1,9 @@
 # Frustum Culling
 
+## <img width="1914" height="1075" alt="Image" src="https://github.com/user-attachments/assets/e21ac2ee-6d11-42c2-844b-df6d729c19dc" />
+
+<img width="955" height="538" alt="Image" src="https://github.com/user-attachments/assets/2f6eb2be-9c92-4e7d-a966-d44e35db4f52" />
+
 ## 1. 개요
 
 Frustum Culling은 카메라의 시야 절두체(frustum) 밖에 있는 청크를 렌더링 대상에서 제외하는 기법이다.
