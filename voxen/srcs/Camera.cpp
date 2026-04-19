@@ -196,16 +196,25 @@ void Camera::UpdateBasis()
 
 void Camera::UpdateViewDirection(bool keyPressed[256], float dt) 
 { 
-	if (!keyPressed[VK_LEFT] && !keyPressed[VK_RIGHT])
-		return;
+	if (keyPressed[VK_LEFT] || keyPressed[VK_RIGHT]) {
+		m_isOnConstantDirtyFlag = true;
 
-	m_isOnConstantDirtyFlag = true;
-		
-	int sign = keyPressed[VK_LEFT] ? -1 : 1;
+		int sign = keyPressed[VK_LEFT] ? -1 : 1;
 
-	m_yaw += sign * dt * 0.5f;
+		m_yaw += sign * dt * 0.5f;
+
+		UpdateBasis();
+	}
 	
-	UpdateBasis();
+	if (keyPressed[VK_UP] || keyPressed[VK_DOWN]) {
+		m_isOnConstantDirtyFlag = true;
+
+		int sign = keyPressed[VK_UP] ? -1 : 1;
+
+		m_pitch += sign * dt * 0.5f;
+
+		UpdateBasis();
+	}
 }
 
 void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
