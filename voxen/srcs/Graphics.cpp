@@ -18,6 +18,7 @@ namespace Graphics {
 	ComPtr<ID3D11InputLayout> samplingIL;
 	ComPtr<ID3D11InputLayout> instanceIL;
 	ComPtr<ID3D11InputLayout> pickingBlockIL;
+	ComPtr<ID3D11InputLayout> viewFrustumIL;
 
 
 	// Vertex Shader
@@ -30,6 +31,7 @@ namespace Graphics {
 	ComPtr<ID3D11VertexShader> basicShadowVS;
 	ComPtr<ID3D11VertexShader> instanceShadowVS;
 	ComPtr<ID3D11VertexShader> pickingBlockVS;
+	ComPtr<ID3D11VertexShader> viewFrustumVS;
 
 
 	// Geometry Shader
@@ -42,6 +44,7 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> basicAlphaClipPS;
 	ComPtr<ID3D11PixelShader> basicMirrorPS;
 	ComPtr<ID3D11PixelShader> basicMirrorAlphaClipPS;
+	ComPtr<ID3D11PixelShader> basicAlbedoPS;
 	ComPtr<ID3D11PixelShader> skyboxPS;
 	ComPtr<ID3D11PixelShader> skyboxMirrorPS;
 	ComPtr<ID3D11PixelShader> cloudPS;
@@ -72,6 +75,7 @@ namespace Graphics {
 	ComPtr<ID3D11RasterizerState> mirrorRS;
 	ComPtr<ID3D11RasterizerState> shadowRS;
 	ComPtr<ID3D11RasterizerState> noneCullDepthBiasRS;
+	ComPtr<ID3D11RasterizerState> noneDepthClipRS;
 
 
 	// Sampler State
@@ -149,6 +153,10 @@ namespace Graphics {
 	ComPtr<ID3D11RenderTargetView> bloomRTV[5];
 	ComPtr<ID3D11ShaderResourceView> bloomSRV[5];
 
+	ComPtr<ID3D11Texture2D> cullingViewerBuffer;
+	ComPtr<ID3D11RenderTargetView> cullingViewerRTV;
+	ComPtr<ID3D11ShaderResourceView> cullingViewerSRV;
+
 
 	// Depth Stencil Buffer
 	ComPtr<ID3D11Texture2D> basicDepthBuffer;
@@ -164,6 +172,9 @@ namespace Graphics {
 	ComPtr<ID3D11Texture2D> shadowBuffer;
 	ComPtr<ID3D11DepthStencilView> shadowDSV;
 	ComPtr<ID3D11ShaderResourceView> shadowSRV;
+
+	ComPtr<ID3D11Texture2D> cullingViewerDepthBuffer;
+	ComPtr<ID3D11DepthStencilView> cullingViewerDSV;
 
 
 	// Shader Resource Buffer
@@ -219,6 +230,7 @@ namespace Graphics {
 	D3D11_VIEWPORT bloomViewport;
 	D3D11_VIEWPORT worldMapViewport;
 	D3D11_VIEWPORT shadowViewPorts[Light::CASCADE_NUM];
+	D3D11_VIEWPORT cullingViewerViewPort;
 
 
 	// device, context, swapChain
@@ -249,6 +261,7 @@ namespace Graphics {
 	void SetPipelineStates(GraphicsPSO& pso);
 	GraphicsPSO basicPSO;
 	GraphicsPSO basicMirrorPSO;
+	GraphicsPSO basicAlbedoPSO;
 	GraphicsPSO semiAlphaPSO;
 	GraphicsPSO skyboxPSO;
 	GraphicsPSO skyboxMirrorPSO;
@@ -275,6 +288,7 @@ namespace Graphics {
 	GraphicsPSO combineBloomPSO;
 	GraphicsPSO biomeMapPSO;
 	GraphicsPSO pickingBlockPSO;
+	GraphicsPSO viewFrustumPSO;
 }
 
 
@@ -628,6 +642,27 @@ bool Graphics::InitRenderTargetBuffers()
 		bloomHeight /= 2;
 	}
 
+	// culling viewer
+	format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	if (!DXUtils::CreateTextureBuffer(cullingViewerBuffer, App::APP_WIDTH / 2,
+			App::APP_HEIGHT / 2, false, format, bindFlag)) {
+		std::cout << "failed create culling viewer buffer" << std::endl;
+		return false;
+	}
+	ret = device->CreateRenderTargetView(
+		cullingViewerBuffer.Get(), nullptr, cullingViewerRTV.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create culling viewer rtv" << std::endl;
+		return false;
+	}
+	ret = device->CreateShaderResourceView(
+		cullingViewerBuffer.Get(), nullptr, cullingViewerSRV.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create culling viewer srv" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -716,6 +751,21 @@ bool Graphics::InitDepthStencilBuffers()
 		Graphics::shadowBuffer.Get(), &srvDesc, shadowSRV.GetAddressOf());
 	if (FAILED(ret)) {
 		std::cout << "failed create shader resource view from shadow srv" << std::endl;
+		return false;
+	}
+
+	// culling depth viewer DSV
+	format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	bindFlag = D3D11_BIND_DEPTH_STENCIL;
+	if (!DXUtils::CreateTextureBuffer(
+			cullingViewerDepthBuffer, App::APP_WIDTH / 2, App::APP_HEIGHT / 2, false, format, bindFlag)) {
+		std::cout << "failed create culling depth depth stencil buffer" << std::endl;
+		return false;
+	}
+	ret = Graphics::device->CreateDepthStencilView(
+		cullingViewerDepthBuffer.Get(), nullptr, cullingViewerDSV.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create culling viewer dsv" << std::endl;
 		return false;
 	}
 
@@ -986,6 +1036,15 @@ bool Graphics::InitVertexShaderAndInputLayouts()
 		return false;
 	}
 
+	// View Frustum
+	std::vector<D3D11_INPUT_ELEMENT_DESC> elementDesc8 = { { "POSITION", 0,
+		DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 } };
+	if (!DXUtils::CreateVertexShaderAndInputLayout(
+			L"shaders/ViewFrustumVS.hlsl", viewFrustumVS, viewFrustumIL, elementDesc8)) {
+		std::cout << "failed create view frustum vs" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -1039,6 +1098,13 @@ bool Graphics::InitPixelShaders()
 	if (!DXUtils::CreatePixelShader(
 			L"shaders/BasicPS.hlsl", basicMirrorAlphaClipPS, macros.data(), "mainMirror")) {
 		std::cout << "failed create basic mirror alpha clip ps" << std::endl;
+		return false;
+	}
+
+	// basicAlbedoPS
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/BasicPS.hlsl", basicAlbedoPS, nullptr, "mainAlbedo")) {
+		std::cout << "failed create basic albedo PS" << std::endl;
 		return false;
 	}
 
@@ -1255,6 +1321,16 @@ bool Graphics::InitRasterizerStates()
 		return false;
 	}
 
+	// noneDepthClipRS
+	D3D11_RASTERIZER_DESC noneDepthClipRSDesc = solidRSDesc;
+	noneDepthClipRSDesc.DepthClipEnable = false;
+	ret = Graphics::device->CreateRasterizerState(
+		&noneDepthClipRSDesc, noneDepthClipRS.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create none depth Clip RS" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -1456,6 +1532,10 @@ void Graphics::InitViewports()
 		DXUtils::UpdateViewport(shadowViewPorts[i], Light::CASCADE_SIZE * i, 0, Light::CASCADE_SIZE,
 			Light::CASCADE_SIZE);
 	}
+
+	// cullingViewerViewport
+	DXUtils::UpdateViewport(
+		Graphics::cullingViewerViewPort, 0, 0, (App::APP_WIDTH / 2), (App::APP_HEIGHT / 2));
 }
 
 void Graphics::InitGraphicsPSO()
@@ -1482,6 +1562,10 @@ void Graphics::InitGraphicsPSO()
 	basicMirrorPSO.pixelShader = basicMirrorPS;
 	basicMirrorPSO.depthStencilState = mirrorDrawMaskedDSS;
 	basicMirrorPSO.stencilRef = 1;
+
+	// basicAlbedoPSO
+	basicAlbedoPSO = basicPSO;
+	basicAlbedoPSO.pixelShader = basicAlbedoPS;
 
 	// semiAlphaPSO
 	semiAlphaPSO = basicPSO;
@@ -1616,6 +1700,14 @@ void Graphics::InitGraphicsPSO()
 	pickingBlockPSO.vertexShader = pickingBlockVS;
 	pickingBlockPSO.pixelShader = pickingBlockPS;
 	pickingBlockPSO.rasterizerState = noneCullDepthBiasRS;
+
+	// viewFrustumPSO
+	viewFrustumPSO = basicPSO;
+	viewFrustumPSO.topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+	viewFrustumPSO.inputLayout = viewFrustumIL;
+	viewFrustumPSO.vertexShader = viewFrustumVS;
+	viewFrustumPSO.pixelShader = pickingBlockPS;
+	viewFrustumPSO.rasterizerState = noneDepthClipRS;
 }
 
 void Graphics::SetPipelineStates(GraphicsPSO& pso)

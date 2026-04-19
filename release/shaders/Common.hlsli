@@ -28,6 +28,7 @@ cbuffer CameraConstantBuffer : register(b8)
 {
     Matrix view;
     Matrix proj;
+    Matrix invView;
     Matrix invProj;
     float3 eyePos;
     float maxRenderDistance;

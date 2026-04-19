@@ -185,3 +185,11 @@ float4 mainMirror(psInput input) : SV_TARGET
     
     return float4(ambient, albedo.a);
 }
+
+float4 mainAlbedo(psInput input) : SV_TARGET
+{
+    float3 normal = normalMapping(input.texcoord, input.texIndex, input.normal);
+    
+    return float4(normalize(normal), 1.0);
+}
+    

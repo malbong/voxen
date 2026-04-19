@@ -25,6 +25,7 @@ bool Camera::Initialize(Vector3 pos)
 
 		m_constantData.view = GetViewMatrix().Transpose();
 		m_constantData.proj = GetProjectionMatrix().Transpose();
+		m_constantData.invView = GetViewMatrix().Invert().Transpose();
 		m_constantData.invProj = GetProjectionMatrix().Invert().Transpose();
 		m_constantData.eyePos = m_eyePos;
 		m_constantData.eyeDir = m_forward;
@@ -52,6 +53,35 @@ bool Camera::Initialize(Vector3 pos)
 		}
 	}
 
+	// Debug Camera for Frustum Culling
+	{
+		m_cullingViewerOffsetPos = Vector3(0.0f, 128.0f, -128.0f);
+		m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
+
+		Quaternion qPitch = Quaternion(
+			Vector3(1.0f, 0.0f, 0.0f) * sinf(XM_PIDIV2 * 0.25f), cosf(XM_PIDIV2 * 0.25f));
+		m_cullingViewerForward = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(qPitch));
+		m_cullingViewerUp = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(qPitch));
+
+		m_constantData.view = XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view = m_constantData.view.Transpose();
+
+		if (!DXUtils::CreateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData)) {
+			std::cout << "failed create debug camera constant buffer" << std::endl;
+			return false;
+		}
+
+		MeshGenerator::CreateViewFrustumLineMesh(m_viewFrustumVertices, m_viewFrustumIndices);
+		if (!DXUtils::CreateVertexBuffer(m_viewFrustumVertexBuffer, m_viewFrustumVertices)) {
+			std::cout << "failed create view frustum vertex buffer in camera" << std::endl;
+			return false;
+		}
+		if (!DXUtils::CreateIndexBuffer(m_viewFrustumIndexBuffer, m_viewFrustumIndices)) {
+			std::cout << "failed create view frustum index buffer in camera" << std::endl;
+			return false;
+		}
+	}
+
 	// Picking Block Buffer
 	{
 		MeshGenerator::CreatePickingBlockLineMesh(m_pickingObjectVertices, m_pickingObjectIndices);
@@ -59,7 +89,6 @@ bool Camera::Initialize(Vector3 pos)
 			std::cout << "failed create picking block vertex buffer in camera" << std::endl;
 			return false;
 		}
-
 		if (!DXUtils::CreateIndexBuffer(m_pickingObjectIndexBuffer, m_pickingObjectIndices)) {
 			std::cout << "failed create picking block index buffer in camera" << std::endl;
 			return false;
@@ -85,21 +114,30 @@ void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouse
 	DDAPickingBlock();
 
 	if (m_isOnConstantDirtyFlag) {
+		// basic
 		m_constantData.view = GetViewMatrix().Transpose();
 		m_constantData.proj = GetProjectionMatrix().Transpose();
+		m_constantData.invView = GetViewMatrix().Invert().Transpose();
 		m_constantData.invProj = GetProjectionMatrix().Invert().Transpose();
 		m_constantData.eyePos = m_eyePos;
 		m_constantData.eyeDir = m_forward;
 		m_constantData.maxRenderDistance = (float)MAX_RENDER_DISTANCE;
 		m_constantData.lodRenderDistance = (float)LOD_RENDER_DISTANCE;
 		m_constantData.isUnderWater = m_isUnderWater;
-
 		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
 
+		// mirror
 		m_constantData.view = m_mirrorPlaneMatrix * GetViewMatrix();
 		m_constantData.view = m_constantData.view.Transpose();
 		DXUtils::UpdateConstantBuffer(m_mirrorConstantBuffer, m_constantData);
 
+		// culling viewer debug camera
+		m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
+		m_constantData.view = XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view = m_constantData.view.Transpose();
+		DXUtils::UpdateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData);
+
+		// picking block
 		DXUtils::UpdateConstantBuffer(m_pickingObjectConstantBuffer, m_pickingObjectConstantData);
 
 		m_isOnConstantDirtyFlag = false;
@@ -293,4 +331,19 @@ void Camera::RenderPickingBlock()
 	Graphics::context->VSSetConstantBuffers(0, 1, m_pickingObjectConstantBuffer.GetAddressOf());
 
 	Graphics::context->DrawIndexed((UINT)m_pickingObjectIndices.size(), 0, 0);
+}
+
+void Camera::RenderViewFrustum()
+{
+	Graphics::SetPipelineStates(Graphics::viewFrustumPSO);
+
+	Graphics::context->OMSetRenderTargets(1, Graphics::cullingViewerRTV.GetAddressOf(), nullptr);
+
+	UINT stride = sizeof(ViewFrustumVertex);
+	UINT offset = 0;
+	Graphics::context->IASetIndexBuffer(m_viewFrustumIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	Graphics::context->IASetVertexBuffers(
+		0, 1, m_viewFrustumVertexBuffer.GetAddressOf(), &stride, &offset);
+
+	Graphics::context->DrawIndexed((UINT)m_viewFrustumIndices.size(), 0, 0);
 }

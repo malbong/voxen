@@ -20,6 +20,7 @@ public:
 	bool Initialize(Vector3 pos);
 	void Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY);
 	void RenderPickingBlock();
+	void RenderViewFrustum();
 
 	inline Vector3 GetPosition() { return m_eyePos; }
 	inline Vector3 GetChunkPosition() { return m_chunkPos; }
@@ -42,6 +43,7 @@ public:
 
 	ComPtr<ID3D11Buffer> m_constantBuffer;
 	ComPtr<ID3D11Buffer> m_mirrorConstantBuffer;
+	ComPtr<ID3D11Buffer> m_cullingViewerConstantBuffer;
 
 
 private:
@@ -68,6 +70,10 @@ private:
 	Vector3 m_up;
 	Vector3 m_right;
 
+	Vector3 m_cullingViewerPos;
+	Vector3 m_cullingViewerForward;
+	Vector3 m_cullingViewerUp;
+
 	Matrix m_mirrorPlaneMatrix;
 
 	float m_speed;
@@ -83,13 +89,20 @@ private:
 	float m_yaw;
 	float m_pitch;
 
+	Vector3 m_cullingViewerOffsetPos;
+
+	CameraConstantData m_constantData;
+
 	std::vector<PickingObjectVertex> m_pickingObjectVertices;
 	std::vector<uint32_t> m_pickingObjectIndices;
 	ChunkConstantData m_pickingObjectConstantData;
 
-	CameraConstantData m_constantData;
-
 	ComPtr<ID3D11Buffer> m_pickingObjectVertexBuffer;
 	ComPtr<ID3D11Buffer> m_pickingObjectIndexBuffer;
 	ComPtr<ID3D11Buffer> m_pickingObjectConstantBuffer;
+
+	std::vector<ViewFrustumVertex> m_viewFrustumVertices;
+	std::vector<uint32_t> m_viewFrustumIndices;
+	ComPtr<ID3D11Buffer> m_viewFrustumVertexBuffer;
+	ComPtr<ID3D11Buffer> m_viewFrustumIndexBuffer;
 };

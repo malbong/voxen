@@ -375,6 +375,10 @@ void App::Run()
 
 void App::Update(float dt)
 {
+	if (m_keyToggled['P']) {
+		return;
+	}
+
 	if (m_keyToggled['F']) {
 		m_date.Update(dt);
 	}
@@ -479,6 +483,14 @@ void App::Render()
 			RenderWorldMap();
 		}
 	}
+
+	// 7. Debug Camera for Frustum Culling
+	{
+		if (m_keyToggled['V']) {
+			RenderFrustumCullingViewer();
+		}
+	}
+
 }
 
 void App::FillGBuffer()
@@ -746,6 +758,55 @@ void App::RenderFogFilter() { m_postEffect.FogFilter(); }
 void App::RenderWaterFilter() { m_postEffect.WaterFilter(); }
 
 void App::RenderBloom() { m_postEffect.Bloom(); }
+
+void App::RenderFrustumCullingViewer() 
+{
+	Graphics::context->VSSetConstantBuffers(
+		8, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewPort);
+
+	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	Graphics::context->ClearRenderTargetView(Graphics::cullingViewerRTV.Get(), clearColor);
+	Graphics::context->ClearDepthStencilView(
+		Graphics::cullingViewerDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	
+	Graphics::context->OMSetRenderTargets(
+		1, Graphics::cullingViewerRTV.GetAddressOf(), Graphics::cullingViewerDSV.Get());
+
+	// chunk render
+	{
+		std::vector<ID3D11ShaderResourceView*> ppSRVs;
+		ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
+		ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
+		ppSRVs.push_back(Graphics::climateMapSRV.Get());
+		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+
+		ChunkManager::GetInstance()->RenderBasicAlbedo();
+	}
+	
+	// view frustum grid render
+	{
+		m_camera.RenderViewFrustum();
+	}
+
+	// To BackBuffer
+	{
+		Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+
+		Graphics::context->PSSetShaderResources(0, 1, Graphics::cullingViewerSRV.GetAddressOf());
+
+		Graphics::SetPipelineStates(Graphics::samplingPSO);
+		SimpleQuadRenderer::GetInstance()->Render();
+	}
+
+	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+
+	
+}
 
 void App::LockCursor()
 {

@@ -232,6 +232,14 @@ void ChunkManager::RenderBasicShadowMap()
 		RenderLowLodChunk(c);
 }
 
+void ChunkManager::RenderBasicAlbedo()
+{ 
+	Graphics::SetPipelineStates(Graphics::basicAlbedoPSO);
+	for (auto& c : m_renderChunkList) {
+		RenderLowLodChunk(c);
+	}
+}
+
 void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 {
 	PosHashMap<bool> renderableChunkMap;

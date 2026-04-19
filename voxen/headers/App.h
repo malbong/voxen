@@ -64,6 +64,8 @@ private:
 	void RenderWaterFilter();
 	void RenderBloom();
 
+	void RenderFrustumCullingViewer();
+
 	void LockCursor();
 	void UnlockCursor();
 
