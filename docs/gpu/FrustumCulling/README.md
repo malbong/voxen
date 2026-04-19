@@ -1,6 +1,6 @@
 # Frustum Culling
 
-## <img width="1914" height="1075" alt="Image" src="https://github.com/user-attachments/assets/e21ac2ee-6d11-42c2-844b-df6d729c19dc" />
+<img width="1914" height="1075" alt="Image" src="https://github.com/user-attachments/assets/e21ac2ee-6d11-42c2-844b-df6d729c19dc" />
 
 <img width="955" height="538" alt="Image" src="https://github.com/user-attachments/assets/2f6eb2be-9c92-4e7d-a966-d44e35db4f52" />
 
