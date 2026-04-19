@@ -185,3 +185,14 @@ float4 mainMirror(psInput input) : SV_TARGET
     
     return float4(ambient, albedo.a);
 }
+
+float4 mainAlbedo(psInput input) : SV_TARGET
+{
+    float3 color = getAlbedo(input.texcoord, input.texIndex, input.posWorld, input.normal);
+    
+    float3 invGamma = float3(1, 1, 1) / 2.2;
+    color = pow(color, invGamma);
+    
+    return float4(color, 1.0);
+}
+    

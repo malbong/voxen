@@ -236,5 +236,8 @@
     <FxCompile Include="shaders\WaterPlanePS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\ViewFrustumVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

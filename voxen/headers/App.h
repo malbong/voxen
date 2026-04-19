@@ -40,6 +40,7 @@ private:
 	bool InitGUI();
 	bool InitScene();
 
+	void ImGuiFrame();
 	void Update(float dt);
 	void Render();
 
@@ -63,6 +64,8 @@ private:
 	void RenderFogFilter();
 	void RenderWaterFilter();
 	void RenderBloom();
+
+	void RenderFrustumCullingViewer();
 
 	void LockCursor();
 	void UnlockCursor();

@@ -22,6 +22,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11InputLayout> samplingIL;
 	extern ComPtr<ID3D11InputLayout> instanceIL;
 	extern ComPtr<ID3D11InputLayout> pickingBlockIL;
+	extern ComPtr<ID3D11InputLayout> viewFrustumIL;
 
 
 	// Vertex Shader
@@ -34,6 +35,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11VertexShader> basicShadowVS;
 	extern ComPtr<ID3D11VertexShader> instanceShadowVS;
 	extern ComPtr<ID3D11VertexShader> pickingBlockVS;
+	extern ComPtr<ID3D11VertexShader> viewFrustumVS;
 
 
 	// Geometry Shader
@@ -46,6 +48,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11PixelShader> basicAlphaClipPS;
 	extern ComPtr<ID3D11PixelShader> basicMirrorPS;
 	extern ComPtr<ID3D11PixelShader> basicMirrorAlphaClipPS;
+	extern ComPtr<ID3D11PixelShader> basicAlbedoPS;
 	extern ComPtr<ID3D11PixelShader> skyboxPS;
 	extern ComPtr<ID3D11PixelShader> skyboxMirrorPS;
 	extern ComPtr<ID3D11PixelShader> cloudPS;
@@ -76,6 +79,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11RasterizerState> mirrorRS;
 	extern ComPtr<ID3D11RasterizerState> shadowRS;
 	extern ComPtr<ID3D11RasterizerState> noneCullDepthBiasRS;
+	extern ComPtr<ID3D11RasterizerState> noneDepthClipRS;
 
 	// Sampler State
 	extern ComPtr<ID3D11SamplerState> pointWrapSS;
@@ -152,6 +156,10 @@ namespace Graphics {
 	extern ComPtr<ID3D11RenderTargetView> bloomRTV[5];
 	extern ComPtr<ID3D11ShaderResourceView> bloomSRV[5];
 
+	extern ComPtr<ID3D11Texture2D> cullingViewerBuffer;
+	extern ComPtr<ID3D11RenderTargetView> cullingViewerRTV;
+	extern ComPtr<ID3D11ShaderResourceView> cullingViewerSRV;
+
 
 	// Depth Stencil Buffer
 	extern ComPtr<ID3D11Texture2D> basicDepthBuffer;
@@ -167,6 +175,9 @@ namespace Graphics {
 	extern ComPtr<ID3D11Texture2D> shadowBuffer;
 	extern ComPtr<ID3D11DepthStencilView> shadowDSV;
 	extern ComPtr<ID3D11ShaderResourceView> shadowSRV;
+
+	extern ComPtr<ID3D11Texture2D> cullingViewerDepthBuffer;
+	extern ComPtr<ID3D11DepthStencilView> cullingViewerDSV;
 
 
 	// Shadow Resource Buffer
@@ -222,6 +233,7 @@ namespace Graphics {
 	extern D3D11_VIEWPORT bloomViewport;
 	extern D3D11_VIEWPORT worldMapViewport;
 	extern D3D11_VIEWPORT shadowViewPorts[Light::CASCADE_NUM];
+	extern D3D11_VIEWPORT cullingViewerViewPort;
 
 
 	// device, context, swapChain
@@ -252,6 +264,7 @@ namespace Graphics {
 	extern void SetPipelineStates(GraphicsPSO& pso);
 	extern GraphicsPSO basicPSO;
 	extern GraphicsPSO basicMirrorPSO;
+	extern GraphicsPSO basicAlbedoPSO;
 	extern GraphicsPSO semiAlphaPSO;
 	extern GraphicsPSO skyboxPSO;
 	extern GraphicsPSO skyboxMirrorPSO;
@@ -278,4 +291,5 @@ namespace Graphics {
 	extern GraphicsPSO combineBloomPSO;
 	extern GraphicsPSO biomeMapPSO;
 	extern GraphicsPSO pickingBlockPSO;
+	extern GraphicsPSO viewFrustumPSO;
 }

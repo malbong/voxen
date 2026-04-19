@@ -43,6 +43,7 @@ public:
 	void RenderMirrorWorld();
 	void RenderTransparency();
 	void RenderBasicShadowMap();
+	void RenderBasicAlbedo();
 
 	const Chunk* GetChunkByPosition(Vector3 position);
 	const Block* GetBlockByPosition(Vector3 position);

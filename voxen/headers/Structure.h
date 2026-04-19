@@ -54,9 +54,14 @@ struct PickingObjectVertex {
 	Vector3 color;
 };
 
+struct ViewFrustumVertex {
+	Vector3 position;
+};
+
 struct CameraConstantData {
 	Matrix view;
 	Matrix proj;
+	Matrix invView;
 	Matrix invProj;
 	Vector3 eyePos;
 	float maxRenderDistance;
