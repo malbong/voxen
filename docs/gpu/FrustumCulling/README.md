@@ -359,3 +359,72 @@ for (int i = 0; i < 6; ++i) {
 }
 return true;
 ```
+
+---
+
+### Frustum Viewer
+
+VS에서 Camera.ConstantBuffer에 대한 View를 적절히 바꿔줌
+
+```cpp
+// Camera
+// Debug Camera for Frustum Culling
+m_cullingViewerOffsetPos = Vector3(0.0f, 128.0f, -128.0f);
+m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
+
+Quaternion qPitch = Quaternion(
+    Vector3(1.0f, 0.0f, 0.0f) * sinf(XM_PIDIV2 * 0.25f), cosf(XM_PIDIV2 * 0.25f));
+m_cullingViewerForward = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(qPitch));
+m_cullingViewerUp = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(qPitch));
+
+m_constantData.view = XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+m_constantData.view = m_constantData.view.Transpose();
+
+if (!DXUtils::CreateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData)) {
+    std::cout << "failed create debug camera constant buffer" << std::endl;
+    return false;
+}
+
+// App::RenderFrustumCullingViewer()
+Graphics::context->VSSetConstantBuffers(
+		8, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
+```
+
+Chunk Render는 단순히 LOD Basic으로 렌더링 -> SRV 그대로 사용
+
+```cpp
+std::vector<ID3D11ShaderResourceView*> ppSRVs;
+ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
+ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
+ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
+ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
+ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
+ppSRVs.push_back(Graphics::climateMapSRV.Get());
+Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+
+ChunkManager::GetInstance()->RenderBasicAlbedo();
+```
+
+ViewFrustum을 NDC로 메쉬를 만들고 Camera의 Inv(ViewProj)을 VS에서 변환하여 WorldPosition으로 역변환하여 사용
+그것을 현재 Viewer 카메라에 맞게 View, Proj 변환
+
+```hlsl
+vsOutput main(vsInput input)
+{
+    vsOutput output;
+
+    float4 frustumNDCPosition = float4(input.position, 1.0);
+
+    float4 frustumViewPosition = mul(frustumNDCPosition, invProj);
+    frustumViewPosition.xyz /= frustumViewPosition.w;
+
+    float4 frustumWorldPosition = mul(frustumViewPosition, invView);
+
+    output.posProj = mul(frustumWorldPosition, view);
+    output.posProj = mul(output.posProj, proj);
+
+    output.color = float3(1.0, 0.0, 0.0);
+
+    return output;
+}
+```
