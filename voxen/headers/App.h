@@ -40,6 +40,7 @@ private:
 	bool InitGUI();
 	bool InitScene();
 
+	void ImGuiFrame();
 	void Update(float dt);
 	void Render();
 

@@ -279,98 +279,108 @@ void App::Run()
 			DispatchMessage(&msg);
 		}
 		else {
-			ImGui_ImplDX11_NewFrame(); // GUI 프레임 시작
-			ImGui_ImplWin32_NewFrame();
-
-			ImGui::NewFrame(); // 어떤 것들을 렌더링 할지 기록 시작
-			ImGui::Begin("Scene Control");
-			ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-				ImGui::GetIO().Framerate);
-
-			float worldX = m_camera.GetPosition().x;
-			float worldY = m_camera.GetPosition().y;
-			float worldZ = m_camera.GetPosition().z;
-			ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
-
-			float c = Terrain::GetContinentalness((int)worldX, (int)worldZ);
-			float e = Terrain::GetErosion((int)worldX, (int)worldZ);
-			float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
-			ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
-
-			float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
-			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
-			float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
-			Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-
-			BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h, (int)worldX, (int)worldZ);
-			const char* biomeString = nullptr;
-			switch (biomeType) {
-			case BIOME_TYPE::BIOME_OCEAN:
-				biomeString = "BIOME_OCEAN";
-				break;
-
-			case BIOME_TYPE::BIOME_TUNDRA:
-				biomeString = "BIOME_TUNDRA";
-				break;
-
-			case BIOME_TYPE::BIOME_TAIGA:
-				biomeString = "BIOME_TAIGA";
-				break;
-
-			case BIOME_TYPE::BIOME_PLAINS:
-				biomeString = "BIOME_PLAINS";
-				break;
-
-			case BIOME_TYPE::BIOME_SWAMP:
-				biomeString = "BIOME_SWAMP";
-				break;
-
-			case BIOME_TYPE::BIOME_FOREST:
-				biomeString = "BIOME_FOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SHRUBLAND:
-				biomeString = "BIOME_SHRUBLAND";
-				break;
-
-			case BIOME_TYPE::BIOME_DESERT:
-				biomeString = "BIOME_DESERT";
-				break;
-
-			case BIOME_TYPE::BIOME_RAINFOREST:
-				biomeString = "BIOME_RAINFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SEASONFOREST:
-				biomeString = "BIOME_SEASONFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SAVANNA:
-				biomeString = "BIOME_SAVANNA";
-				break;
-
-			case BIOME_TYPE::BIOME_SNOWY_TAIGA:
-				biomeString = "BIOME_SNOWY_TAIGA";
-				break;
-
-			default:
-				biomeString = "BIOME_NONE";
-				break;
-			}
-			ImGui::Text("BIOME: %s", biomeString);
-
-			ImGui::End();
-			ImGui::Render(); // 렌더링할 것들 기록 끝
+			ImGuiFrame();
 
 			Update(ImGui::GetIO().DeltaTime);
-			Render(); // 우리가 구현한 렌더링
+			Render();
 
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI 렌더링
 
 			Graphics::swapChain->Present(1, 0);
 		}
 	}
+}
+
+void App::ImGuiFrame()
+{
+	ImGui_ImplDX11_NewFrame(); // GUI 프레임 시작
+	ImGui_ImplWin32_NewFrame();
+
+	ImGui::NewFrame(); // 어떤 것들을 렌더링 할지 기록 시작
+	ImGui::Begin("Scene Control");
+	ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+		ImGui::GetIO().Framerate);
+
+	ImGui::Text("P: Pause");
+	ImGui::Text("F: Light Move");
+	ImGui::Text("M: World Map");
+	ImGui::Text("V: Frustum Culling View");
+
+	float worldX = m_camera.GetPosition().x;
+	float worldY = m_camera.GetPosition().y;
+	float worldZ = m_camera.GetPosition().z;
+	ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
+
+	float c = Terrain::GetContinentalness((int)worldX, (int)worldZ);
+	float e = Terrain::GetErosion((int)worldX, (int)worldZ);
+	float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
+	ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
+
+	float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
+	float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
+	float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
+	ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
+	Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
+
+	BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h, (int)worldX, (int)worldZ);
+	const char* biomeString = nullptr;
+	switch (biomeType) {
+	case BIOME_TYPE::BIOME_OCEAN:
+		biomeString = "BIOME_OCEAN";
+		break;
+
+	case BIOME_TYPE::BIOME_TUNDRA:
+		biomeString = "BIOME_TUNDRA";
+		break;
+
+	case BIOME_TYPE::BIOME_TAIGA:
+		biomeString = "BIOME_TAIGA";
+		break;
+
+	case BIOME_TYPE::BIOME_PLAINS:
+		biomeString = "BIOME_PLAINS";
+		break;
+
+	case BIOME_TYPE::BIOME_SWAMP:
+		biomeString = "BIOME_SWAMP";
+		break;
+
+	case BIOME_TYPE::BIOME_FOREST:
+		biomeString = "BIOME_FOREST";
+		break;
+
+	case BIOME_TYPE::BIOME_SHRUBLAND:
+		biomeString = "BIOME_SHRUBLAND";
+		break;
+
+	case BIOME_TYPE::BIOME_DESERT:
+		biomeString = "BIOME_DESERT";
+		break;
+
+	case BIOME_TYPE::BIOME_RAINFOREST:
+		biomeString = "BIOME_RAINFOREST";
+		break;
+
+	case BIOME_TYPE::BIOME_SEASONFOREST:
+		biomeString = "BIOME_SEASONFOREST";
+		break;
+
+	case BIOME_TYPE::BIOME_SAVANNA:
+		biomeString = "BIOME_SAVANNA";
+		break;
+
+	case BIOME_TYPE::BIOME_SNOWY_TAIGA:
+		biomeString = "BIOME_SNOWY_TAIGA";
+		break;
+
+	default:
+		biomeString = "BIOME_NONE";
+		break;
+	}
+	ImGui::Text("BIOME: %s", biomeString);
+
+	ImGui::End();
+	ImGui::Render(); // 렌더링할 것들 기록 끝
 }
 
 void App::Update(float dt)
@@ -765,7 +775,7 @@ void App::RenderFrustumCullingViewer()
 		8, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewPort);
 
-	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float clearColor[4] = { 0.5f, 0.5f, 0.5f, 0.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::cullingViewerRTV.Get(), clearColor);
 	Graphics::context->ClearDepthStencilView(
 		Graphics::cullingViewerDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
