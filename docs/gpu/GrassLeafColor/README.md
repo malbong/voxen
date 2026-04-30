@@ -217,3 +217,4 @@ albedo.rgb *= climateColor
 - GPU에 전달되는 현재 픽셀의 데이터 정보가 적기에 어떻게하면 동적으로 색을 결정할 수 있을까에 대한 고민이 많았음
 - World Position을 노이즈 텍스쳐의 UV로 투영하고, 샘플링하여 Temperature, Humidity를 얻고 그것을 LUT로 Color Map으로 색을 결정하는 방식은 좋았음
 - 자연스러운 변화가 Minecraft와 매우 유사하여 결과는 만족하나, 카메라 이동에 따른 노이즈 버퍼의 Update와 노이즈 호출 함수는 계속 신경쓰임
+- 이러한 동적 컬러 샘플링은 Grass, Leaf 뿐만 아니라 Water에도 적용했음
