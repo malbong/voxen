@@ -33,14 +33,12 @@ bool useDirtOverlay(uint texIndex)
 
 bool useGrassColor(uint texIndex)
 {
-    // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
     return texIndex <= 2 || texIndex == 128 || texIndex == 131 ||
             texIndex == 148 || texIndex == 153 || texIndex == 154 || texIndex == 155 || texIndex == 156;
 }
 
 bool useFoliageColor(uint texIndex)
 {
-    // TODO
     return (64 <= texIndex && texIndex <= 70);
 }
 
@@ -67,16 +65,17 @@ float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
         
         float3 climateColor = float3(0.0, 0.0, 0.0);
         if (useGrassColor(texIndex))
-            climateColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            climateColor = grassColorMap.SampleLevel(linearClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
         if (useFoliageColor(texIndex))
-            climateColor = foliageColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            climateColor = foliageColorMap.SampleLevel(linearClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
             
         albedo.rgb *= climateColor;
     }
     
     if (useDirtOverlay(texIndex))
     {
-        float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, 3));
+        const int DIRT_TEXTURE_INDEX = 3;
+        float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, DIRT_TEXTURE_INDEX));
         albedo = lerp(dirt, albedo, albedo.a);
     }
     
