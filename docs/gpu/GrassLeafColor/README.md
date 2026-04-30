@@ -108,7 +108,7 @@ Texture2D foliageColorMap : register(t4);  // 잎사귀 색상 LUT
 Texture2D climateNoiseMap : register(t5);  // Climate(T, H) 텍스처
 ```
 
-Climate Noise 텍스쳐
+#### Climate Noise 텍스쳐
 
 <table>
   <tr>
