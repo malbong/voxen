@@ -13,7 +13,7 @@ struct psInput
     float4 posProj : SV_POSITION;
     float3 posWorld : POSITION;
     float3 normal : NORMAL;
-    sample float2 texcoord : TEXCOORD;
+    float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
 };
 

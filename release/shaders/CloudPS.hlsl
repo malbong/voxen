@@ -14,6 +14,34 @@ struct psInput
     uint face : FACE;
 };
 
+float3 getNormal(uint face)
+{
+    if (face == LEFT)
+    {
+        return float3(-1.0, 0.0, 0.0);
+    }
+    else if (face == RIGHT)
+    {
+        return float3(1.0, 0.0, 0.0);
+    }
+    else if (face == BOTTOM)
+    {
+        return float3(0.0, -1.0, 0.0);
+    }
+    else if (face == TOP)
+    {
+        return float3(0.0, 1.0, 0.0);
+    }
+    else if (face == NEAR)
+    {
+        return float3(0.0, 0.0, -1.0);
+    }
+    else // FAR
+    {
+        return float3(0.0, 0.0, 1.0);
+    }
+}
+
 float4 main(psInput input) : SV_TARGET
 {   
     // 바라보는 방향에 대한 anisotropy 

@@ -9,20 +9,20 @@
 
 ## **GPU 관점**
 
-| 목차                 | 내용                                           | 문서 경로                        |
-| -------------------- | ---------------------------------------------- | -------------------------------- |
-| Cascade Shadow Map   | 그림자 구현을 위한 쉐도우맵                    | `docs/gpu/CascadeShadowMap/`     |
-| Cloud                | 노이즈를 활용한 메쉬 구성 및 반투명 렌더링     | `docs/gpu/Cloud/`                |
-| DeferredShading_MSAA | G-Buffer 구성 후 Edge Stencil MSAA로 쉐이딩    | `docs/gpu/DeferredShading_MSAA/` |
-| Fog                  | Depth Buffer를 활용한 안개 구현                | `docs/gpu/Fog/`                  |
-| FrustumCulling       | CPU에서 ViewFrustum에 대한 Culling 진행        | `docs/gpu/Frustum/`              |
-| GrassLeafColor       | 부드러운 잔디색을 위한 노이즈와 Color Map 활용 | `docs/gpu/GrassLeafColor/`       |
-| Lighting             | 텍스쳐(N,M,R)와 HDR로 semi unreal PBR 구현     | `docs/gpu/Lighting/`             |
-| MSAA Issue 해결      | Extrapolation문제와 ddx/ddy mipmap문제 해결    | `docs/gpu/MSAA_issues/`          |
-| PostEffect           | 렌더 결과를 Bloom과 선형톤매핑                 | `docs/gpu/PostEffect/`           |
-| SkyBox               | 큐브맵 텍스쳐 없이 PS를 이용한 실시간 동적하늘 | `docs/gpu/SkyBox/`               |
-| SSAO                 | 간접광 음영을 위한 SSAO (MSAA 처리)            | `docs/gpu/SSAO/`                 |
-| Water                | Plane 반사와 Depth를 이용한 투영 및 물속필터   | `docs/gpu/Water/`                |
+| 목차                  | 내용                                           | 문서 경로                        |
+| --------------------- | ---------------------------------------------- | -------------------------------- |
+| Cascade Shadow Map    | 그림자 구현을 위한 쉐도우맵                    | `docs/gpu/CascadeShadowMap/`     |
+| Cloud                 | 노이즈를 활용한 메쉬 구성 및 반투명 렌더링     | `docs/gpu/Cloud/`                |
+| DeferredShading_MSAA  | G-Buffer 구성 후 Edge Stencil MSAA로 쉐이딩    | `docs/gpu/DeferredShading_MSAA/` |
+| Fog                   | Depth Buffer를 활용한 안개 구현                | `docs/gpu/Fog/`                  |
+| FrustumCulling        | CPU에서 ViewFrustum에 대한 Culling 진행        | `docs/gpu/Frustum/`              |
+| GrassLeafColor        | 부드러운 잔디색을 위한 노이즈와 Color Map 활용 | `docs/gpu/GrassLeafColor/`       |
+| Lighting              | 텍스쳐(N,M,R)와 HDR로 semi unreal PBR 구현     | `docs/gpu/Lighting/`             |
+| MSAA Issue Seams 해결 | Extrapolation문제와 ddx/ddy mipmap문제 해결    | `docs/gpu/MSAA_Issues_Seams/`    |
+| PostEffect            | 렌더 결과를 Bloom과 선형톤매핑                 | `docs/gpu/PostEffect/`           |
+| SkyBox                | 큐브맵 텍스쳐 없이 PS를 이용한 실시간 동적하늘 | `docs/gpu/SkyBox/`               |
+| SSAO                  | 간접광 음영을 위한 SSAO (MSAA 처리)            | `docs/gpu/SSAO/`                 |
+| Water                 | Plane 반사와 Depth를 이용한 투영 및 물속필터   | `docs/gpu/Water/`                |
 
 ---
 
