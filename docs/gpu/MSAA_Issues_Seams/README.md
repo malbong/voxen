@@ -1,8 +1,8 @@
 # MSAA 환경에서의 Texture Seams 문제 해결
 
-<img width="1600" height="1000" alt="Image" src="https://github.com/user-attachments/assets/95c2e275-b850-46a5-9299-7e5388d55fc5" />
+<img width="1600" height="800" alt="Image" src="https://github.com/user-attachments/assets/95c2e275-b850-46a5-9299-7e5388d55fc5" />
 
-<img width="1600" height="800" alt="Image" src="https://github.com/user-attachments/assets/628e9931-1bb6-41ae-9918-07f0748120a3" />
+<img width="1600" height="600" alt="Image" src="https://github.com/user-attachments/assets/628e9931-1bb6-41ae-9918-07f0748120a3" />
 
 ## 1. 개요
 
