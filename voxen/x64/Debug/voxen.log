@@ -1,9 +1,13 @@
-﻿  compilation object save succeeded; see D:\voxen\x64\Debug\BasicPS.cso
+﻿D:\voxen\voxen\shaders\BasicPS.hlsl(190,12-90): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see D:\voxen\x64\Debug\BasicPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\BasicVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\BiomeMapPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\BloomDownPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\BloomUpPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\BlurPS.cso
+D:\voxen\voxen\shaders\CloudPS.hlsl(28,11-68): warning X3206: implicit truncation of vector type
+  
   compilation object save succeeded; see D:\voxen\x64\Debug\CloudPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\CloudVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\CombineBloomPS.cso
@@ -20,13 +24,33 @@ D:\voxen\voxen\shaders\InstanceVS.hlsl(39,5-71): warning X3206: implicit truncat
   compilation object save succeeded; see D:\voxen\x64\Debug\PickingBlockPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\PickingBlockVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\SamplingPS.cso
-  compilation object save succeeded; see D:\voxen\x64\Debug\SamplingVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\ShadingBasicPS.cso
-  compilation object save succeeded; see D:\voxen\x64\Debug\ShadowGS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\SkyboxPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\SkyboxVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\SsaoPS.cso
+  compilation object save succeeded; see D:\voxen\x64\Debug\ViewFrustumVS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\WaterFilterPS.cso
   compilation object save succeeded; see D:\voxen\x64\Debug\WaterPlanePS.cso
   App.cpp
 D:\voxen\voxen\srcs\App.cpp(1,1): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+  Biome.cpp
+  Block.cpp
+  Camera.cpp
+  Chunk.cpp
+  ChunkManager.cpp
+  Cloud.cpp
+  Date.cpp
+  Graphics.cpp
+  GraphicsPSO.cpp
+  Instance.cpp
+  Light.cpp
+  PostEffect.cpp
+  SimpleQuadRenderer.cpp
+  Skybox.cpp
+  Tree.cpp
+  WorldMap.cpp
+  main.cpp
+  코드를 생성하고 있습니다...
+  voxen.vcxproj -> D:\voxen\x64\Debug\voxen.exe
+  'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+  배치 파일이 아닙니다.

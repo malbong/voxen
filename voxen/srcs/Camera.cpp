@@ -201,7 +201,7 @@ void Camera::UpdateViewDirection(bool keyPressed[256], float dt)
 
 		int sign = keyPressed[VK_LEFT] ? -1 : 1;
 
-		m_yaw += sign * dt * 0.5f;
+		m_yaw += sign * dt * 0.25f;
 
 		UpdateBasis();
 	}
@@ -211,7 +211,7 @@ void Camera::UpdateViewDirection(bool keyPressed[256], float dt)
 
 		int sign = keyPressed[VK_UP] ? -1 : 1;
 
-		m_pitch += sign * dt * 0.5f;
+		m_pitch += sign * dt * 0.25f;
 
 		UpdateBasis();
 	}
