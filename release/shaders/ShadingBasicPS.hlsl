@@ -61,7 +61,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
 {   
     float3 sumClampLighting = float3(0.0, 0.0, 0.0);
     
-    uint vaildSampleCount = 0;
+    uint validSampleCount = 0;
     
     [unroll]
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
@@ -72,7 +72,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         if (position.w == -1.0)
             continue;
         
-        vaildSampleCount++;
+        validSampleCount++;
         
         float3 normal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
         
@@ -80,7 +80,6 @@ float4 mainMSAA(psInput input) : SV_TARGET
         
         float3 mer = merTex.Load(input.posProj.xy, i).rgb;
         
-        // todo
         float metallic = mer.r;
         float roughness = mer.b;
         
@@ -95,5 +94,8 @@ float4 mainMSAA(psInput input) : SV_TARGET
         sumClampLighting += clampLighting;
     }
     
-    return float4(sumClampLighting / max(1e-3, vaildSampleCount), 1.0);
+    if (validSampleCount == 0)
+        discard;
+       
+    return float4(sumClampLighting / validSampleCount, 1.0);
 }

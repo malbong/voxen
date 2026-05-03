@@ -149,7 +149,11 @@ psOutput
     
     float3 normal = normalMapping(input.texcoord, input.texIndex, input.normal);
     
+#ifdef USE_ALPHA_CLIP
+    output.normalEdge = float4(normalize(normal), 2.0);
+#else
     output.normalEdge = float4(normalize(normal), float(edge));
+#endif
     
     output.position = float4(input.posWorld, 1.0);
     
