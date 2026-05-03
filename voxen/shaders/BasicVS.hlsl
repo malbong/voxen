@@ -23,6 +23,66 @@ struct vsOutput
 #endif
 };
 
+float2 getVoxelTexcoord(float3 pos, uint face)
+{
+    float2 texcoord = float2(0.0, 0.0);
+    
+    if (face == LEFT)
+    {
+        texcoord = float2(-pos.z + CHUNK_SIZE, -pos.y + CHUNK_SIZE);
+    }
+    else if (face == RIGHT)
+    {
+        texcoord = float2(pos.z, -pos.y + CHUNK_SIZE);
+    }
+    else if (face == BOTTOM)
+    {
+        texcoord = float2(pos.x, pos.z);
+    }
+    else if (face == TOP)
+    {
+        texcoord = float2(pos.x, -pos.z + CHUNK_SIZE);
+    }
+    else if (face == NEAR)
+    {
+        texcoord = float2(pos.x, -pos.y + CHUNK_SIZE);
+    }
+    else // FAR
+    {
+        texcoord = float2(-pos.x + CHUNK_SIZE, -pos.y + CHUNK_SIZE);
+    }
+
+    return texcoord;
+}
+
+float3 getNormal(uint face)
+{
+    if (face == LEFT)
+    {
+        return float3(-1.0, 0.0, 0.0);
+    }
+    else if (face == RIGHT)
+    {
+        return float3(1.0, 0.0, 0.0);
+    }
+    else if (face == BOTTOM)
+    {
+        return float3(0.0, -1.0, 0.0);
+    }
+    else if (face == TOP)
+    {
+        return float3(0.0, 1.0, 0.0);
+    }
+    else if (face == NEAR)
+    {
+        return float3(0.0, 0.0, -1.0);
+    }
+    else // FAR
+    {
+        return float3(0.0, 0.0, 1.0);
+    }
+}
+
 vsOutput main(vsInput input)
 {
     vsOutput output;

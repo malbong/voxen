@@ -7,6 +7,13 @@
 #define CHUNK_SIZE 32
 #define CHUNK_COUNT 21
 
+#define LEFT 0
+#define RIGHT 1
+#define BOTTOM 2
+#define TOP 3
+#define NEAR 4
+#define FAR 5
+
 SamplerState pointWrapSS : register(s0);
 SamplerState linearWrapSS : register(s1);
 SamplerState pointClampSS : register(s2);
@@ -128,7 +135,7 @@ uint4 coverageAnalysis(uint4 coverage)
         coverage.w = 0;
     }
 
-    // ������ : coverage�� 0�� ���� ����ŷ�� �ȵ� �����̰ų�, ���� ����ŷ�� �ִ� ���
+    // ?????? : coverage?? 0?? ???? ??????? ??? ????????, ???? ??????? ??? ???
     sampleWeight.x = (coverage.x > 0) ? sampleWeight.x : 0;
     sampleWeight.y = (coverage.y > 0) ? sampleWeight.y : 0;
     sampleWeight.z = (coverage.z > 0) ? sampleWeight.z : 0;
@@ -138,7 +145,7 @@ uint4 coverageAnalysis(uint4 coverage)
 }
 
 // https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
-// F, G, D �Լ�
+// F, G, D ???
 float3 schlickFresnel(float3 F0, float NdotH)
 {
     return F0 + (1 - F0) * pow(2, (-5.55473 * (NdotH) - 6.98316) * NdotH);
@@ -187,14 +194,14 @@ float3 getDiffuseTerm(float3 albedo, float3 pixelToEye, float3 normal, float met
     
     float3 kd = lerp(1.0 - F, 0.0, metallic);
     
-    // �𸮾� PBR �ڽ���Ʈ �ڵ�
+    // ??? PBR ?????? ???
     // float3 diffuseIrradiance = irradianceIBLTex.Sample(linearSampler, normalWorld);
-    // �� �ڵ�� ����
+    // ?? ???? ????
     // float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + getAmbientColor();
-    // - diffuseIBL�� ��� ���⿡�� ���� �������� ���� diffuse�� ��� �� ��
-    // - �⺻������ ���� �̹����� ��� ������ ����Ʈ ����� �����ϸ� �ٸ� �� ��� �� ����
-    // - �׷��� �⺻��(getAmbientColor)�� ��ֹ��⿡ ���� ����Ʈ���� "���ؼ�" �� ��� ǥ��
-    // - roughness�� ������ ���� -> ��� ���⿡�� ���� ���� ������ �����̶� �ᱹ ��� ���⿡�� ���ϸ� ��ĥ�� �Ų����� �����ϴٴ� ����
+    // - diffuseIBL?? ??? ?????? ???? ???????? ???? diffuse?? ??? ?? ??
+    // - ???????? ???? ??????? ??? ?????? ????? ????? ??????? ??? ?? ??? ?? ????
+    // - ????? ????(getAmbientColor)?? ?????? ???? ????????? "?????" ?? ??? ???
+    // - roughness?? ?????? ???? -> ??? ?????? ???? ???? ?????? ??????? ?? ??? ?????? ????? ????? ??????? ???????? ????
     float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + getAmbientColor();
     
     return kd * albedo * diffuseIrradiance;
@@ -204,13 +211,13 @@ float3 getSpecularTerm(float3 albedo, float3 pixelToEye, float3 normal, float me
 {
     float2 specularBRDF = brdfTex.Sample(pointClampSS, float2(dot(pixelToEye, normal), 1 - roughness)).rg;
     
-    // �𸮾� PBR �ڽ���Ʈ �ڵ�
+    // ??? PBR ?????? ???
     // float3 specularIrradiance = specularIBLTex.SampleLevel(linearSampler, reflect(-pixelToEye, normal), roughness * 5.0f).rgb;
-    // �� �ڵ�� ����
+    // ?? ???? ????
     // float3 specularIrradiance = lerp(reflectRadiance, ambientColor, roughness);
-    // - ��� ���⿡�� ���� �������� ���� specular�� ��� �� ��
-    // - �ڽ���Ʈ �ڵ�� �ݻ� ���⿡ ���� ���ø��ϰ� ��ĥ�⿡ ���ؼ��� �� �ѿ��� ǥ����
-    // - ��, ��ĥ�Ⱑ ������ �ݴ� ������ ȯ��ʰ� ������ ���� ���ø�, �ݴ�� ��ĥ�Ⱑ ũ�� �ֺ����� ���ø�
+    // - ??? ?????? ???? ???????? ???? specular?? ??? ?? ??
+    // - ?????? ???? ??? ???? ???? ???��???? ????? ??????? ?? ????? ?????
+    // - ??, ????? ?????? ??? ?????? ????? ?????? ???? ???��?, ???? ????? ??? ??????? ???��?
     //   ->lerp(radianceColor, getAmbientColor(), roughness)
     float3 ambientColor = getAmbientColor();
     float3 reflectDir = normalize(reflect(-pixelToEye, normal));
@@ -294,7 +301,7 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
     float NdotH = max(0.0, dot(normal, halfway));
     float NdotO = max(0.0, dot(normal, pixelToEye));
     
-    const float3 Fdielectric = 0.04; // ��ݼ�(Dielectric) ������ F0
+    const float3 Fdielectric = 0.04;
     float3 F0 = lerp(Fdielectric, albedo, metallic);
     float3 F = schlickFresnel(F0, max(0.0, dot(halfway, pixelToEye))); // HoV
     float D = ndfGGX(NdotH, roughness);
@@ -310,66 +317,6 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
     float3 radiance = radianceWeight * radianceColor * shadowFactor;
     
     return (diffuseBRDF + specularBRDF) * radiance * NdotI;
-}
-
-float3 getNormal(uint face)
-{
-    if (face == 0)
-    {
-        return float3(-1.0, 0.0, 0.0);
-    }
-    else if (face == 1)
-    {
-        return float3(1.0, 0.0, 0.0);
-    }
-    else if (face == 2)
-    {
-        return float3(0.0, -1.0, 0.0);
-    }
-    else if (face == 3)
-    {
-        return float3(0.0, 1.0, 0.0);
-    }
-    else if (face == 4)
-    {
-        return float3(0.0, 0.0, -1.0);
-    }
-    else
-    {
-        return float3(0.0, 0.0, 1.0);
-    }
-}
-
-float2 getVoxelTexcoord(float3 pos, uint face)
-{
-    float2 texcoord = float2(0.0, 0.0);
-    
-    if (face == 0) // left
-    {
-        texcoord = float2(-pos.z + 32.0, -pos.y + 32.0);
-    }
-    else if (face == 1) // right
-    {
-        texcoord = float2(pos.z, -pos.y + 32.0);
-    }
-    else if (face == 2) // bottom
-    {
-        texcoord = float2(pos.x, pos.z);
-    }
-    else if (face == 3) // top
-    {
-        texcoord = float2(pos.x, -pos.z + 32.0);
-    }
-    else if (face == 4) // front
-    {
-        texcoord = float2(pos.x, -pos.y + 32.0);
-    }
-    else // back
-    {
-        texcoord = float2(-pos.x + 32.0, -pos.y + 32.0);
-    }
-
-    return texcoord;
 }
 
 #endif

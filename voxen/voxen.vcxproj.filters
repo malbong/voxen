@@ -185,9 +185,6 @@
     <FxCompile Include="shaders\FogFilterPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\InstancePS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
     <FxCompile Include="shaders\InstanceShadowPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
@@ -195,12 +192,6 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\MirrorMaskingPS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\NormalPassBasicPS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\NormalPassInstancePS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\PickingBlockPS.hlsl">
