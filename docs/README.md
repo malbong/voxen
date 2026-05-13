@@ -22,7 +22,7 @@
 | PostEffect            | 렌더 결과를 Bloom과 선형톤매핑                 | `docs/gpu/PostEffect/`           |
 | SkyBox                | 큐브맵 텍스쳐 없이 PS를 이용한 실시간 동적하늘 | `docs/gpu/SkyBox/`               |
 | SSAO                  | 간접광 음영을 위한 SSAO (MSAA 처리)            | `docs/gpu/SSAO/`                 |
-| Water                 | Plane 반사와 Depth를 이용한 투영 및 물속필터   | `docs/gpu/Water/`                |
+| Water Reflection      | Plane 반사와 Depth를 이용한 투영 및 물속필터   | `docs/gpu/WaterReflection/`      |
 
 ---
 
