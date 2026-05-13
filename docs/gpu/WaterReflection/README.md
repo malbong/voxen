@@ -244,8 +244,7 @@ Water Plane 표면에서 투영될 물체까지의 거리를 이용하여 투과
 coeff는 적절히 렌더링 결과를 보고 상수로 지정한다.
 
 ```
-float planeToProjectionObjectDistance = abs(eyeToProjectedObjectDistance - eyeToWaterPlaneDistance);
-
+float planeToProjectionObjectDistance = length(input.posWorld - projectedObjectPosition);
 float waterAbsorptionCoeff = 0.075;
 float waterAbsorptionFactor = 1.0 - exp(-waterAbsorptionCoeff * planeToProjectionObjectDistance); // beer-lambert
 ```
