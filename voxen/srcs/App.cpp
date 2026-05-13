@@ -305,6 +305,7 @@ void App::ImGuiFrame()
 	ImGui::Text("F: Light Move");
 	ImGui::Text("M: World Map");
 	ImGui::Text("V: Frustum Culling View");
+	ImGui::Text("R: Reflection World View");
 
 	float worldX = m_camera.GetPosition().x;
 	float worldY = m_camera.GetPosition().y;
@@ -501,6 +502,13 @@ void App::Render()
 		}
 	}
 
+	// 8. Water Reflection World View
+	{
+		if (m_keyToggled['R']) {
+			RenderReflectionWorld();
+		}
+	}
+
 }
 
 void App::FillGBuffer()
@@ -644,7 +652,7 @@ void App::RenderCloud()
 
 void App::RenderMirrorWorld()
 {
-	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewPort);
+	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewport);
 
 	const FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::mirrorDepthRTV.Get(), clearColor);
@@ -661,35 +669,39 @@ void App::RenderMirrorWorld()
 		ChunkManager::GetInstance()->RenderTransparency();
 	}
 
-	// mirror sky shader
+	// mirror world render in stencil
 	{
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::mirrorWorldRTV.GetAddressOf(), Graphics::mirrorWorldDSV.Get());
-		Graphics::SetPipelineStates(Graphics::skyboxMirrorPSO);
-		m_skybox.Render();
-	}
 
-	// mirror cloud
-	{
-		// mirror constant buffer: mirror plane view matrix
-		Graphics::context->VSSetConstantBuffers(
-			8, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
-		Graphics::SetPipelineStates(Graphics::cloudMirrorPSO);
-		m_cloud.Render();
-	}
+		// mirror sky shader
+		{
+			Graphics::SetPipelineStates(Graphics::skyboxMirrorPSO);
+			m_skybox.Render();
+		}
 
-	// mirror low lod world
-	{
-		std::vector<ID3D11ShaderResourceView*> ppSRVs;
-		ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
-		ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
-		ppSRVs.push_back(Graphics::climateMapSRV.Get());
-		ppSRVs.push_back(Graphics::mirrorDepthSRV.Get());
-		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-		ChunkManager::GetInstance()->RenderMirrorWorld();
+		// mirror cloud
+		{
+			// mirror constant buffer: mirror plane view matrix
+			Graphics::context->VSSetConstantBuffers(
+				8, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
+			Graphics::SetPipelineStates(Graphics::cloudMirrorPSO);
+			m_cloud.Render();
+		}
+
+		// mirror low lod world
+		{
+			std::vector<ID3D11ShaderResourceView*> ppSRVs;
+			ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
+			ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
+			ppSRVs.push_back(Graphics::climateMapSRV.Get());
+			ppSRVs.push_back(Graphics::mirrorDepthSRV.Get());
+			Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+			ChunkManager::GetInstance()->RenderMirrorWorld();
+		}
 	}
 
 	// blur mirror world
@@ -734,7 +746,7 @@ void App::RenderWaterPlane()
 
 void App::RenderShadowMap()
 {
-	Graphics::context->RSSetViewports(Light::CASCADE_NUM, Graphics::shadowViewPorts);
+	Graphics::context->RSSetViewports(Light::CASCADE_NUM, Graphics::shadowViewports);
 
 	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::shadowDSV.Get());
 
@@ -773,7 +785,7 @@ void App::RenderFrustumCullingViewer()
 {
 	Graphics::context->VSSetConstantBuffers(
 		8, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
-	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewPort);
+	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewport);
 
 	float clearColor[4] = { 0.5f, 0.5f, 0.5f, 0.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::cullingViewerRTV.Get(), clearColor);
@@ -813,6 +825,17 @@ void App::RenderFrustumCullingViewer()
 	}
 
 	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderReflectionWorld() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::mirrorWorldSRV.GetAddressOf());
+
+	Graphics::context->RSSetViewports(1, &Graphics::reflectionWorldViewport);
+	SimpleQuadRenderer::GetInstance()->Render();
+
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 

@@ -229,11 +229,12 @@ namespace Graphics {
 
 	// Viewport
 	extern D3D11_VIEWPORT basicViewport;
-	extern D3D11_VIEWPORT mirrorWorldViewPort;
+	extern D3D11_VIEWPORT mirrorWorldViewport;
 	extern D3D11_VIEWPORT bloomViewport;
 	extern D3D11_VIEWPORT worldMapViewport;
-	extern D3D11_VIEWPORT shadowViewPorts[Light::CASCADE_NUM];
-	extern D3D11_VIEWPORT cullingViewerViewPort;
+	extern D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
+	extern D3D11_VIEWPORT cullingViewerViewport;
+	extern D3D11_VIEWPORT reflectionWorldViewport;
 
 
 	// device, context, swapChain

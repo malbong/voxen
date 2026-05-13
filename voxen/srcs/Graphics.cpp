@@ -226,11 +226,12 @@ namespace Graphics {
 
 	// Viewport
 	D3D11_VIEWPORT basicViewport;
-	D3D11_VIEWPORT mirrorWorldViewPort;
+	D3D11_VIEWPORT mirrorWorldViewport;
 	D3D11_VIEWPORT bloomViewport;
 	D3D11_VIEWPORT worldMapViewport;
-	D3D11_VIEWPORT shadowViewPorts[Light::CASCADE_NUM];
-	D3D11_VIEWPORT cullingViewerViewPort;
+	D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
+	D3D11_VIEWPORT cullingViewerViewport;
+	D3D11_VIEWPORT reflectionWorldViewport;
 
 
 	// device, context, swapChain
@@ -1420,12 +1421,10 @@ bool Graphics::InitDepthStencilStates()
 
 	// stencil mask DSS
 	ZeroMemory(&desc, sizeof(desc));
-	desc.DepthEnable = true;
-	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ZERO;
-	desc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_ALWAYS;
+	desc.DepthEnable = false;
 	desc.StencilEnable = true;
-	desc.StencilReadMask = 0xFF;
-	desc.StencilWriteMask = 0xFF;
+	desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 	desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;	   // stencil X
 	desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP; // stencil O depth X
 	desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;   // stencil O depth O
@@ -1446,8 +1445,8 @@ bool Graphics::InitDepthStencilStates()
 	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ZERO;
 	desc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_ALWAYS;
 	desc.StencilEnable = true;
-	desc.StencilReadMask = 0xFF;
-	desc.StencilWriteMask = 0xFF;
+	desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 	desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;	   // stencil X
 	desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP; // stencil O depth X
 	desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;	   // stencil O depth O
@@ -1468,8 +1467,8 @@ bool Graphics::InitDepthStencilStates()
 	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
 	desc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
 	desc.StencilEnable = true;
-	desc.StencilReadMask = 0xFF;
-	desc.StencilWriteMask = 0xFF;
+	desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 	desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 	desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
@@ -1519,7 +1518,7 @@ void Graphics::InitViewports()
 
 	// mirrorWorldViewPort
 	DXUtils::UpdateViewport(
-		Graphics::mirrorWorldViewPort, 0, 0, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
+		Graphics::mirrorWorldViewport, 0, 0, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
 
 	// worldMapViewport
 	UINT worldMapTopX = (App::APP_WIDTH / 2) - (WorldMap::BIOME_MAP_UI_SIZE / 2);
@@ -1529,13 +1528,19 @@ void Graphics::InitViewports()
 
 	// shadowViewports
 	for (int i = 0; i < Light::CASCADE_NUM; ++i) {
-		DXUtils::UpdateViewport(shadowViewPorts[i], Light::CASCADE_SIZE * i, 0, Light::CASCADE_SIZE,
+		DXUtils::UpdateViewport(shadowViewports[i], Light::CASCADE_SIZE * i, 0, Light::CASCADE_SIZE,
 			Light::CASCADE_SIZE);
 	}
 
 	// cullingViewerViewport
 	DXUtils::UpdateViewport(
-		Graphics::cullingViewerViewPort, 0, 0, (App::APP_WIDTH / 2), (App::APP_HEIGHT / 2));
+		Graphics::cullingViewerViewport, 0, 0, (App::APP_WIDTH / 2), (App::APP_HEIGHT / 2));
+
+	// reflectionWorldViewport
+	UINT reflectionWorldMapTopX = App::APP_WIDTH - App::MIRROR_WIDTH;
+	UINT reflectionWorldMapTopY = App::APP_HEIGHT - App::MIRROR_HEIGHT;
+	DXUtils::UpdateViewport(Graphics::reflectionWorldViewport, reflectionWorldMapTopX,
+		reflectionWorldMapTopY, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
 }
 
 void Graphics::InitGraphicsPSO()
