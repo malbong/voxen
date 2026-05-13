@@ -92,9 +92,7 @@ float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
     {
         // absorption -> mix(projectedColor, waterColor, absorptionFactor)
         float3 projectedObjectPosition = positionTex.Load(input.posProj.xy, sampleIndex).xyz;
-        float eyeToProjectedObjectDistance = length(eyePos - projectedObjectPosition);
-        float eyeToWaterPlaneDistance = length(eyePos - input.posWorld);
-        float planeToProjectionObjectDistance = abs(eyeToProjectedObjectDistance - eyeToWaterPlaneDistance);
+        float planeToProjectionObjectDistance = length(input.posWorld - projectedObjectPosition);
         float waterAbsorptionCoeff = 0.075;
         float waterAbsorptionFactor = 1.0 - exp(-waterAbsorptionCoeff * planeToProjectionObjectDistance); // beer-lambert
         float3 eyeToWaterPlaneColor = lerp(projectedColor, waterColor, waterAbsorptionFactor);
