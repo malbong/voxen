@@ -68,6 +68,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11PixelShader> edgeMaskingPS;
 	extern ComPtr<ID3D11PixelShader> shadingBasicPS;
 	extern ComPtr<ID3D11PixelShader> shadingBasicEdgePS;
+	extern ComPtr<ID3D11PixelShader> shadingBasicEdgeHighlightPS;
 	extern ComPtr<ID3D11PixelShader> bloomDownPS;
 	extern ComPtr<ID3D11PixelShader> bloomUpPS;
 	extern ComPtr<ID3D11PixelShader> combineBloomPS;
@@ -296,6 +297,7 @@ namespace Graphics {
 	extern GraphicsPSO edgeMaskingPSO;
 	extern GraphicsPSO shadingBasicPSO;
 	extern GraphicsPSO shadingBasicEdgePSO;
+	extern GraphicsPSO shadingBasicEdgeHighlightPSO;
 	extern GraphicsPSO bloomDownPSO;
 	extern GraphicsPSO bloomUpPSO;
 	extern GraphicsPSO combineBloomPSO;

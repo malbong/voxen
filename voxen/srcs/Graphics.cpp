@@ -64,6 +64,7 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> edgeMaskingPS;
 	ComPtr<ID3D11PixelShader> shadingBasicPS;
 	ComPtr<ID3D11PixelShader> shadingBasicEdgePS;
+	ComPtr<ID3D11PixelShader> shadingBasicEdgeHighlightPS;
 	ComPtr<ID3D11PixelShader> bloomDownPS;
 	ComPtr<ID3D11PixelShader> bloomUpPS;
 	ComPtr<ID3D11PixelShader> combineBloomPS;
@@ -293,6 +294,7 @@ namespace Graphics {
 	GraphicsPSO edgeMaskingPSO;
 	GraphicsPSO shadingBasicPSO;
 	GraphicsPSO shadingBasicEdgePSO;
+	GraphicsPSO shadingBasicEdgeHighlightPSO;
 	GraphicsPSO bloomDownPSO;
 	GraphicsPSO bloomUpPSO;
 	GraphicsPSO combineBloomPSO;
@@ -1259,6 +1261,14 @@ bool Graphics::InitPixelShaders()
 		std::cout << "failed create shading basic edge ps" << std::endl;
 		return false;
 	}
+	macros.clear();
+	macros.push_back({ "EDGE_HIGHLIGHT", "1" });
+	macros.push_back({ NULL, NULL });
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/ShadingBasicPS.hlsl", shadingBasicEdgeHighlightPS, macros.data(), "mainMSAA")) {
+		std::cout << "failed create shading basic edge highlight ps" << std::endl;
+		return false;
+	}
 
 	// combineBloomPS
 	if (!DXUtils::CreatePixelShader(L"shaders/CombineBloomPS.hlsl", combineBloomPS)) {
@@ -1746,6 +1756,10 @@ void Graphics::InitGraphicsPSO()
 	shadingBasicEdgePSO = shadingBasicPSO;
 	shadingBasicEdgePSO.pixelShader = shadingBasicEdgePS;
 	shadingBasicEdgePSO.stencilRef = 1;
+
+	// shadingBasicEdgeHighlightPSO
+	shadingBasicEdgeHighlightPSO = shadingBasicEdgePSO;
+	shadingBasicEdgeHighlightPSO.pixelShader = shadingBasicEdgeHighlightPS;
 
 	// bloomDownPSO
 	bloomDownPSO = samplingPSO;

@@ -59,6 +59,10 @@ float4 main(psInput input) : SV_TARGET
 
 float4 mainMSAA(psInput input) : SV_TARGET
 {   
+    #ifdef EDGE_HIGHLIGHT
+        return float4(1, 0, 0, 1);
+    #endif
+    
     float3 sumClampLighting = float3(0.0, 0.0, 0.0);
     
     uint validSampleCount = 0;

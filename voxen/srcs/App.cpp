@@ -307,6 +307,7 @@ void App::ImGuiFrame()
 	ImGui::Text("V: Frustum Culling View");
 	ImGui::Text("R: Reflection World View");
 	ImGui::Text("G: GBuffer View");
+	ImGui::Text("E: Edge View");
 	ImGui::Text("");
 
 	float worldX = m_camera.GetPosition().x;
@@ -622,8 +623,10 @@ void App::ShadingBasic()
 	Graphics::SetPipelineStates(Graphics::shadingBasicPSO);
 	SimpleQuadRenderer::GetInstance()->Render();
 
-	Graphics::SetPipelineStates(Graphics::shadingBasicEdgePSO);
+	Graphics::SetPipelineStates(
+		m_keyToggled['E'] ? Graphics::shadingBasicEdgeHighlightPSO : Graphics::shadingBasicEdgePSO);
 	SimpleQuadRenderer::GetInstance()->Render();
+		
 
 	ID3D11ShaderResourceView* nullSRV[] = {
 		0,
