@@ -53,6 +53,10 @@ namespace Graphics {
 	extern ComPtr<ID3D11PixelShader> skyboxMirrorPS;
 	extern ComPtr<ID3D11PixelShader> cloudPS;
 	extern ComPtr<ID3D11PixelShader> samplingPS;
+	extern ComPtr<ID3D11PixelShader> samplingGammaPS;
+	extern ComPtr<ID3D11PixelShader> samplingMSPS;
+	extern ComPtr<ID3D11PixelShader> samplingMSGammaPS;
+	extern ComPtr<ID3D11PixelShader> samplingCoveragePS;
 	extern ComPtr<ID3D11PixelShader> fogFilterPS;
 	extern ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	extern ComPtr<ID3D11PixelShader> waterPlanePS;
@@ -235,6 +239,7 @@ namespace Graphics {
 	extern D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
 	extern D3D11_VIEWPORT cullingViewerViewport;
 	extern D3D11_VIEWPORT reflectionWorldViewport;
+	extern D3D11_VIEWPORT GBufferViewerViewport[5];
 
 
 	// device, context, swapChain
@@ -272,6 +277,10 @@ namespace Graphics {
 	extern GraphicsPSO cloudPSO;
 	extern GraphicsPSO cloudMirrorPSO;
 	extern GraphicsPSO samplingPSO;
+	extern GraphicsPSO samplingGammaPSO;
+	extern GraphicsPSO samplingMSPSO;
+	extern GraphicsPSO samplingMSGammaPSO;
+	extern GraphicsPSO samplingCoveragePSO;
 	extern GraphicsPSO fogFilterPSO;
 	extern GraphicsPSO instancePSO;
 	extern GraphicsPSO instanceMirrorPSO;

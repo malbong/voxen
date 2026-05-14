@@ -67,6 +67,7 @@ private:
 
 	void RenderFrustumCullingViewer();
 	void RenderReflectionWorld();
+	void RenderGBufferViewer();
 
 	void LockCursor();
 	void UnlockCursor();

@@ -230,5 +230,8 @@
     <FxCompile Include="shaders\ViewFrustumVS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\SamplingCoveragePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

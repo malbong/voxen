@@ -302,7 +302,7 @@ namespace DXUtils {
 
 
 	static void UpdateViewport(
-		D3D11_VIEWPORT& viewport, int topLeftX, int topLeftY, int width, int height)
+		D3D11_VIEWPORT& viewport, UINT topLeftX, UINT topLeftY, UINT width, UINT height)
 	{
 		ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
 		viewport.TopLeftX = (FLOAT)topLeftX;

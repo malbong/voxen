@@ -306,6 +306,8 @@ void App::ImGuiFrame()
 	ImGui::Text("M: World Map");
 	ImGui::Text("V: Frustum Culling View");
 	ImGui::Text("R: Reflection World View");
+	ImGui::Text("G: GBuffer View");
+	ImGui::Text("");
 
 	float worldX = m_camera.GetPosition().x;
 	float worldY = m_camera.GetPosition().y;
@@ -506,6 +508,13 @@ void App::Render()
 	{
 		if (m_keyToggled['R']) {
 			RenderReflectionWorld();
+		}
+	}
+
+	// 9. G-Buffer View
+	{
+		if (m_keyToggled['G']) {
+			RenderGBufferViewer();
 		}
 	}
 
@@ -820,7 +829,7 @@ void App::RenderFrustumCullingViewer()
 
 		Graphics::context->PSSetShaderResources(0, 1, Graphics::cullingViewerSRV.GetAddressOf());
 
-		Graphics::SetPipelineStates(Graphics::samplingPSO);
+		Graphics::SetPipelineStates(Graphics::samplingGammaPSO);
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 
@@ -830,12 +839,40 @@ void App::RenderFrustumCullingViewer()
 
 void App::RenderReflectionWorld() 
 { 
-	Graphics::SetPipelineStates(Graphics::samplingPSO);
+	Graphics::SetPipelineStates(Graphics::samplingGammaPSO);
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::mirrorWorldSRV.GetAddressOf());
 
 	Graphics::context->RSSetViewports(1, &Graphics::reflectionWorldViewport);
 	SimpleQuadRenderer::GetInstance()->Render();
 
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderGBufferViewer() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingMSGammaPSO); 
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::albedoSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[0]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::SetPipelineStates(Graphics::samplingMSPSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::normalEdgeSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[1]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::positionSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[2]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::merSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[3]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::SetPipelineStates(Graphics::samplingCoveragePSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::coverageSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[4]);
+	SimpleQuadRenderer::GetInstance()->Render();
+	
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 

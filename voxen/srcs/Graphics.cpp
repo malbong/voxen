@@ -49,6 +49,10 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> skyboxMirrorPS;
 	ComPtr<ID3D11PixelShader> cloudPS;
 	ComPtr<ID3D11PixelShader> samplingPS;
+	ComPtr<ID3D11PixelShader> samplingGammaPS;
+	ComPtr<ID3D11PixelShader> samplingMSPS;
+	ComPtr<ID3D11PixelShader> samplingMSGammaPS;
+	ComPtr<ID3D11PixelShader> samplingCoveragePS;
 	ComPtr<ID3D11PixelShader> fogFilterPS;
 	ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	ComPtr<ID3D11PixelShader> waterPlanePS;
@@ -232,6 +236,7 @@ namespace Graphics {
 	D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
 	D3D11_VIEWPORT cullingViewerViewport;
 	D3D11_VIEWPORT reflectionWorldViewport;
+	D3D11_VIEWPORT GBufferViewerViewport[5];
 
 
 	// device, context, swapChain
@@ -269,6 +274,10 @@ namespace Graphics {
 	GraphicsPSO cloudPSO;
 	GraphicsPSO cloudMirrorPSO;
 	GraphicsPSO samplingPSO;
+	GraphicsPSO samplingGammaPSO;
+	GraphicsPSO samplingMSPSO;
+	GraphicsPSO samplingMSGammaPSO;
+	GraphicsPSO samplingCoveragePSO;
 	GraphicsPSO fogFilterPSO;
 	GraphicsPSO instancePSO;
 	GraphicsPSO instanceMirrorPSO;
@@ -489,7 +498,7 @@ bool Graphics::InitRenderTargetBuffers()
 	}
 
 	// mer
-	format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 	if (!DXUtils::CreateTextureBuffer(
 			merBuffer, App::APP_WIDTH, App::APP_HEIGHT, true, format, bindFlag)) {
@@ -1136,7 +1145,39 @@ bool Graphics::InitPixelShaders()
 		return false;
 	}
 
-	// fogFilterPS
+	// SamplingGammaPS
+	if (!DXUtils::CreatePixelShader(L"shaders/SamplingPS.hlsl", samplingGammaPS, nullptr, "mainGamma")) {
+		std::cout << "failed create sampling gamma ps" << std::endl;
+		return false;
+	}
+
+	// SamplingMSPS
+	macros.clear();
+	macros.push_back({ "MSAA_TEXTURE_SAMPLE", "1" });
+	macros.push_back({ NULL, NULL });
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/SamplingPS.hlsl", samplingMSPS, macros.data())) {
+		std::cout << "failed create sampling MS ps" << std::endl;
+		return false;
+	}
+
+	// SamplingMSGammaPS
+	macros.clear();
+	macros.push_back({ "MSAA_TEXTURE_SAMPLE", "1" });
+	macros.push_back({ NULL, NULL });
+	if (!DXUtils::CreatePixelShader(L"shaders/SamplingPS.hlsl", samplingMSGammaPS, macros.data(), "mainGamma")) {
+		std::cout << "failed create sampling MS gamma ps" << std::endl;
+		return false;
+	}
+
+	// SamplingCoveragePS
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/SamplingCoveragePS.hlsl", samplingCoveragePS)) {
+		std::cout << "failed create sampling coverage ps" << std::endl;
+		return false;
+	}
+
+	// FogFilterPS
 	if (!DXUtils::CreatePixelShader(L"shaders/FogFilterPS.hlsl", fogFilterPS)) {
 		std::cout << "failed create fog filter ps" << std::endl;
 		return false;
@@ -1514,16 +1555,15 @@ bool Graphics::InitBlendStates()
 void Graphics::InitViewports()
 {
 	// basicViewport;
-	DXUtils::UpdateViewport(Graphics::basicViewport, 0, 0, App::APP_WIDTH, App::APP_HEIGHT);
+	DXUtils::UpdateViewport(basicViewport, 0, 0, App::APP_WIDTH, App::APP_HEIGHT);
 
 	// mirrorWorldViewPort
-	DXUtils::UpdateViewport(
-		Graphics::mirrorWorldViewport, 0, 0, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
+	DXUtils::UpdateViewport(mirrorWorldViewport, 0, 0, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
 
 	// worldMapViewport
 	UINT worldMapTopX = (App::APP_WIDTH / 2) - (WorldMap::BIOME_MAP_UI_SIZE / 2);
 	UINT worldMapTopY = (App::APP_HEIGHT / 2) - (WorldMap::BIOME_MAP_UI_SIZE / 2);
-	DXUtils::UpdateViewport(Graphics::worldMapViewport, worldMapTopX, worldMapTopY,
+	DXUtils::UpdateViewport(worldMapViewport, worldMapTopX, worldMapTopY,
 		WorldMap::BIOME_MAP_UI_SIZE, WorldMap::BIOME_MAP_UI_SIZE);
 
 	// shadowViewports
@@ -1534,13 +1574,21 @@ void Graphics::InitViewports()
 
 	// cullingViewerViewport
 	DXUtils::UpdateViewport(
-		Graphics::cullingViewerViewport, 0, 0, (App::APP_WIDTH / 2), (App::APP_HEIGHT / 2));
+		cullingViewerViewport, 0, 0, (App::APP_WIDTH / 2), (App::APP_HEIGHT / 2));
 
 	// reflectionWorldViewport
 	UINT reflectionWorldMapTopX = App::APP_WIDTH - App::MIRROR_WIDTH;
 	UINT reflectionWorldMapTopY = App::APP_HEIGHT - App::MIRROR_HEIGHT;
-	DXUtils::UpdateViewport(Graphics::reflectionWorldViewport, reflectionWorldMapTopX,
+	DXUtils::UpdateViewport(reflectionWorldViewport, reflectionWorldMapTopX,
 		reflectionWorldMapTopY, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
+
+	// GBufferViewerViewport
+	int width = (App::APP_WIDTH) / 5;
+	int height = (App::APP_HEIGHT) / 5;
+	for (int i = 0; i < 5; ++i) {
+		int topY = (App::APP_HEIGHT / 5) * i;
+		DXUtils::UpdateViewport(GBufferViewerViewport[i], 0, topY, width, height);
+	}
 }
 
 void Graphics::InitGraphicsPSO()
@@ -1608,6 +1656,22 @@ void Graphics::InitGraphicsPSO()
 	samplingPSO.inputLayout = samplingIL;
 	samplingPSO.vertexShader = samplingVS;
 	samplingPSO.pixelShader = samplingPS;
+
+	// samplingGammaPSO
+	samplingGammaPSO = samplingPSO;
+	samplingGammaPSO.pixelShader = samplingGammaPS;
+
+	// samplingMSPSO
+	samplingMSPSO = samplingPSO;
+	samplingMSPSO.pixelShader = samplingMSPS;
+
+	// samplingMSGammaPSO
+	samplingMSGammaPSO = samplingPSO;
+	samplingMSGammaPSO.pixelShader = samplingMSGammaPS;
+
+	// samplingCoveragePSO
+	samplingCoveragePSO = samplingPSO;
+	samplingCoveragePSO.pixelShader = samplingCoveragePS;
 
 	// fogFilterPSO
 	fogFilterPSO = samplingPSO;
