@@ -131,7 +131,7 @@ namespace DXUtils {
 
 			count = (count == -1) ? dataSet.size() : count;
 			if (!DXUtils::CreateDynamicBuffer(buffer, count, sizeof(T), bindFlags)) {
-				std::cout << "failed resize buffer" << std::endl;
+				std::cout << "failed to resize buffer" << std::endl;
 				return false;
 			}
 		}
