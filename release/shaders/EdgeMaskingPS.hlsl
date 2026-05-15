@@ -37,17 +37,8 @@ float4 main(psInput input) : SV_Target
         discard;
     
     bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
-    if (cameraDummyData.x == 0)
-    {
-        if (edgeCount == 0)// && !isSemiAlphaEdgePixel)
-            discard;
-    }
-    else
-    {
-        if (edgeCount == 0 && !isSemiAlphaEdgePixel)
-            discard;
-    }
-    
+    if (edgeCount == 0 && !isSemiAlphaEdgePixel)
+        discard;
     
     // 2. rough, far ¿§Áö Ã¼Å©
     uint rough = 0;

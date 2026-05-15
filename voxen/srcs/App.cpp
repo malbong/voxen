@@ -308,6 +308,7 @@ void App::ImGuiFrame()
 	ImGui::Text("R: Reflection World View");
 	ImGui::Text("G: GBuffer View");
 	ImGui::Text("E: Edge View");
+	ImGui::Text("O: SSAO View");
 	ImGui::Text("");
 
 	float worldX = m_camera.GetPosition().x;
