@@ -138,10 +138,6 @@ namespace Graphics {
 	ComPtr<ID3D11RenderTargetView> ssaoRTV;
 	ComPtr<ID3D11ShaderResourceView> ssaoSRV;
 
-	ComPtr<ID3D11Texture2D> ssaoBlurBuffer[2];
-	ComPtr<ID3D11RenderTargetView> ssaoBlurRTV[2];
-	ComPtr<ID3D11ShaderResourceView> ssaoBlurSRV[2];
-
 	ComPtr<ID3D11Texture2D> mirrorWorldBuffer;
 	ComPtr<ID3D11RenderTargetView> mirrorWorldRTV;
 	ComPtr<ID3D11ShaderResourceView> mirrorWorldSRV;
@@ -215,6 +211,9 @@ namespace Graphics {
 
 	ComPtr<ID3D11Texture2D> copyForwardRenderBuffer;
 	ComPtr<ID3D11ShaderResourceView> copyForwardSRV;
+
+	ComPtr<ID3D11Texture2D> copySsaoBuffer;
+	ComPtr<ID3D11ShaderResourceView> copySsaoSRV;
 
 	ComPtr<ID3D11Texture2D> biomeMapBuffer;
 	ComPtr<ID3D11ShaderResourceView> biomeMapSRV;
@@ -538,29 +537,6 @@ bool Graphics::InitRenderTargetBuffers()
 		return false;
 	}
 
-	// ssao blur
-	format = DXGI_FORMAT_R32_FLOAT;
-	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	for (int i = 0; i < 2; ++i) {
-		if (!DXUtils::CreateTextureBuffer(
-				ssaoBlurBuffer[i], App::APP_WIDTH, App::APP_HEIGHT, false, format, bindFlag)) {
-			std::cout << "failed create ssao blur buffer" << std::endl;
-			return false;
-		}
-		ret = device->CreateRenderTargetView(
-			ssaoBlurBuffer[i].Get(), nullptr, ssaoBlurRTV[i].GetAddressOf());
-		if (FAILED(ret)) {
-			std::cout << "failed create ssao blur rtv" << std::endl;
-			return false;
-		}
-		ret = device->CreateShaderResourceView(
-			ssaoBlurBuffer[i].Get(), nullptr, ssaoBlurSRV[i].GetAddressOf());
-		if (FAILED(ret)) {
-			std::cout << "failed create ssao blur srv" << std::endl;
-			return false;
-		}
-	}
-
 	// mirrorWorld
 	format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
@@ -861,7 +837,7 @@ bool Graphics::InitShaderResourceBuffers()
 		return false;
 	}
 
-	// forward render
+	// copy forward render
 	format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	UINT bindFlag = D3D11_BIND_SHADER_RESOURCE;
 	if (!DXUtils::CreateTextureBuffer(
@@ -873,6 +849,21 @@ bool Graphics::InitShaderResourceBuffers()
 		copyForwardRenderBuffer.Get(), nullptr, copyForwardSRV.GetAddressOf());
 	if (FAILED(ret)) {
 		std::cout << "failed create copy forward srv" << std::endl;
+		return false;
+	}
+	
+	// copy ssao
+	format = format = DXGI_FORMAT_R32_FLOAT;
+	bindFlag = D3D11_BIND_SHADER_RESOURCE;
+	if (!DXUtils::CreateTextureBuffer(
+			copySsaoBuffer, App::APP_WIDTH, App::APP_HEIGHT, false, format, bindFlag)) {
+		std::cout << "failed create copy ssao buffer" << std::endl;
+		return false;
+	}
+	ret = device->CreateShaderResourceView(
+		copySsaoBuffer.Get(), nullptr, copySsaoSRV.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create copy ssao srv" << std::endl;
 		return false;
 	}
 

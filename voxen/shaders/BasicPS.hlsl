@@ -145,7 +145,7 @@ psOutput
     
     psOutput output;
     
-    bool edge = (coverage != 0xf); // 0b1111 -> 1111은 모서리가 아닌 픽셀임
+    bool edge = (coverage != 0xF); // 0xF가 아니면 → 일부 샘플만 덮음 → 에지
     
     float3 normal = normalMapping(input.texcoord, input.texIndex, input.normal);
     

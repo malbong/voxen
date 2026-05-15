@@ -12,12 +12,13 @@ struct psInput
 float4 main(psInput input) : SV_Target
 {
     // 1. 마킹 값 체크
-    uint invalidPosition = 0;
-    uint edgeCount = 0;
-    uint semiAlphaCount = 0;
     const float INVALID_MASK = -1.0;
     const float EDGE_MASK = 1.0;
     const float SEMIALPHA_MASK = 2.0;
+    
+    uint invalidPosition = 0;
+    uint edgeCount = 0;
+    uint semiAlphaCount = 0;
     
     [unroll]
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
@@ -35,17 +36,18 @@ float4 main(psInput input) : SV_Target
     if (invalidPosition == SAMPLE_COUNT) // 유효하지 않은 위치가 SAMPLE 개수만큼 있으면 엣지가 아님
         discard;
     
+    bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
     if (cameraDummyData.x == 0)
     {
-        if (edgeCount == 0)
+        if (edgeCount == 0)// && !isSemiAlphaEdgePixel)
             discard;
     }
     else
     {
-        bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
-        if (edgeCount == 0 && !isSemiAlphaEdgePixel) // Edge 마킹이 없으며, SemiAlpha의 일부만 있는 게 아닌 픽셀은 엣지가 아님
+        if (edgeCount == 0 && !isSemiAlphaEdgePixel)
             discard;
     }
+    
     
     // 2. rough, far 엣지 체크
     uint rough = 0;

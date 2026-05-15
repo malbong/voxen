@@ -84,13 +84,13 @@ float main(psInput input) : SV_TARGET
 {   
     float3 worldNormal = normalEdgeTex.Load(input.posProj.xy, 0).xyz;
     if (length(worldNormal) == 0)
-        return 1.0;
+        return 0.0;
     float3 viewNormal = mul(float4(worldNormal, 0.0), view).xyz;
     viewNormal = normalize(viewNormal);
     
     float4 worldPos = positionTex.Load(input.posProj.xy, 0);
     if (worldPos.w == -1.0)
-        return 1.0;
+        return 0.0;
     float3 viewPos = mul(float4(worldPos.xyz, 1.0), view).xyz;
     
     float occlusionFactor = getOcclusionFactor(input.texcoord, viewPos.xyz, viewNormal);
@@ -98,7 +98,7 @@ float main(psInput input) : SV_TARGET
     float distance = length(viewPos.xyz);
     float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - 32.0));
     
-    return 1.0 - (occlusionFactor * attenuation);
+    return (occlusionFactor * attenuation);
 }
 
 float mainMSAA(psInput input) : SV_TARGET
@@ -142,5 +142,5 @@ float mainMSAA(psInput input) : SV_TARGET
     
     sumOcclusionFactor /= SAMPLE_COUNT;
     
-    return 1.0 - sumOcclusionFactor;
+    return sumOcclusionFactor;
 }

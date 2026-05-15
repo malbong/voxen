@@ -519,6 +519,13 @@ void App::Render()
 		}
 	}
 
+	// 10. SSAO View
+	{
+		if (m_keyToggled['O']) {
+			RenderSSAOViewer();
+		}
+	}
+
 }
 
 void App::FillGBuffer()
@@ -597,11 +604,13 @@ void App::RenderSSAO()
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 
-	// blur
+	// Bloom
 	{
-		Graphics::SetPipelineStates(Graphics::samplingPSO);
-		m_postEffect.Blur(2, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
-			Graphics::ssaoBlurRTV, Graphics::blurSsaoPS);
+		Graphics::context->CopyResource(
+			Graphics::copySsaoBuffer.Get(), Graphics::ssaoBuffer.Get());
+
+		m_postEffect.Bloom(Graphics::copySsaoSRV, 1);
+		m_postEffect.CombineFromBloom(Graphics::ssaoSRV, Graphics::ssaoRTV);
 	}
 }
 
@@ -791,7 +800,11 @@ void App::RenderFogFilter() { m_postEffect.FogFilter(); }
 
 void App::RenderWaterFilter() { m_postEffect.WaterFilter(); }
 
-void App::RenderBloom() { m_postEffect.Bloom(); }
+void App::RenderBloom() 
+{ 
+	m_postEffect.Bloom(Graphics::basicSRV, 3); 
+	m_postEffect.CombineFromBloom(Graphics::basicSRV, Graphics::backBufferRTV);
+}
 
 void App::RenderFrustumCullingViewer() 
 {
@@ -877,6 +890,15 @@ void App::RenderGBufferViewer()
 	SimpleQuadRenderer::GetInstance()->Render();
 	
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderSSAOViewer() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::ssaoSRV.GetAddressOf());
+
+	SimpleQuadRenderer::GetInstance()->Render();
 }
 
 void App::LockCursor()

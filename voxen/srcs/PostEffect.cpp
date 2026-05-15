@@ -135,12 +135,14 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	}
 }
 
-void PostEffect::Bloom()
+void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, UINT count)
 {
-	// bloom Down 0 -> 1 -> 2 -> 3
+	count = min(3, count);
+
+	// bloom Down
 	{
 		Graphics::SetPipelineStates(Graphics::bloomDownPSO);
-		for (int i = 0; i <= 3; ++i) {
+		for (int i = 0; i <= count; ++i) {
 			int div = (int)std::pow(2, i + 1);
 
 			DXUtils::UpdateViewport(
@@ -151,7 +153,7 @@ void PostEffect::Bloom()
 				1, Graphics::bloomRTV[i + 1].GetAddressOf(), nullptr);
 
 			if (i == 0)
-				Graphics::context->PSSetShaderResources(0, 1, Graphics::basicSRV.GetAddressOf());
+				Graphics::context->PSSetShaderResources(0, 1, srcSRV.GetAddressOf());
 			else
 				Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[i].GetAddressOf());
 
@@ -162,7 +164,7 @@ void PostEffect::Bloom()
 	// bloom Up
 	{
 		Graphics::SetPipelineStates(Graphics::bloomUpPSO);
-		for (int i = 3; i >= 0; --i) {
+		for (int i = count; i >= 0; --i) {
 			int div = (int)std::pow(2, i);
 
 			DXUtils::UpdateViewport(
@@ -176,18 +178,19 @@ void PostEffect::Bloom()
 			SimpleQuadRenderer::GetInstance()->Render();
 		}
 	}
+}
 
+void PostEffect::CombineFromBloom(
+	ComPtr<ID3D11ShaderResourceView>& originSRV, ComPtr<ID3D11RenderTargetView>& rtv)
+{
 	// Combine & Tonemapping
-	{
-		Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+	Graphics::context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
 
-		ID3D11ShaderResourceView* ppSRVs[2] = { Graphics::basicSRV.Get(),
-			Graphics::bloomSRV[0].Get() };
-		Graphics::context->PSSetShaderResources(0, 2, ppSRVs);
+	ID3D11ShaderResourceView* ppSRVs[2] = { originSRV.Get(), Graphics::bloomSRV[0].Get() };
+	Graphics::context->PSSetShaderResources(0, 2, ppSRVs);
 
-		Graphics::SetPipelineStates(Graphics::combineBloomPSO);
-		SimpleQuadRenderer::GetInstance()->Render();
-	}
+	Graphics::SetPipelineStates(Graphics::combineBloomPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
 }
 
 void PostEffect::FogFilter()

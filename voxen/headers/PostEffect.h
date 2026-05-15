@@ -19,7 +19,9 @@ public:
 	void Blur(int count, ComPtr<ID3D11ShaderResourceView>& src, ComPtr<ID3D11RenderTargetView>& dst,
 		ComPtr<ID3D11ShaderResourceView> blurSRV[2], ComPtr<ID3D11RenderTargetView> blurRTV[2],
 		ComPtr<ID3D11PixelShader> blurPS[2]);
-	void Bloom();
+	void Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, UINT count);
+	void CombineFromBloom(ComPtr<ID3D11ShaderResourceView>& originSRV, ComPtr<ID3D11RenderTargetView>& rtv);
+
 	void FogFilter();
 	void WaterFilter();
 

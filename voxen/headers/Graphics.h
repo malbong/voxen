@@ -141,10 +141,6 @@ namespace Graphics {
 	extern ComPtr<ID3D11RenderTargetView> ssaoRTV;
 	extern ComPtr<ID3D11ShaderResourceView> ssaoSRV;
 
-	extern ComPtr<ID3D11Texture2D> ssaoBlurBuffer[2];
-	extern ComPtr<ID3D11RenderTargetView> ssaoBlurRTV[2];
-	extern ComPtr<ID3D11ShaderResourceView> ssaoBlurSRV[2];
-
 	extern ComPtr<ID3D11Texture2D> mirrorWorldBuffer;
 	extern ComPtr<ID3D11RenderTargetView> mirrorWorldRTV;
 	extern ComPtr<ID3D11ShaderResourceView> mirrorWorldSRV;
@@ -218,6 +214,9 @@ namespace Graphics {
 
 	extern ComPtr<ID3D11Texture2D> copyForwardRenderBuffer;
 	extern ComPtr<ID3D11ShaderResourceView> copyForwardSRV;
+
+	extern ComPtr<ID3D11Texture2D> copySsaoBuffer;
+	extern ComPtr<ID3D11ShaderResourceView> copySsaoSRV;
 
 	extern ComPtr<ID3D11Texture2D> biomeMapBuffer;
 	extern ComPtr<ID3D11ShaderResourceView> biomeMapSRV;
