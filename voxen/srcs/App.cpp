@@ -602,8 +602,7 @@ void App::RenderSSAO()
 		Graphics::context->CopyResource(
 			Graphics::copySsaoBuffer.Get(), Graphics::ssaoBuffer.Get());
 
-		m_postEffect.Bloom(Graphics::copySsaoSRV, 1);
-		m_postEffect.CombineFromBloom(Graphics::ssaoSRV, Graphics::ssaoRTV);
+		m_postEffect.Bloom(Graphics::copySsaoSRV, 1, Graphics::ssaoRTV);
 	}
 }
 
@@ -783,17 +782,36 @@ void App::RenderShadowMap()
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
-void App::RenderPickingBlock() { m_camera.RenderPickingBlock(); }
+void App::RenderPickingBlock() 
+{ 
+	Graphics::context->OMSetRenderTargets(
+		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
-void App::RenderWorldMap() { m_worldMap.RenderMap(); }
+	m_camera.RenderPickingBlock(); 
+}
 
-void App::RenderFogFilter() { m_postEffect.FogFilter(); }
+void App::RenderWorldMap() 
+{ 
+	Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+
+	m_worldMap.RenderMap(); 
+}
+
+void App::RenderFogFilter() 
+{ 
+	Graphics::context->CopyResource(
+		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
+
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
+
+	m_postEffect.FogFilter();
+}
 
 void App::RenderWaterFilter() { m_postEffect.WaterFilter(); }
 
 void App::RenderBloom() 
 { 
-	m_postEffect.Bloom(Graphics::basicSRV, 3); 
+	m_postEffect.Bloom(Graphics::basicSRV, 3, Graphics::bloomRTV[0]);
 	m_postEffect.CombineFromBloom(Graphics::basicSRV, Graphics::backBufferRTV);
 }
 

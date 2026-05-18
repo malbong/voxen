@@ -94,7 +94,8 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	}
 }
 
-void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, int count)
+void PostEffect::Bloom(
+	ComPtr<ID3D11ShaderResourceView>& srv, int count, ComPtr<ID3D11RenderTargetView>& rtv)
 {
 	count = min(3, count);
 
@@ -112,7 +113,7 @@ void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, int count)
 				1, Graphics::bloomRTV[i + 1].GetAddressOf(), nullptr);
 
 			if (i == 0)
-				Graphics::context->PSSetShaderResources(0, 1, srcSRV.GetAddressOf());
+				Graphics::context->PSSetShaderResources(0, 1, srv.GetAddressOf());
 			else
 				Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[i].GetAddressOf());
 
@@ -130,7 +131,11 @@ void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, int count)
 				Graphics::bloomViewport, 0, 0, App::APP_WIDTH / div, App::APP_HEIGHT / div);
 			Graphics::context->RSSetViewports(1, &Graphics::bloomViewport);
 
-			Graphics::context->OMSetRenderTargets(1, Graphics::bloomRTV[i].GetAddressOf(), nullptr);
+			if (i == 0)
+				Graphics::context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+			else
+				Graphics::context->OMSetRenderTargets(
+					1, Graphics::bloomRTV[i].GetAddressOf(), nullptr);
 
 			Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[i + 1].GetAddressOf());
 
@@ -154,11 +159,6 @@ void PostEffect::CombineFromBloom(
 
 void PostEffect::FogFilter()
 {
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->CopyResource(
-		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
-
 	std::vector<ID3D11ShaderResourceView*> ppSRVs;
 	ppSRVs.push_back(Graphics::copyForwardSRV.Get());
 	ppSRVs.push_back(Graphics::basicDepthSRV.Get());

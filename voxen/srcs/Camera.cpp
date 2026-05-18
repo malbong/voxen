@@ -328,9 +328,6 @@ void Camera::RenderPickingBlock()
 { 
 	Graphics::SetPipelineStates(Graphics::pickingBlockPSO);
 
-	Graphics::context->OMSetRenderTargets(
-		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
-
 	UINT stride = sizeof(PickingObjectVertex);
 	UINT offset = 0;
 	Graphics::context->IASetIndexBuffer(m_pickingObjectIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);

@@ -95,8 +95,6 @@ void WorldMap::RenderMap()
 {
 	Graphics::context->RSSetViewports(1, &Graphics::worldMapViewport);
 
-	Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
-
 	std::vector<ID3D11ShaderResourceView*> ppSRVs;
 	ppSRVs.push_back(Graphics::biomeMapSRV.Get());
 	ppSRVs.push_back(Graphics::worldPointSRV.Get());
