@@ -67,7 +67,7 @@ void PostEffect::Update(float dt, bool isUnderWater)
 	DXUtils::UpdateConstantBuffer(m_waterFilterConstantBuffer, m_waterFilterConstantData);
 }
 
-void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
+void PostEffect::BlurGaussian(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
 	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
@@ -81,7 +81,7 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 		else
 			Graphics::context->PSSetShaderResources(0, 1, blurSRV[1].GetAddressOf());
 
-		Graphics::context->PSSetShader(Graphics::blurPS[0].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurGaussianPS[0].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 
 		// Blur Y
@@ -92,9 +92,34 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 
 		Graphics::context->PSSetShaderResources(0, 1, blurSRV[0].GetAddressOf());
 
-		Graphics::context->PSSetShader(Graphics::blurPS[1].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurGaussianPS[1].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
+}
+
+void PostEffect::BlurBilateral(int count, ComPtr<ID3D11ShaderResourceView>& src,
+	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
+	ComPtr<ID3D11RenderTargetView> blurRTV[2])
+{
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+	
+	for (int i = 0; i < count; ++i) {
+		Graphics::context->OMSetRenderTargets(1, blurRTV[i % 2].GetAddressOf(), nullptr);
+
+		if (i == 0)
+			Graphics::context->PSSetShaderResources(0, 1, src.GetAddressOf());
+		else
+			Graphics::context->PSSetShaderResources(0, 1, blurSRV[(i + 1) % 2].GetAddressOf());
+
+		Graphics::context->PSSetShader(Graphics::blurBilateralPS.Get(), nullptr, 0);
+		SimpleQuadRenderer::GetInstance()->Render();
+	}
+
+	// copyResource
+	Graphics::context->OMSetRenderTargets(1, dst.GetAddressOf(), nullptr);
+	Graphics::context->PSSetShaderResources(0, 1, blurSRV[(count - 1) % 2].GetAddressOf());
+	Graphics::context->PSSetShader(Graphics::samplingPS.Get(), nullptr, 0);
+	SimpleQuadRenderer::GetInstance()->Render();
 }
 
 void PostEffect::Bloom(

@@ -600,16 +600,15 @@ void App::RenderSSAO()
 	// Bloom
 	{
 		//m_postEffect.Bloom(Graphics::ssaoSRV, 2, Graphics::ssaoRTV);
-		int blurCount = 0;
-		if (m_keyToggled['B']) {
-			blurCount = 0;
+		int blurCount = 1;
+		if (!m_keyPressed['B']) {
+			m_postEffect.BlurBilateral(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
+				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
 		}
 		else {
-			blurCount = 3;
+			m_postEffect.BlurGaussian(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
+				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
 		}
-		
-		m_postEffect.Blur(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
-			Graphics::ssaoBlurRTV);
 	}
 }
 
@@ -725,7 +724,7 @@ void App::RenderMirrorWorld()
 
 	// blur mirror world
 	{
-		m_postEffect.Blur(3, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
+		m_postEffect.BlurGaussian(3, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
 			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV);
 	}
 

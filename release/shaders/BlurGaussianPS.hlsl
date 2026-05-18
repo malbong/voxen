@@ -12,12 +12,12 @@ static const float gaussianKernel[5] = { 0.0545, 0.2442, 0.4026, 0.2442, 0.0545 
 
 float4 main(psInput input) : SV_TARGET
 {
-    float4 color = float4(0.0, 0.0, 0.0, 0.0);
-    float2 offset = float2(0.0, 0.0);
-    
     float width, height, lod;
     renderTex.GetDimensions(0, width, height, lod);
   
+    float4 sumColor = float4(0.0, 0.0, 0.0, 0.0);
+    
+    float2 offset = float2(0.0, 0.0);
     float dx = 1.0 / width;
     float dy = 1.0 / height;
     
@@ -32,8 +32,8 @@ float4 main(psInput input) : SV_TARGET
 #endif
         float4 sampleColor = renderTex.Sample(linearClampSS, input.texcoord + offset);
    
-        color += sampleColor * gaussianKernel[i];
+        sumColor += sampleColor * gaussianKernel[i];
     }
     
-    return color;
+    return sumColor;
 }

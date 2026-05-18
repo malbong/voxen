@@ -29,8 +29,8 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
 {
     // linear Wrap Sampler·Î ·£´ý È¸Àü º¤ÅÍ ¾ò±â
     // 2x2px -> same random vector
-    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,3]
-    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,3]
+    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,3)
+    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,3)
     
     uint fx1 = uint(floor(fx));
     uint fx2 = uint(floor(fx + 1.0));
@@ -113,13 +113,10 @@ float mainMSAA(psInput input) : SV_TARGET
     uint4 sampleWeight = coverageAnalysis(coverage);
     uint sampleWeightArray[4] = { sampleWeight.x, sampleWeight.y, sampleWeight.z, sampleWeight.w };
     
-    if (cameraDummyData.x == 0)
-    {
-        sampleWeightArray[0] = 1;
-        sampleWeightArray[1] = 1;
-        sampleWeightArray[2] = 1;
-        sampleWeightArray[3] = 1;
-    }
+    sampleWeightArray[0] = 1;
+    sampleWeightArray[1] = 1;
+    sampleWeightArray[2] = 1;
+    sampleWeightArray[3] = 1;
     
     float sumOcclusionFactor = 0.0;
 

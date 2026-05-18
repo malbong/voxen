@@ -173,7 +173,7 @@
     <FxCompile Include="shaders\BloomUpPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\BlurPS.hlsl">
+    <FxCompile Include="shaders\BlurGaussianPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\CloudPS.hlsl">
@@ -237,6 +237,9 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\SamplingCoveragePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BlurBilateralPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>

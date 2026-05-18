@@ -57,7 +57,8 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	ComPtr<ID3D11PixelShader> waterPlanePS;
 	ComPtr<ID3D11PixelShader> waterFilterPS;
-	ComPtr<ID3D11PixelShader> blurPS[2];
+	ComPtr<ID3D11PixelShader> blurGaussianPS[2];
+	ComPtr<ID3D11PixelShader> blurBilateralPS;
 	ComPtr<ID3D11PixelShader> ssaoPS;
 	ComPtr<ID3D11PixelShader> ssaoEdgePS;
 	ComPtr<ID3D11PixelShader> edgeMaskingPS;
@@ -605,7 +606,7 @@ bool Graphics::InitRenderTargetBuffers()
 		}
 	}
 
-	// mirror blur
+	// ssao blur
 	format = DXGI_FORMAT_R32_FLOAT;
 	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 	for (int i = 0; i < 2; ++i) {
@@ -1220,19 +1221,26 @@ bool Graphics::InitPixelShaders()
 		return false;
 	}
 
-	// BlurPS
+	// BlurGaussianPS
 	macros.clear();
 	macros.push_back({ "BLUR_X", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurPS[0], macros.data())) {
-		std::cout << "failed create blur ssao x ps" << std::endl;
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurGaussianPS.hlsl", blurGaussianPS[0], macros.data())) {
+		std::cout << "failed create blur gaussian x ps" << std::endl;
 		return false;
 	}
 	macros.clear();
 	macros.push_back({ "BLUR_Y", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurPS[1], macros.data())) {
-		std::cout << "failed create blur ssao y ps" << std::endl;
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurGaussianPS.hlsl", blurGaussianPS[1], macros.data())) {
+		std::cout << "failed create blur gaussian y ps" << std::endl;
+		return false;
+	}
+
+	// BlurBilateralPS
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/BlurBilateralPS.hlsl", blurBilateralPS)) {
+		std::cout << "failed create blur bilateral ps" << std::endl;
 		return false;
 	}
 

@@ -61,7 +61,8 @@ namespace Graphics {
 	extern ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	extern ComPtr<ID3D11PixelShader> waterPlanePS;
 	extern ComPtr<ID3D11PixelShader> waterFilterPS;
-	extern ComPtr<ID3D11PixelShader> blurPS[2];
+	extern ComPtr<ID3D11PixelShader> blurGaussianPS[2];
+	extern ComPtr<ID3D11PixelShader> blurBilateralPS;
 	extern ComPtr<ID3D11PixelShader> ssaoPS;
 	extern ComPtr<ID3D11PixelShader> ssaoEdgePS;
 	extern ComPtr<ID3D11PixelShader> edgeMaskingPS;
