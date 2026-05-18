@@ -69,19 +69,22 @@ void PostEffect::Update(float dt, bool isUnderWater)
 
 void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
-	ComPtr<ID3D11RenderTargetView> blurRTV[2], ComPtr<ID3D11PixelShader> blurPS[2])
+	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
-	for (int i = 0; i < count; ++i) {
-		Graphics::context->OMSetRenderTargets(1, blurRTV[0].GetAddressOf(), nullptr);
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
 
+	for (int i = 0; i < count; ++i) {
+		// Blur X
+		Graphics::context->OMSetRenderTargets(1, blurRTV[0].GetAddressOf(), nullptr);
 		if (i == 0)
 			Graphics::context->PSSetShaderResources(0, 1, src.GetAddressOf());
 		else
 			Graphics::context->PSSetShaderResources(0, 1, blurSRV[1].GetAddressOf());
 
-		Graphics::context->PSSetShader(blurPS[0].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurPS[0].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 
+		// Blur Y
 		if (i == count - 1)
 			Graphics::context->OMSetRenderTargets(1, dst.GetAddressOf(), nullptr);
 		else
@@ -89,7 +92,7 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 
 		Graphics::context->PSSetShaderResources(0, 1, blurSRV[0].GetAddressOf());
 
-		Graphics::context->PSSetShader(blurPS[1].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurPS[1].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 }
@@ -172,12 +175,6 @@ void PostEffect::FogFilter()
 
 void PostEffect::WaterFilter()
 {
-	Graphics::context->CopyResource(Graphics::bloomBuffer[0].Get(), Graphics::basicBuffer.Get());
-
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[0].GetAddressOf());
-
 	Graphics::context->PSSetConstantBuffers(0, 1, m_waterFilterConstantBuffer.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::waterFilterPSO);

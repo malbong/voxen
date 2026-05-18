@@ -599,10 +599,17 @@ void App::RenderSSAO()
 
 	// Bloom
 	{
-		Graphics::context->CopyResource(
-			Graphics::copySsaoBuffer.Get(), Graphics::ssaoBuffer.Get());
-
-		m_postEffect.Bloom(Graphics::copySsaoSRV, 1, Graphics::ssaoRTV);
+		//m_postEffect.Bloom(Graphics::ssaoSRV, 2, Graphics::ssaoRTV);
+		int blurCount = 0;
+		if (m_keyToggled['B']) {
+			blurCount = 0;
+		}
+		else {
+			blurCount = 3;
+		}
+		
+		m_postEffect.Blur(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
+			Graphics::ssaoBlurRTV);
 	}
 }
 
@@ -718,9 +725,8 @@ void App::RenderMirrorWorld()
 
 	// blur mirror world
 	{
-		Graphics::SetPipelineStates(Graphics::samplingPSO);
 		m_postEffect.Blur(3, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
-			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV, Graphics::blurMirrorPS);
+			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV);
 	}
 
 	// 원래의 글로벌로 두기
@@ -807,7 +813,12 @@ void App::RenderFogFilter()
 	m_postEffect.FogFilter();
 }
 
-void App::RenderWaterFilter() { m_postEffect.WaterFilter(); }
+void App::RenderWaterFilter() 
+{ 
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
+
+	m_postEffect.WaterFilter(); 
+}
 
 void App::RenderBloom() 
 { 

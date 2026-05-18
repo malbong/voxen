@@ -104,6 +104,7 @@ float main(psInput input) : SV_TARGET
 float mainMSAA(psInput input) : SV_TARGET
 {
     uint4 coverage;
+    
     coverage.x = coverageTex.Load(input.posProj.xy, 0);
     coverage.y = coverageTex.Load(input.posProj.xy, 1);
     coverage.z = coverageTex.Load(input.posProj.xy, 2);
@@ -112,8 +113,16 @@ float mainMSAA(psInput input) : SV_TARGET
     uint4 sampleWeight = coverageAnalysis(coverage);
     uint sampleWeightArray[4] = { sampleWeight.x, sampleWeight.y, sampleWeight.z, sampleWeight.w };
     
+    if (cameraDummyData.x == 0)
+    {
+        sampleWeightArray[0] = 1;
+        sampleWeightArray[1] = 1;
+        sampleWeightArray[2] = 1;
+        sampleWeightArray[3] = 1;
+    }
+    
     float sumOcclusionFactor = 0.0;
-   
+
     // dont use [unroll] -> continue statement
     [loop]
     for (uint i = 0; i < SAMPLE_COUNT; ++i) // loop max 4

@@ -57,8 +57,7 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	ComPtr<ID3D11PixelShader> waterPlanePS;
 	ComPtr<ID3D11PixelShader> waterFilterPS;
-	ComPtr<ID3D11PixelShader> blurMirrorPS[2];
-	ComPtr<ID3D11PixelShader> blurSsaoPS[2];
+	ComPtr<ID3D11PixelShader> blurPS[2];
 	ComPtr<ID3D11PixelShader> ssaoPS;
 	ComPtr<ID3D11PixelShader> ssaoEdgePS;
 	ComPtr<ID3D11PixelShader> edgeMaskingPS;
@@ -149,6 +148,10 @@ namespace Graphics {
 	ComPtr<ID3D11Texture2D> mirrorBlurBuffer[2];
 	ComPtr<ID3D11RenderTargetView> mirrorBlurRTV[2];
 	ComPtr<ID3D11ShaderResourceView> mirrorBlurSRV[2];
+
+	ComPtr<ID3D11Texture2D> ssaoBlurBuffer[2];
+	ComPtr<ID3D11RenderTargetView> ssaoBlurRTV[2];
+	ComPtr<ID3D11ShaderResourceView> ssaoBlurSRV[2];
 
 	ComPtr<ID3D11Texture2D> bloomBuffer[5];
 	ComPtr<ID3D11RenderTargetView> bloomRTV[5];
@@ -598,6 +601,29 @@ bool Graphics::InitRenderTargetBuffers()
 			mirrorBlurBuffer[i].Get(), nullptr, mirrorBlurSRV[i].GetAddressOf());
 		if (FAILED(ret)) {
 			std::cout << "failed create mirror blur srv" << std::endl;
+			return false;
+		}
+	}
+
+	// mirror blur
+	format = DXGI_FORMAT_R32_FLOAT;
+	bindFlag = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	for (int i = 0; i < 2; ++i) {
+		if (!DXUtils::CreateTextureBuffer(ssaoBlurBuffer[i], App::APP_WIDTH,
+				App::APP_HEIGHT, false, format, bindFlag)) {
+			std::cout << "failed create ssao blur buffer" << std::endl;
+			return false;
+		}
+		ret = device->CreateRenderTargetView(
+			ssaoBlurBuffer[i].Get(), nullptr, ssaoBlurRTV[i].GetAddressOf());
+		if (FAILED(ret)) {
+			std::cout << "failed create ssao blur rtv" << std::endl;
+			return false;
+		}
+		ret = device->CreateShaderResourceView(
+			ssaoBlurBuffer[i].Get(), nullptr, ssaoBlurSRV[i].GetAddressOf());
+		if (FAILED(ret)) {
+			std::cout << "failed create ssao blur srv" << std::endl;
 			return false;
 		}
 	}
@@ -1196,32 +1222,16 @@ bool Graphics::InitPixelShaders()
 
 	// BlurPS
 	macros.clear();
-	macros.push_back({ "USE_ALPHA_BLUR", "1" });
 	macros.push_back({ "BLUR_X", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurMirrorPS[0], macros.data())) {
-		std::cout << "failed create blur mirror x ps" << std::endl;
-		return false;
-	}
-	macros.clear();
-	macros.push_back({ "USE_ALPHA_BLUR", "1" });
-	macros.push_back({ "BLUR_Y", "1" });
-	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurMirrorPS[1], macros.data())) {
-		std::cout << "failed create blur mirror y ps" << std::endl;
-		return false;
-	}
-	macros.clear();
-	macros.push_back({ "BLUR_X", "1" });
-	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurSsaoPS[0], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurPS[0], macros.data())) {
 		std::cout << "failed create blur ssao x ps" << std::endl;
 		return false;
 	}
 	macros.clear();
 	macros.push_back({ "BLUR_Y", "1" });
 	macros.push_back({ NULL, NULL });
-	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurSsaoPS[1], macros.data())) {
+	if (!DXUtils::CreatePixelShader(L"shaders/BlurPS.hlsl", blurPS[1], macros.data())) {
 		std::cout << "failed create blur ssao y ps" << std::endl;
 		return false;
 	}
@@ -1704,6 +1714,7 @@ void Graphics::InitGraphicsPSO()
 
 	// waterFilterPSO
 	waterFilterPSO = samplingPSO;
+	waterFilterPSO.blendState = alphaBS;
 	waterFilterPSO.pixelShader = waterFilterPS;
 
 	// basicShadowPSO

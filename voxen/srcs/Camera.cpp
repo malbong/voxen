@@ -113,6 +113,15 @@ void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouse
 
 	DDAPickingBlock();
 
+	if (keyPressed['X']) {
+		m_isOnConstantDirtyFlag = true;
+		m_constantData.dummy.x = 0;
+	}
+	else {
+		m_isOnConstantDirtyFlag = true;
+		m_constantData.dummy.x = 1;
+	}
+
 	if (m_isOnConstantDirtyFlag) {
 		// basic
 		m_constantData.view = GetViewMatrix().Transpose();
