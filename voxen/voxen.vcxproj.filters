@@ -51,7 +51,7 @@
     <ClInclude Include="headers\Instance.h">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="headers\light.h">
+    <ClInclude Include="headers\Light.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\MeshGenerator.h">

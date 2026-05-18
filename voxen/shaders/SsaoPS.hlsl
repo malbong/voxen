@@ -29,8 +29,8 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
 {
     // linear Wrap Sampler·Î ·£´ý È¸Àü º¤ÅÍ ¾ò±â
     // 2x2px -> same random vector
-    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,15)
-    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,15)
+    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,3]
+    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,3]
     
     uint fx1 = uint(floor(fx));
     uint fx2 = uint(floor(fx + 1.0));
@@ -46,7 +46,7 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
     float3x3 TBN = float3x3(T, B, viewNormal);
     
     float occlusionFactor = 0.0;
-    float radius = 0.75;
+    float radius = 1.5;
     float bias = 0.05;
     
     const uint COUNT = 16;

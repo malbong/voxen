@@ -42,11 +42,11 @@ bool PostEffect::Initialize()
 
 		sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;
 		sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
-		sampleKernel.z = randomFloats(generator);
+		sampleKernel.z = randomFloats(generator); // hemisphere
 		sampleKernel.w = 0.0f;
 		sampleKernel.Normalize();
 
-		sampleKernel *= randomFloats(generator);
+		sampleKernel *= randomFloats(generator); // scaling
 
 		float scale = (float)i / 16;
 		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale);

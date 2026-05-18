@@ -233,7 +233,7 @@ bool App::InitGUI()
 bool App::InitScene()
 {
 	if (!m_camera.Initialize(
-			Vector3(260.0f, 162.0f, -900.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+			Vector3(0.0f, 162.0f, -0.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
@@ -421,7 +421,7 @@ void App::Update(float dt)
 	m_mouseRightDown = false;
 }
 
-void App::Render()
+void App::SetGlobalConstantBuffer()
 {
 	std::vector<ID3D11Buffer*> ppConstantBuffers;
 	ppConstantBuffers.push_back(m_constantBuffer.Get());
@@ -435,8 +435,11 @@ void App::Render()
 		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
 	Graphics::context->PSSetConstantBuffers(
 		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
+}
 
-	Graphics::context->PSGetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
+void App::Render()
+{
+	SetGlobalConstantBuffer();
 
 	// 0. Shadow Map
 	{
@@ -626,8 +629,9 @@ void App::ShadingBasic()
 	ppSRVs.push_back(Graphics::albedoSRV.Get());
 	ppSRVs.push_back(Graphics::merSRV.Get());
 	ppSRVs.push_back(Graphics::ssaoSRV.Get());
-
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+
+	Graphics::context->PSSetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
 	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::shadingBasicPSO);
@@ -638,10 +642,8 @@ void App::ShadingBasic()
 	SimpleQuadRenderer::GetInstance()->Render();
 		
 
-	ID3D11ShaderResourceView* nullSRV[] = {
-		0,
-	};
-	Graphics::context->PSSetShaderResources(11, 1, nullSRV);
+	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+	Graphics::context->PSSetShaderResources(10, 2, nullSRV);
 }
 
 void App::ConvertToMSAA()
@@ -755,15 +757,14 @@ void App::RenderWaterPlane()
 	ppSRVs.push_back(Graphics::waterStillAtlasMapSRV.Get());
 	ppSRVs.push_back(Graphics::waterStillNormalAtlasMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+	Graphics::context->PSSetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
 	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::waterPlanePSO);
 	ChunkManager::GetInstance()->RenderTransparency();
 
-	ID3D11ShaderResourceView* nullSRV[] = {
-		0,
-	};
-	Graphics::context->PSSetShaderResources(11, 1, nullSRV);
+	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+	Graphics::context->PSSetShaderResources(10, 2, nullSRV);
 }
 
 void App::RenderShadowMap()

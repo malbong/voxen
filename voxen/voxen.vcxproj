@@ -373,7 +373,7 @@ xcopy "$(ProjectDir)shaders" "%OUT_DIR%\shaders\" /e /y /i</Command>
     <ClInclude Include="headers\Graphics.h" />
     <ClInclude Include="headers\GraphicsPSO.h" />
     <ClInclude Include="headers\Instance.h" />
-    <ClInclude Include="headers\light.h" />
+    <ClInclude Include="headers\Light.h" />
     <ClInclude Include="headers\MeshGenerator.h" />
     <ClInclude Include="headers\PatchData.h" />
     <ClInclude Include="headers\Pos.h" />

@@ -46,7 +46,7 @@ float4 main(psInput input) : SV_TARGET
     float roughness = mer.b;
     
     float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
-    ao = pow(ao, 5.0);
+    ao = pow(ao, 2.0);
     
     float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
@@ -60,7 +60,7 @@ float4 main(psInput input) : SV_TARGET
 float4 mainMSAA(psInput input) : SV_TARGET
 {   
     #ifdef EDGE_HIGHLIGHT
-        return float4(0, 0, 0, 1);
+        return float4(1, 0, 0, 1);
     #endif
     
     float3 sumClampLighting = float3(0.0, 0.0, 0.0);
@@ -88,7 +88,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float roughness = mer.b;
         
         float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
-        ao = pow(ao, 5.0);
+        ao = pow(ao, 2.0);
         
         float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
         float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);

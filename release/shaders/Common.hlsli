@@ -178,7 +178,8 @@ float3 getAmbientColor()
         float sunAniso = max(dot(lightDir, eyeDir), 0.0);
         float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
         
-        float w = smoothstep(maxHorizonColorAltitude, dayAltitude, sunAltitude);
+        float w = smoothstep(maxHorizonColorAltitude, dayAltitude, 
+                                clamp(sunAltitude, maxHorizonColorAltitude, dayAltitude));
         ambientColor = lerp(eyeHorizonColor, ambientColor, w);
     }
     
@@ -222,7 +223,7 @@ float3 getSpecularTerm(float3 albedo, float3 pixelToEye, float3 normal, float me
     float3 reflectDir = normalize(reflect(-pixelToEye, normal));
     float reflectRadianceWeight = max(dot(reflectDir, lightDir), 0.0);
     float3 reflectRadiance = lerp(ambientColor, radianceColor, reflectRadianceWeight);
-    float3 specularIrradiance = lerp(reflectRadiance, ambientColor, roughness);
+    float3 specularIrradiance = reflectRadiance;
     
     float3 Fdielectric = float3(0.04, 0.04, 0.04);
     float3 F0 = lerp(Fdielectric, albedo, metallic);
