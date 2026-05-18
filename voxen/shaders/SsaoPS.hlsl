@@ -119,23 +119,23 @@ float mainMSAA(psInput input) : SV_TARGET
     sampleWeightArray[3] = 1;
     
     float sumOcclusionFactor = 0.0;
+    uint validSampleCount = 0;
 
     // dont use [unroll] -> continue statement
     [loop]
     for (uint i = 0; i < SAMPLE_COUNT; ++i) // loop max 4
     {
-        if (sampleWeightArray[i] == 0)
-            continue;
-        
         float3 worldNormal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
         if (length(worldNormal) == 0)
             continue;
+        
         float3 viewNormal = mul(float4(worldNormal, 0.0), view).xyz;
         viewNormal = normalize(viewNormal);
 
         float4 worldPos = positionTex.Load(input.posProj.xy, i);
         if (worldPos.w == -1.0)
             continue;
+        
         float3 viewPos = mul(float4(worldPos.xyz, 1.0), view).xyz;
         
         float occlusionFactor = getOcclusionFactor(input.texcoord, viewPos.xyz, viewNormal) * sampleWeightArray[i];
@@ -144,9 +144,12 @@ float mainMSAA(psInput input) : SV_TARGET
         float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - 32.0));
         
         sumOcclusionFactor += occlusionFactor * attenuation;
+        
+        validSampleCount++;
     }
     
-    sumOcclusionFactor /= SAMPLE_COUNT;
+    sumOcclusionFactor /= validSampleCount;
+    
     
     return sumOcclusionFactor;
 }

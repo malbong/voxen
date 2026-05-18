@@ -71,6 +71,9 @@ void PostEffect::BlurGaussian(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
 	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
+	if (count == 0)
+		return;
+
 	Graphics::SetPipelineStates(Graphics::samplingPSO);
 
 	for (int i = 0; i < count; ++i) {
@@ -101,8 +104,11 @@ void PostEffect::BlurBilateral(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
 	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
+	if (count == 0)
+		return;
+
 	Graphics::SetPipelineStates(Graphics::samplingPSO);
-	
+
 	for (int i = 0; i < count; ++i) {
 		Graphics::context->OMSetRenderTargets(1, blurRTV[i % 2].GetAddressOf(), nullptr);
 

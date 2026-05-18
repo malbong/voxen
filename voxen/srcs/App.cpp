@@ -313,6 +313,7 @@ void App::ImGuiFrame()
 	ImGui::Text("G: GBuffer View");
 	ImGui::Text("E: Edge View");
 	ImGui::Text("O: SSAO View");
+	ImGui::Text("B: Toggle SSAO Blur[Bilateral vs Gaussian]");
 	ImGui::Text("");
 
 	float worldX = m_camera.GetPosition().x;
@@ -597,11 +598,11 @@ void App::RenderSSAO()
 		m_SSAO.Render();
 	}
 
-	// Bloom
+	// Blur
 	{
-		//m_postEffect.Bloom(Graphics::ssaoSRV, 2, Graphics::ssaoRTV);
-		int blurCount = 1;
-		if (!m_keyPressed['B']) {
+		int blurCount = 3;
+
+		if (!m_keyToggled['B']) {
 			m_postEffect.BlurBilateral(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
 				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
 		}
@@ -724,7 +725,7 @@ void App::RenderMirrorWorld()
 
 	// blur mirror world
 	{
-		m_postEffect.BlurGaussian(3, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
+		m_postEffect.BlurGaussian(2, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
 			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV);
 	}
 
