@@ -87,6 +87,9 @@
     <ClInclude Include="headers\WorldMap.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\SSAO.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
@@ -148,6 +151,9 @@
       <Filter>srcs</Filter>
     </ClCompile>
     <ClCompile Include="srcs\WorldMap.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
+    <ClCompile Include="srcs\SSAO.cpp">
       <Filter>srcs</Filter>
     </ClCompile>
   </ItemGroup>

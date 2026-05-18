@@ -6,11 +6,9 @@
 #include "SimpleQuadRenderer.h"
 
 #include <algorithm>
-#include <random>
 
 PostEffect::PostEffect()
 	: m_fogFilterConstantBuffer(nullptr), m_waterFilterConstantBuffer(nullptr),
-	  m_ssaoConstantBuffer(nullptr), m_ssaoNoiseConstantBuffer(nullptr),
 	  m_waterAdaptationTime(0.0f), m_waterMaxDuration(2.5f)
 {
 }
@@ -32,45 +30,6 @@ bool PostEffect::Initialize()
 	m_waterFilterConstantData.filterStrength = 0.0f;
 	if (!DXUtils::CreateConstantBuffer(m_waterFilterConstantBuffer, m_waterFilterConstantData)) {
 		std::cout << "failed create water filter constant buffer" << std::endl;
-		return false;
-	}
-
-	std::uniform_real_distribution<float> randomFloats(0.0001f, 1.0f);
-	std::default_random_engine generator;
-	for (int i = 0; i < 16; ++i) {
-		Vector4 sampleKernel;
-
-		sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;
-		sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
-		sampleKernel.z = randomFloats(generator); // hemisphere
-		sampleKernel.w = 0.0f;
-		sampleKernel.Normalize();
-
-		sampleKernel *= randomFloats(generator); // scaling
-
-		float scale = (float)i / 16;
-		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale);
-
-		m_ssaoConstantData.sampleKernel[i] = sampleKernel;
-	}
-	if (!DXUtils::CreateConstantBuffer(m_ssaoConstantBuffer, m_ssaoConstantData)) {
-		std::cout << "failed create ssao constant buffer" << std::endl;
-		return false;
-	}
-
-	for (int i = 0; i < 16; ++i) {
-		Vector4 rotationNoise;
-
-		rotationNoise.x = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.y = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.z = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.w = 0.0f;
-		rotationNoise.Normalize();
-
-		m_ssaoNoiseConstantData.rotationNoise[i] = rotationNoise;
-	}
-	if (!DXUtils::CreateConstantBuffer(m_ssaoNoiseConstantBuffer, m_ssaoNoiseConstantData)) {
-		std::cout << "failed create ssao noise constant buffer" << std::endl;
 		return false;
 	}
 
@@ -135,7 +94,7 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	}
 }
 
-void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, UINT count)
+void PostEffect::Bloom(ComPtr<ID3D11ShaderResourceView>& srcSRV, int count)
 {
 	count = min(3, count);
 

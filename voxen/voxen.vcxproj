@@ -210,6 +210,7 @@ xcopy "$(ProjectDir)shaders" "%OUT_DIR%\shaders\" /e /y /i</Command>
     <ClCompile Include="srcs\PostEffect.cpp" />
     <ClCompile Include="srcs\SimpleQuadRenderer.cpp" />
     <ClCompile Include="srcs\Skybox.cpp" />
+    <ClCompile Include="srcs\SSAO.cpp" />
     <ClCompile Include="srcs\Tree.cpp" />
     <ClCompile Include="srcs\WorldMap.cpp" />
   </ItemGroup>
@@ -380,6 +381,7 @@ xcopy "$(ProjectDir)shaders" "%OUT_DIR%\shaders\" /e /y /i</Command>
     <ClInclude Include="headers\PostEffect.h" />
     <ClInclude Include="headers\SimpleQuadRenderer.h" />
     <ClInclude Include="headers\Skybox.h" />
+    <ClInclude Include="headers\SSAO.h" />
     <ClInclude Include="headers\Structure.h" />
     <ClInclude Include="headers\Terrain.h" />
     <ClInclude Include="headers\Tree.h" />

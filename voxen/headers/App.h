@@ -12,6 +12,7 @@
 #include "PostEffect.h"
 #include "WorldMap.h"
 #include "Date.h"
+#include "SSAO.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -98,4 +99,5 @@ private:
 	Light m_light;
 	PostEffect m_postEffect;
 	WorldMap m_worldMap;
+	SSAO m_SSAO;
 };

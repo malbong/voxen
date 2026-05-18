@@ -258,6 +258,10 @@ bool App::InitScene()
 		return false;
 	}
 
+	if (!m_SSAO.Initialize()) {
+		return false;
+	}
+
 	m_constantData.appWidth = APP_WIDTH;
 	m_constantData.appHeight = APP_HEIGHT;
 	m_constantData.mirrorWidth = MIRROR_WIDTH;
@@ -590,22 +594,7 @@ void App::RenderSSAO()
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::ssaoRTV.GetAddressOf(), Graphics::deferredDSV.Get());
 
-		std::vector<ID3D11Buffer*> ppConstants;
-		ppConstants.push_back(m_postEffect.m_ssaoConstantBuffer.Get());
-		ppConstants.push_back(m_postEffect.m_ssaoNoiseConstantBuffer.Get());
-		Graphics::context->PSSetConstantBuffers(0, (UINT)ppConstants.size(), ppConstants.data());
-
-		std::vector<ID3D11ShaderResourceView*> ppSRVs;
-		ppSRVs.push_back(Graphics::normalEdgeSRV.Get());
-		ppSRVs.push_back(Graphics::positionSRV.Get());
-		ppSRVs.push_back(Graphics::coverageSRV.Get());
-		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-
-		Graphics::SetPipelineStates(Graphics::ssaoPSO);
-		SimpleQuadRenderer::GetInstance()->Render();
-
-		Graphics::SetPipelineStates(Graphics::ssaoEdgePSO);
-		SimpleQuadRenderer::GetInstance()->Render();
+		m_SSAO.Render();
 	}
 
 	// Bloom
