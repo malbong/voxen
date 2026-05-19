@@ -21,14 +21,14 @@ float4 main(psInput input) : SV_TARGET
 
     float4 base = renderTex.Sample(linearClampSS, input.texcoord);
     float sigma = 0.325;
-
+    
     sumColor  += base;
     sumWeight += 1.0;
 
     [unroll]
-    for (int i = -1; i <= 1; ++i)
+    for (int i = -2; i <= 2; ++i)
     {
-        for (int j = -1; j <= 1; ++j)
+        for (int j = -2; j <= 2; ++j)
         {
             if (i == 0 && j == 0)
                 continue;

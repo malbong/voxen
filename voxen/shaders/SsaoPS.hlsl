@@ -20,28 +20,71 @@ struct psInput
     float2 texcoord : TEXCOORD;
 };
 
+uint4 coverageAnalysis(uint4 coverage)
+{
+    uint4 sampleWeight = uint4(1, 1, 1, 1);
+    
+    // coverage가 같으면 같은 Geometry로 판단하고 다른 coverage는 꺼버림
+    
+    // x
+    if (coverage.x == coverage.y)
+    {
+        ++sampleWeight.x;
+        coverage.y = 0;
+    }
+    if (coverage.x == coverage.z)
+    {
+        ++sampleWeight.x;
+        coverage.z = 0;
+    }
+    if (coverage.x == coverage.w)
+    {
+        ++sampleWeight.x;
+        coverage.w = 0;
+    }
+    
+    // y
+    if (coverage.y == coverage.z)
+    {
+        ++sampleWeight.y;
+        coverage.z = 0;
+    }
+    if (coverage.y == coverage.w)
+    {
+        ++sampleWeight.y;
+        coverage.w = 0;
+    }
+    
+    // z
+    if (coverage.z == coverage.w)
+    {
+        ++sampleWeight.z;
+        coverage.w = 0;
+    }
+    
+    // coverage가 꺼지지 않았는지 판단 후 꺼지지 않았다면 sampleWeight 그대로 사용
+    sampleWeight.x = (coverage.x > 0) ? sampleWeight.x : 0;
+    sampleWeight.y = (coverage.y > 0) ? sampleWeight.y : 0;
+    sampleWeight.z = (coverage.z > 0) ? sampleWeight.z : 0;
+    sampleWeight.w = (coverage.w > 0) ? sampleWeight.w : 0;
+    
+    return sampleWeight;
+}
+
 float2 texcoordToScreen(float2 texcoord, float width, float height)
 {
     return float2(texcoord.x * (width - 1.0) + 0.5, texcoord.y * (height - 1.0) + 0.5);
 }
 
-float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
+float getOcclusionFactor(float2 screenPos, float3 viewPos, float3 viewNormal)
 {
-    // linear Wrap Sampler로 랜덤 회전 벡터 얻기
-    // 2x2px -> same random vector
-    float fx = frac(texcoord.x * appWidth / 2.0) * 3.0; // [0,3)
-    float fy = frac(texcoord.y * appHeight / 2.0) * 3.0; // [0,3)
-    
-    uint fx1 = uint(floor(fx));
-    uint fx2 = uint(floor(fx + 1.0));
-    uint fy1 = uint(floor(fy));
-    uint fy2 = uint(floor(fy + 1.0));
-    
-    float3 v1 = lerp(rotationNoise[fx1 + 4 * fy1].xyz, rotationNoise[fx2 + 4 * fy1].xyz, frac(fx));
-    float3 v2 = lerp(rotationNoise[fx1 + 4 * fy2].xyz, rotationNoise[fx2 + 4 * fy2].xyz, frac(fx));
-    float3 randomVec = normalize(lerp(v1, v2, frac(fy)));
+    // 4x4px -> same random vector
+    // 4x4 pixel 마다 주기 반복
+    uint ix = uint(screenPos.x) % 4;
+    uint iy = uint(screenPos.y) % 4;
+    float3 randomVec = normalize(rotationNoise[ix + 4 * iy].xyz);
  
-    float3 T = normalize(randomVec - viewNormal * dot(viewNormal, randomVec)); // R - proj.n(R)
+    float3 T = normalize(randomVec - viewNormal * dot(viewNormal, randomVec)); // R - proj.n(R): 90도 초과 시 한쪽에 맺힘
     float3 B = cross(viewNormal, T);
     float3x3 TBN = float3x3(T, B, viewNormal);
     
@@ -49,14 +92,16 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
     float radius = 1.5;
     float bias = 0.05;
     
-    const uint COUNT = 16;
+    uint validSampleCount = 0;
+    const float INVALID_POSITION = -1.0;
+    const uint SSAO_SAMPLE_COUNT = 16;
     [unroll]
-    for (uint i = 0; i < COUNT; ++i)
+    for (uint i = 0; i < SSAO_SAMPLE_COUNT; ++i)
     {
         float3 sampleOffset = mul(sampleKernel[i].xyz, TBN);
-        float3 samplePos = viewPos + sampleOffset * radius;
+        float3 samplePos = viewPos + sampleOffset * radius; // samplePos of viewspace
         
-        float4 sampleProjPos = float4(samplePos, 1.0);
+        float4 sampleProjPos = float4(samplePos, 1.0); 
         sampleProjPos = mul(sampleProjPos, proj);
         sampleProjPos.xyz /= sampleProjPos.w; // [-1, 1]
         
@@ -68,16 +113,20 @@ float getOcclusionFactor(float2 texcoord, float3 viewPos, float3 viewNormal)
         // SampleIndex 중 아무거나 하나 집어도 무관: 샘플의 위치가 다르다고 가정하면 됨
         float4 position = positionTex.Load(sampleScreenCoord, 0);
         float4 storedViewPos = mul(float4(position.xyz, 1.0), view);
-        if (position.w == -1.0)
-            storedViewPos.xyz = float3(0, 0, 1000.0);
+        if (position.w == INVALID_POSITION)
+            storedViewPos.z = 1000.0;
         
-        float w = smoothstep(0.0, 1.0, radius / max(1e-4, length(viewPos - storedViewPos.xyz)));
-        float rangeCheck = pow(w, 2.0);
+        float diff = max(1e-4, length(viewPos - storedViewPos.xyz));
+        float w = smoothstep(0.0, 1.0, radius / diff);
+        float rangeWeight = pow(w, 2.0);
         
-        occlusionFactor += (storedViewPos.z + bias < samplePos.z ? 1.0 : 0.0) * rangeCheck;
+        // 저장되어 있는 값이 더 가까운 경우 차폐가 생김
+        // 동일한 위치인 경우 저장되어 있는 값을 뒤로 밀어 차폐가 생기지 않게함 -> bias 더함
+        occlusionFactor += (storedViewPos.z + bias < samplePos.z ? 1.0 : 0.0) * rangeWeight;
+        validSampleCount++;
     }
     
-    return occlusionFactor / float(COUNT);
+    return occlusionFactor / float(validSampleCount);
 }
 
 float main(psInput input) : SV_TARGET
@@ -93,38 +142,58 @@ float main(psInput input) : SV_TARGET
         return 0.0;
     float3 viewPos = mul(float4(worldPos.xyz, 1.0), view).xyz;
     
-    float occlusionFactor = getOcclusionFactor(input.texcoord, viewPos.xyz, viewNormal);
+    float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal);
     
-    float distance = length(viewPos.xyz);
-    float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - 32.0));
+    // attenuation [distance: 32, 260] => [attenuation: 1, 0]
+    float distance = length(viewPos);
+    float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
     
     return (occlusionFactor * attenuation);
 }
 
 float mainMSAA(psInput input) : SV_TARGET
 {
-    uint4 coverage;
-    
-    coverage.x = coverageTex.Load(input.posProj.xy, 0);
-    coverage.y = coverageTex.Load(input.posProj.xy, 1);
-    coverage.z = coverageTex.Load(input.posProj.xy, 2);
-    coverage.w = coverageTex.Load(input.posProj.xy, 3);
-    
-    uint4 sampleWeight = coverageAnalysis(coverage);
-    uint sampleWeightArray[4] = { sampleWeight.x, sampleWeight.y, sampleWeight.z, sampleWeight.w };
-    
-    sampleWeightArray[0] = 1;
-    sampleWeightArray[1] = 1;
-    sampleWeightArray[2] = 1;
-    sampleWeightArray[3] = 1;
+    // check semiAlpha masking
+    const float SEMIALPHA_MASK = 2.0;
+    uint semiAlphaCount = 0;
+    [unroll]
+    for (uint s = 0; s < SAMPLE_COUNT; ++s)
+    {
+        float ne_w = normalEdgeTex.Load(input.posProj.xy, s).w;
+        if (ne_w == SEMIALPHA_MASK)
+            ++semiAlphaCount;
+    }
+        
+    // pixel 내의 semiAlphaCount의 개수가 0개 -> SampleWeight 활용
+    // pixel 내의 semiAlhpaCount의 개수가 1-3개 -> SampleWeight 없이 반복
+    // pixel 내의 semiAlphaCount의 개수가 4개 -> NonEdge
+    uint sampleWeightArray[4] = { 1, 1, 1, 1 };
+    if (semiAlphaCount == 0)
+    {
+        uint4 coverage;
+        uint4 sampleWeight;
+        
+        coverage.x = coverageTex.Load(input.posProj.xy, 0);
+        coverage.y = coverageTex.Load(input.posProj.xy, 1);
+        coverage.z = coverageTex.Load(input.posProj.xy, 2);
+        coverage.w = coverageTex.Load(input.posProj.xy, 3);
+        
+        sampleWeight = coverageAnalysis(coverage);
+        sampleWeightArray[0] = sampleWeight.x;
+        sampleWeightArray[1] = sampleWeight.y;
+        sampleWeightArray[2] = sampleWeight.z;
+        sampleWeightArray[3] = sampleWeight.w;
+    }
     
     float sumOcclusionFactor = 0.0;
     uint validSampleCount = 0;
-
     // dont use [unroll] -> continue statement
     [loop]
     for (uint i = 0; i < SAMPLE_COUNT; ++i) // loop max 4
     {
+        if (sampleWeightArray[i] == 0)
+            continue;
+        
         float3 worldNormal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
         if (length(worldNormal) == 0)
             continue;
@@ -138,10 +207,10 @@ float mainMSAA(psInput input) : SV_TARGET
         
         float3 viewPos = mul(float4(worldPos.xyz, 1.0), view).xyz;
         
-        float occlusionFactor = getOcclusionFactor(input.texcoord, viewPos.xyz, viewNormal) * sampleWeightArray[i];
+        float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal) * sampleWeightArray[i];
         
         float distance = length(viewPos.xyz);
-        float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - 32.0));
+        float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
         
         sumOcclusionFactor += occlusionFactor * attenuation;
         

@@ -37,6 +37,7 @@ float4 main(psInput input) : SV_Target
         discard;
     
     bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
+    bool isFullSemiAlphaPixel = (semiAlphaCount == SAMPLE_COUNT);
     if (edgeCount == 0 && !isSemiAlphaEdgePixel)
         discard;
     

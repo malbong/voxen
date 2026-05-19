@@ -90,59 +90,27 @@ for (int i = 0; i < 16; ++i) {
 
 16개의 정규화된 랜덤 방향 벡터를 4×4 그리드로 배열한다. 이 벡터들은 셰이더에서 **Gram-Schmidt 과정**을 통해 법선 주위의 TBN 기저를 구성하는 데 사용된다.
 
-### 4.2 GPU: 노이즈 텍스처 좌표와 Flickering 방지 (SsaoPS.hlsl)
+### 4.2 GPU: 노이즈 인덱싱 (SsaoPS.hlsl)
 
-SSAO에서 노이즈를 적용하는 가장 일반적인 방법은 **4×4 노이즈 텍스처를 타일링**하는 것이다. 보통 이를 위해 별도의 Texture2D를 만들고 Wrap Sampler로 반복시킨다. 그러나 Voxen에서는 노이즈를 **Constant Buffer(배열)**로 전달하고, 셰이더에서 **수동 Bilinear 보간**을 수행한다.
-
-```hlsl
-float fx = frac(texcoord.x * appWidth / 2.0) * 3.0;
-float fy = frac(texcoord.y * appHeight / 2.0) * 3.0;
-```
-
-이 좌표 계산이 이 구현에서 가장 주의 깊게 설계된 부분이다. 단계별로 분석하면:
-
-#### (1) `texcoord.x * appWidth` — 텍스처 좌표를 픽셀 좌표로 변환
-
-`texcoord`는 `[0, 1]` 범위의 정규화된 화면 좌표이므로, `appWidth`를 곱하면 실제 픽셀 위치가 된다.
-
-#### (2) `/ 2.0` — 2×2 픽셀 블록 단위로 그룹화
-
-`/ 2.0`으로 나누면 **인접한 2×2 픽셀이 같은 정수 구간**에 속하게 된다. 즉, 2×2 픽셀 블록이 동일한 회전 벡터를 공유한다.
-
-왜 2×2인가? SSAO 결과는 이후 Blur로 평활화되는데, 너무 고주파(1px 단위)의 노이즈는 Blur로도 깨끗하게 지워지지 않고, 너무 저주파(4px 단위)의 노이즈는 Banding으로 보인다. **2×2는 Blur 커널과 노이즈 주파수의 균형점**이다.
-
-#### (3) `frac(...)` — 정수 부분 제거, [0, 1) 반복
-
-`frac()`은 소수 부분만 취하여 값을 `[0, 1)` 범위로 반복시킨다.
-
-**여기서 핵심: 왜 `frac(texcoord.x * appWidth / 2.0)`이고 `frac(pixelCoord / 2.0)`이 아닌가?**
-
-만약 `SV_POSITION`(픽셀 좌표)에 `frac()`을 적용하면, 카메라가 회전하거나 이동할 때 **화면 위의 고정 위치에 동일한 노이즈 패턴이 묶여 있게 된다**. 즉, 화면의 (100, 100) 픽셀은 카메라가 어디를 보든 항상 같은 회전 벡터를 사용한다.
-
-이것 자체는 SSAO에서 일반적으로 문제가 되지 않는 경우도 있지만, **카메라가 서브 픽셀 단위로 미세하게 움직일 때** 문제가 된다. 화면 좌표(`SV_POSITION`)는 항상 정수+0.5이므로 카메라의 미세 이동을 반영하지 못한다. 반면 `texcoord`는 풀스크린 쿼드의 보간된 UV이므로, 카메라 움직임에 따라 **연속적으로 변한다**.
-
-`texcoord × appWidth`는 픽셀 단위와 동일한 스케일이지만, `texcoord` 자체가 보간된 값이므로 카메라 움직임에 안정적으로 연동된다. 이로 인해 **카메라가 미세하게 회전/이동할 때 노이즈 패턴이 갑자기 바뀌는 Flickering이 방지**된다.
-
-#### (4) `* 3.0` — [0, 1)을 [0, 3)으로 확장 → 4×4 그리드 인덱싱
-
-4×4 = 16개의 노이즈 벡터가 있으므로, 인덱스 범위는 `[0, 3]`이다. `[0, 1)` 범위를 `* 3.0`으로 확장하면 `[0, 3)` 범위가 되어, `floor()`로 정수 인덱스 `{0, 1, 2, 3}`을 얻을 수 있다.
-
-#### 수동 Bilinear 보간
+SSAO에서 노이즈를 적용하는 가장 일반적인 방법은 **4×4 노이즈 텍스처를 타일링**하는 것이다. Voxen에서는 노이즈를 **Constant Buffer(배열)**로 전달하고, 셰이더에서 픽셀 좌표의 **정수 나머지 연산**으로 직접 인덱싱한다.
 
 ```hlsl
-uint fx1 = uint(floor(fx));       // 좌하단 인덱스
-uint fx2 = uint(floor(fx + 1.0)); // 우상단 인덱스
-uint fy1 = uint(floor(fy));
-uint fy2 = uint(floor(fy + 1.0));
-
-float3 v1 = lerp(rotationNoise[fx1 + 4*fy1].xyz, rotationNoise[fx2 + 4*fy1].xyz, frac(fx));
-float3 v2 = lerp(rotationNoise[fx1 + 4*fy2].xyz, rotationNoise[fx2 + 4*fy2].xyz, frac(fx));
-float3 randomVec = normalize(lerp(v1, v2, frac(fy)));
+uint ix = uint(screenPos.x) % 4;
+uint iy = uint(screenPos.y) % 4;
+float3 randomVec = normalize(rotationNoise[ix + 4 * iy].xyz);
 ```
 
-Constant Buffer 배열은 하드웨어 Sampler를 사용할 수 없으므로, 4개의 이웃 노이즈 벡터를 `lerp`로 수동 보간한다. 이는 Texture2D + Linear Wrap Sampler와 동일한 결과를 내지만, 별도 텍스처 없이 상수 버퍼만으로 구현한 것이다.
+#### 픽셀 좌표 모듈로 인덱싱
 
-2×2 픽셀 블록의 경계에서 `frac(fx)`, `frac(fy)`가 0~1 사이를 부드럽게 변하므로, **인접 블록 간 노이즈 벡터가 선형 보간**되어 패턴 전환이 부드럽다.
+`screenPos`는 `SV_POSITION`으로부터 얻은 픽셀 좌표다. `% 4` 연산으로 x, y 각각 `{0, 1, 2, 3}` 인덱스가 4픽셀 주기로 반복되며, `rotationNoise[ix + 4 * iy]`로 **16개 배열 전체를 균등하게 참조**한다.
+
+화면 해상도와 비율에 무관하게 항상 4×4 픽셀 단위의 정사각형 타일이 보장된다. `appWidth`와 `appHeight`로 스케일링하지 않고 정수 모듈로를 사용하기 때문에, x/y 축 타일링 주기가 동일하게 유지된다.
+
+#### 4×4 배열 완전 활용
+
+이전 구현의 `frac(texcoord * appWidth / 2.0) * 3.0` + bilinear 보간 방식은, 픽셀 좌표가 정수이므로 `frac(pixel / 2.0)`이 0 또는 0.5만 가졌다. fx는 0 또는 1.5만 취하게 되어, **배열의 마지막 행/열(인덱스 3)에 접근하지 않는 낭비**가 있었다.
+
+모듈로 인덱싱은 4픽셀 주기마다 `{0, 1, 2, 3}`을 정확히 한 번씩 순환하여 16개 노이즈 벡터 모두를 균등하게 활용한다.
 
 ### 4.3 법선 방향 반구 구성 (TBN)
 
@@ -163,7 +131,7 @@ float3x3 TBN = float3x3(T, B, viewNormal);
 ### 4.4 반구 샘플링과 차폐 판정
 
 ```hlsl
-float radius = 0.75;
+float radius = 1.5;
 float bias = 0.05;
 
 for (uint i = 0; i < 16; ++i)
@@ -227,9 +195,133 @@ return 1.0 - (occlusionFactor * attenuation);
 
 ### 4.6 MSAA Edge 처리 (mainMSAA)
 
-Edge 픽셀에서는 4개 MSAA 샘플 각각에 대해 개별적으로 SSAO를 계산한다. `coverageAnalysis()`로 중복 Coverage를 분석하여, 실제로 서로 다른 기하를 덮는 샘플만 개별 처리하고, 같은 기하를 덮는 샘플은 가중치로 합산하여 불필요한 연산을 줄인다.
+Edge 픽셀에서는 4개 MSAA 샘플 각각에 대해 SSAO를 계산한다. 단, **Alpha-Clip 기하 포함 여부에 따라 두 경로**로 분기하여, 가능한 경우 Coverage 기반 가중치로 중복 연산을 줄인다.
 
-### 4.7 전체 파이프라인
+#### semiAlphaCount 검사
+
+```hlsl
+const float SEMIALPHA_MASK = 2.0;
+uint semiAlphaCount = 0;
+for (uint s = 0; s < SAMPLE_COUNT; ++s)
+{
+    float ne_w = normalEdgeTex.Load(input.posProj.xy, s).w;
+    if (ne_w == SEMIALPHA_MASK)
+        ++semiAlphaCount;
+}
+```
+
+G-Buffer 채우기 패스에서 Alpha-Clip 기하가 있는 샘플은 `normalEdgeTex.w = 2.0`으로 마킹된다. 이 값을 읽어 픽셀 내 Alpha-Clip 샘플 수를 파악한다.
+
+#### coverageAnalysis — SV_Coverage 기반 중복 샘플 병합
+
+```hlsl
+uint4 coverageAnalysis(uint4 coverage)
+{
+    uint4 sampleWeight = uint4(1, 1, 1, 1);
+
+    if (coverage.x == coverage.y) { ++sampleWeight.x; coverage.y = 0; }
+    if (coverage.x == coverage.z) { ++sampleWeight.x; coverage.z = 0; }
+    if (coverage.x == coverage.w) { ++sampleWeight.x; coverage.w = 0; }
+    if (coverage.y == coverage.z) { ++sampleWeight.y; coverage.z = 0; }
+    if (coverage.y == coverage.w) { ++sampleWeight.y; coverage.w = 0; }
+    if (coverage.z == coverage.w) { ++sampleWeight.z; coverage.w = 0; }
+
+    sampleWeight.x = (coverage.x > 0) ? sampleWeight.x : 0;
+    ...
+    return sampleWeight;
+}
+```
+
+`coverageTex`에는 G-Buffer 채우기 패스의 `SV_Coverage` 값이 저장되어 있다. Coverage 값이 동일한 두 샘플은 **동일한 기하를 덮고 있음**을 의미하므로, 대표 샘플의 weight를 증가시키고 나머지를 0으로 처리하여 skip한다.
+
+예를 들어 4샘플 중 3개가 동일 표면을 덮는 경우:
+
+```
+sample 0: weight 3  ← 대표, getOcclusionFactor 1회 계산
+sample 1: weight 0  ← skip
+sample 2: weight 0  ← skip
+sample 3: weight 1  ← 다른 표면, getOcclusionFactor 1회 계산
+→ getOcclusionFactor 2회 (vs 미사용 시 4회)
+```
+
+#### 분기 처리
+
+```hlsl
+if (semiAlphaCount == 0)
+{
+    // SV_Coverage 기반 weight 계산 → 중복 샘플 skip
+    sampleWeight = coverageAnalysis(coverage);
+    sampleWeightArray[0..3] = sampleWeight.xyzw;
+}
+// semiAlphaCount > 0: 모든 weight = 1 유지 (전체 순회)
+```
+
+- **semiAlphaCount == 0**: Alpha-Clip 기하 없음 → Coverage 값이 표면 동일성의 신뢰할 수 있는 기준이 되므로 `coverageAnalysis` 적용
+- **semiAlphaCount > 0**: Alpha-Clip 기하 존재 → Coverage 마스크가 클립 여부를 반영하여 표면 동일성 판단에 사용할 수 없으므로 모든 샘플을 독립적으로 계산
+
+#### 실측 결과
+
+SSAO 패스 단독 기준 **110μs → 100μs** (약 9% 개선). 단, `mainMSAA`는 전체 화면 중 Edge 픽셀에서만 실행되므로 전체 프레임 렌더링 시간에 대한 기여는 미미하다.
+
+### 4.7 Edge-Preserving Blur (BlurBilateralPS.hlsl)
+
+SSAO 결과의 노이즈를 제거하되, 차폐 경계를 보존하기 위해 **Bilateral Filter** 를 사용한다.
+
+#### 핵심 설계
+
+```hlsl
+float4 base = renderTex.Sample(linearClampSS, input.texcoord);
+float sigma = 0.325;
+
+// center 픽셀은 항상 포함 — sumWeight 최소 1.0 보장
+sumColor  += base;
+sumWeight += 1.0;
+
+for (int i = -1; i <= 1; ++i)
+for (int j = -1; j <= 1; ++j)
+{
+    if (i == 0 && j == 0) continue;
+
+    float4 s    = renderTex.Sample(linearClampSS, input.texcoord + offset);
+    float  diff = length(base - s);
+
+    // range weight: 값이 유사할수록 높은 기여
+    // occlusion weight: 차폐가 높은 샘플일수록 높은 기여
+    float w = exp(-diff * diff / (sigma * sigma)) * pow(s, 1.25);
+
+    sumColor  += s * w;
+    sumWeight += w;
+}
+return sumColor / sumWeight;
+```
+
+두 가지 weight가 결합된다:
+
+- **Range weight** `exp(-diff²/σ²)`: SSAO 값 차이가 클수록(=경계) weight를 0으로 수렴시켜 섞지 않는다. σ가 작을수록 경계 차단이 예민해진다
+
+- **Occlusion weight** `pow(s, 1.25)`: Range weight만으로는 해결되지 않는 문제를 보완한다. Alpha-Clip 잎사귀 경계처럼 차폐가 있는 픽셀(s≈1.0)과 차폐가 없는 빈 픽셀(s≈0.0)이 인접할 때, Range weight가 충분히 차단하더라도 낮은 차폐 샘플이 조금씩 섞이면 occluded 영역의 차폐값이 희석된다. Occlusion weight는 샘플 자체의 차폐 정도를 가중치로 부여하여, 차폐가 낮은 샘플(빈 공간, Alpha-Clip 구멍)의 영향력을 원천적으로 억제한다. `pow(s, 1.25)`의 지수는 이 억제를 선형보다 강하게 적용하기 위한 튜닝 값이다
+
+결과적으로 두 weight의 역할이 명확히 분리된다: **Range weight가 경계를 감지하고, Occlusion weight가 경계 너머 빈 공간의 영향력을 제거**한다.
+
+#### 2D 단일 패스 (비분리)
+
+Gaussian Blur는 `G(x,y) = G(x) × G(y)` 로 분리되어 X→Y 2패스로 구현 가능하다. Bilateral은 range weight가 2D 이웃 전체의 값 차이에 의존하므로 **수학적으로 분리 불가능**하다.
+
+X 패스 후 경계 픽셀의 값이 중간값으로 변하면, Y 패스에서 그 중간값을 center로 사용해 range weight를 계산하게 되어 경계 보존이 무너진다. 따라서 3×3 이웃을 한 번에 처리하는 **단일 2D 패스**로 구현한다.
+
+#### Ping-pong 버퍼 구성
+
+단일 패스라도 동일 버퍼 읽기/쓰기 충돌을 막기 위해 ping-pong 방식을 사용한다:
+
+```
+Pass 1: ssaoSRV        → ssaoBlurRTV[0]
+Pass 2: ssaoBlurSRV[0] → ssaoBlurRTV[1]
+Pass 3: ssaoBlurSRV[1] → ssaoBlurRTV[0]
+        ...
+마지막:                → CopyResource → ssaoBuffer
+```
+
+### 4.8 전체 파이프라인
 
 ```
 [CPU - PostEffect.cpp]
@@ -238,14 +330,13 @@ rotationNoise[16]: 4×4 랜덤 회전 벡터
         ↓ Constant Buffer
 
 [GPU - SsaoPS.hlsl::getOcclusionFactor()]
-texcoord → frac(texcoord * appSize / 2) * 3 → 4×4 노이즈 인덱스
-        ↓ Bilinear 보간
+screenPos → % 4 → 4×4 노이즈 인덱스
 randomVec → Gram-Schmidt → TBN (법선 방향 반구)
         ↓
 16 samples × (TBN 변환 → View Space offset → 화면 투영 → 깊이 비교)
         ↓
-occlusionFactor / 16 → 거리 감쇠 → (1 - occlusion)
-        ↓ Blur
+occlusionFactor / 16 → 거리 감쇠 → 차폐값 저장
+        ↓ BlurBilateralPS (3×3, range weight + occlusion weight)
 ssaoTex → ShadingBasicPS에서 pow(ao, 4) 후 Ambient에 곱함
 ```
 
@@ -253,9 +344,9 @@ ssaoTex → ShadingBasicPS에서 pow(ao, 4) 후 Ambient에 곱함
 
 ### 5.1 View 변경 시 노이즈 Flickering
 
-**문제**: 픽셀 좌표(`SV_POSITION`)를 기반으로 노이즈 인덱스를 계산하면, 카메라가 미세하게 움직일 때 동일 오브젝트 위의 노이즈 패턴이 갑자기 바뀌어 **깜빡거림(Flickering)** 이 발생한다. `SV_POSITION`은 항상 정수+0.5 값이므로 서브 픽셀 움직임을 반영하지 못하기 때문이다.
+**문제**: 노이즈 인덱스 계산에 부동소수점 연산이 개입하면, 카메라의 미세한 이동 시 동일한 픽셀에 할당되는 노이즈 벡터가 달라져 **깜빡거림(Flickering)** 이 발생할 수 있다.
 
-**해결**: `frac(texcoord.x * appWidth / 2.0) * 3.0`으로, 풀스크린 쿼드의 **보간된 UV(`texcoord`)** 를 기반으로 계산한다. `texcoord`는 카메라 변화에 연속적으로 대응하므로, 노이즈 패턴이 화면에 고정되지 않고 부드럽게 변화한다. 이로써 카메라 회전/이동 시 Flickering이 제거된다.
+**해결**: `uint(screenPos.x) % 4`로 정수 픽셀 좌표에 직접 나머지 연산을 적용한다. 화면의 픽셀 (x, y)는 항상 동일한 나머지 인덱스 `(x%4, y%4)`로 매핑되므로, 카메라가 어떻게 이동하든 동일 픽셀은 항상 동일한 노이즈 벡터를 사용한다. 부동소수점 정밀도 문제가 개입할 여지가 없어 Flickering이 구조적으로 제거된다.
 
 ### 5.2 적은 샘플 수에 의한 Banding
 
@@ -263,7 +354,27 @@ ssaoTex → ShadingBasicPS에서 pow(ao, 4) 후 Ambient에 곱함
 
 **해결**: 픽셀마다 다른 회전 벡터로 TBN 기저를 회전시켜, Banding을 고주파 노이즈로 분산시킨다. 이 노이즈는 이후 Blur 패스(2회)로 평활화된다. 결과적으로 16개 샘플만으로도 시각적으로 충분히 부드러운 AO를 얻는다.
 
-### 5.3 먼 거리 기하에 의한 오차 (Halo Artifact)
+### 5.3 Alpha-Clip 경계에서의 Blur Artifact
+
+**문제**: 잎사귀처럼 Alpha Clip된 메시의 경계에서, 실제 차폐가 있는 픽셀(SSAO≈1.0)과 Alpha Clip으로 비어있는 픽셀(SSAO≈0.0)이 인접한다. 일반 Gaussian Blur는 이 둘을 평균내어 경계에 0.5 중간값을 생성한다. 결과적으로 잎사귀 주변에 흐릿한 테두리(Half-Occlusion Ring)가 나타난다.
+
+초기에는 **Bloom 기반 스무딩**으로 해결했다. Bloom의 down/up sampling은 단순 평균이 아니라 밝은(occluded) 값을 주변으로 확장하는 경향이 있어, 0.5 중간값 생성 없이 차폐 영역을 자연스럽게 퍼뜨린다. 그러나 SSAO 노이즈가 그대로 증폭되어 시각적으로 두드러지는 문제가 있었다.
+
+**최종 해결**: Range weight와 Occlusion weight를 결합한 Bilateral Filter. 0.0↔1.0 경계에서 range weight가 0에 수렴하여 섞지 않으며, occlusion weight가 낮은 차폐 샘플(빈 공간)의 영향력을 억제한다.
+
+### 5.4 Alpha-Clip 경계에서의 SV_Coverage 신뢰성 문제
+
+**문제**: Coverage 값이 동일한 두 샘플을 "동일 기하"로 판단하는 `coverageAnalysis`는, Alpha-Clip 기하가 있는 픽셀에서 신뢰할 수 없다. Alpha-Clip은 서브픽셀 단위로 클립을 적용하므로 동일한 Coverage 마스크를 가지더라도 실제로는 서로 다른 표면(클립된 잎사귀 / 뒤의 배경)일 수 있다. 이 경우 `coverageAnalysis`가 다른 표면을 동일 기하로 묶어 weight를 부여하면 잘못된 occlusionFactor가 계산된다.
+
+**해결**: G-Buffer 채우기 패스에서 Alpha-Clip 기하 샘플에 `normalEdgeTex.w = 2.0`으로 마킹한다. `mainMSAA`에서 `semiAlphaCount`를 검사하여, Alpha-Clip 샘플이 하나라도 있으면 `coverageAnalysis`를 건너뛰고 모든 샘플을 weight = 1로 독립 계산한다.
+
+### 5.6 Bilateral Filter의 비분리성
+
+**문제**: Gaussian Blur처럼 X→Y 2패스 분리를 시도했다. X 패스 이후 경계 픽셀에 중간값이 생기고, Y 패스에서 그 중간값을 center로 삼아 range weight를 계산하면 경계 양쪽 샘플을 동등하게 취급하여 경계 보존이 무너진다.
+
+**해결**: 3×3 이웃을 한 번에 처리하는 2D 단일 패스로 구현한다. 다만 **Multi-pass 2D bilateral**(완전한 2D 연산을 여러 번 반복)은 각 패스가 수학적으로 올바르기 때문에 유효하다.
+
+### 5.7 먼 거리 기하에 의한 오차 (Halo Artifact)
 
 **문제**: 반경 내에 실제로는 관련 없는 먼 거리 기하가 감지되면, 가장자리에 비정상적인 어두운 테두리(Halo)가 생긴다.
 
@@ -272,13 +383,15 @@ ssaoTex → ShadingBasicPS에서 pow(ao, 4) 후 Ambient에 곱함
 ## 6. 결과
 
 - 블록 모서리, 벽과 바닥 접합부, 동굴 내부 등에 **자연스러운 접촉 그림자**가 생겨 공간감이 크게 향상된다
-- 16 샘플 + 4×4 노이즈 회전 + Blur 조합으로, 적은 연산량에 비해 시각적으로 충분한 품질을 달성한다
-- `texcoord` 기반 노이즈 좌표 계산으로, 카메라 이동/회전 시에도 **Flickering 없이 안정적인 AO** 를 유지한다
+- 16 샘플 + 4×4 노이즈 회전 + Bilateral Blur 조합으로, 적은 연산량에 비해 시각적으로 충분한 품질을 달성한다
+- 픽셀 좌표 모듈로 인덱싱으로, 카메라 이동/회전 시에도 **Flickering 없이 안정적인 AO** 를 유지한다
 - 거리 감쇠(`attenuation`)로 먼 거리에서의 부정확한 AO가 자연스럽게 사라진다
+- Range weight + Occlusion weight 결합 Bilateral Filter로 Alpha-Clip 잎사귀 경계에서도 **경계 artifact 없이 부드러운 AO** 를 달성한다
 
 ## 7. 회고
 
-- 현재 샘플 반경(`radius = 0.75`)과 편향(`bias = 0.05`)이 하드코딩되어 있다. 이를 파라미터화하면 씬에 따라 AO 범위와 강도를 조절할 수 있을 것이다
-- Blur 패스가 2회 수행되는데, 분리 가능 필터(Separable Filter)를 사용하면 같은 커널 크기에서 더 효율적일 수 있다
+- 현재 샘플 반경(`radius = 1.5`)과 편향(`bias = 0.05`)이 하드코딩되어 있다. 이를 파라미터화하면 씬에 따라 AO 범위와 강도를 조절할 수 있을 것이다
+- Bilateral Filter는 수학적으로 분리 불가능(non-separable)하여 X/Y 2패스로 구현할 수 없고, 3×3 단일 패스로 처리한다. 더 넓은 커널이 필요하다면 Multi-pass 2D bilateral을 반복하는 방식이 유일한 선택이다
 - 현재는 단일 반경으로 샘플링하지만, 멀티 스케일 AO(여러 반경으로 합산)를 도입하면 근거리 접촉 그림자와 원거리 대규모 차폐를 동시에 표현할 수 있다
 - SSAO 결과에 `pow(ao, 4.0)`을 적용하는 것은 시각적 튜닝이지만, HDR 파이프라인에서 톤 매핑과의 상호작용을 고려하면 감마 커브보다는 물리 기반의 가중치가 더 적절할 수 있다
+- Geometry 기반 Bilateral(G-Buffer position/normal을 경계 판단 기준으로 사용)을 도입하면 SSAO 값 노이즈에 독립적인 더 안정적인 경계 보존이 가능하다

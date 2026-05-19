@@ -600,7 +600,7 @@ void App::RenderSSAO()
 
 	// Blur
 	{
-		int blurCount = 3;
+		int blurCount = 2;
 
 		if (!m_keyToggled['B']) {
 			m_postEffect.BlurBilateral(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,

@@ -100,49 +100,6 @@ float3 texcoordToViewPos(float2 texcoord, float projDepth)
     return posView.xyz;
 }
 
-uint4 coverageAnalysis(uint4 coverage)
-{
-    uint4 sampleWeight = uint4(1, 1, 1, 1);
-    
-    if (coverage.x == coverage.y)
-    {
-        ++sampleWeight.x;
-        coverage.y = 0;
-    }
-    if (coverage.x == coverage.z)
-    {
-        ++sampleWeight.x;
-        coverage.z = 0;
-    }
-    if (coverage.x == coverage.w)
-    {
-        ++sampleWeight.x;
-        coverage.w = 0;
-    }
-    if (coverage.y == coverage.z)
-    {
-        ++sampleWeight.y;
-        coverage.z = 0;
-    }
-    if (coverage.y == coverage.w)
-    {
-        ++sampleWeight.y;
-        coverage.w = 0;
-    }
-    if (coverage.z == coverage.w)
-    {
-        ++sampleWeight.z;
-        coverage.w = 0;
-    }
-    
-    sampleWeight.x = (coverage.x > 0) ? sampleWeight.x : 0;
-    sampleWeight.y = (coverage.y > 0) ? sampleWeight.y : 0;
-    sampleWeight.z = (coverage.z > 0) ? sampleWeight.z : 0;
-    sampleWeight.w = (coverage.w > 0) ? sampleWeight.w : 0;
-    
-    return sampleWeight;
-}
-
 // https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 // F, G, D ???
 float3 schlickFresnel(float3 F0, float NdotH)
