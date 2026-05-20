@@ -25,10 +25,10 @@ bool SSAO::Initialize()
 		sampleKernel.w = 0.0f;
 		sampleKernel.Normalize();
 
-		sampleKernel *= randomFloats(generator); // scaling
+		sampleKernel *= randomFloats(generator); // Random Scaling
 
 		float scale = (float)i / KERNEL_COUNT;
-		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale);
+		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale); // Á¡ÁøÀû Scaling
 
 		m_constantData.sampleKernel[i] = sampleKernel;
 	}

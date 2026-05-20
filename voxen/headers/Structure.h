@@ -138,6 +138,7 @@ struct AppConstantData {
 	float appHeight;
 	float mirrorWidth;
 	float mirrorHeight;
+	Vector4 imGUIData;
 };
 
 struct DateConstantData {

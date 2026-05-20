@@ -90,7 +90,7 @@ float getOcclusionFactor(float2 screenPos, float3 viewPos, float3 viewNormal)
     
     float occlusionFactor = 0.0;
     float radius = 1.5;
-    float bias = 0.05;
+    float bias = 0.01;
     
     uint validSampleCount = 0;
     const float INVALID_POSITION = -1.0;
@@ -144,53 +144,46 @@ float main(psInput input) : SV_TARGET
     
     float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal);
     
-    // attenuation [distance: 32, 260] => [attenuation: 1, 0]
-    float distance = length(viewPos);
-    float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
+    float maxSSAODistance = CHUNK_SIZE * 3;
+    float minSSAODistance = CHUNK_SIZE;
+    float distance = length(viewPos.xyz);
+    float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
     
     return (occlusionFactor * attenuation);
 }
 
 float mainMSAA(psInput input) : SV_TARGET
 {
-    uint sampleWeightArray[4] = { 1, 1, 1, 1 };
-    if (cameraDummyData.x == 0)
-    {
-        
-    }
-    else
-    {
-        // check semiAlpha masking
-        const float SEMIALPHA_MASK = 2.0;
-        uint semiAlphaCount = 0;
+    // check semiAlpha masking
+    const float SEMIALPHA_MASK = 2.0;
+    uint semiAlphaCount = 0;
     [unroll]
-        for (uint s = 0; s < SAMPLE_COUNT; ++s)
-        {
-            float ne_w = normalEdgeTex.Load(input.posProj.xy, s).w;
-            if (ne_w == SEMIALPHA_MASK)
-                ++semiAlphaCount;
-        }
+    for (uint s = 0; s < SAMPLE_COUNT; ++s)
+    {
+        float ne_w = normalEdgeTex.Load(input.posProj.xy, s).w;
+        if (ne_w == SEMIALPHA_MASK)
+            ++semiAlphaCount;
+    }
         
-        // pixel 내의 semiAlphaCount의 개수가 0개 -> SampleWeight 활용
+    // pixel 내의 semiAlphaCount의 개수가 0개 -> SampleWeight 활용
     // pixel 내의 semiAlhpaCount의 개수가 1-3개 -> SampleWeight 없이 반복
     // pixel 내의 semiAlphaCount의 개수가 4개 -> NonEdge
-    
-        if (semiAlphaCount == 0)
-        {
-            uint4 coverage;
-            uint4 sampleWeight;
+    uint sampleWeightArray[4] = { 1, 1, 1, 1 };
+    if (semiAlphaCount == 0)
+    {
+        uint4 coverage;
+        uint4 sampleWeight;
         
-            coverage.x = coverageTex.Load(input.posProj.xy, 0);
-            coverage.y = coverageTex.Load(input.posProj.xy, 1);
-            coverage.z = coverageTex.Load(input.posProj.xy, 2);
-            coverage.w = coverageTex.Load(input.posProj.xy, 3);
+        coverage.x = coverageTex.Load(input.posProj.xy, 0);
+        coverage.y = coverageTex.Load(input.posProj.xy, 1);
+        coverage.z = coverageTex.Load(input.posProj.xy, 2);
+        coverage.w = coverageTex.Load(input.posProj.xy, 3);
         
-            sampleWeight = coverageAnalysis(coverage);
-            sampleWeightArray[0] = sampleWeight.x;
-            sampleWeightArray[1] = sampleWeight.y;
-            sampleWeightArray[2] = sampleWeight.z;
-            sampleWeightArray[3] = sampleWeight.w;
-        }
+        sampleWeight = coverageAnalysis(coverage);
+        sampleWeightArray[0] = sampleWeight.x;
+        sampleWeightArray[1] = sampleWeight.y;
+        sampleWeightArray[2] = sampleWeight.z;
+        sampleWeightArray[3] = sampleWeight.w;
     }
     
     float sumOcclusionFactor = 0.0;
@@ -217,16 +210,21 @@ float mainMSAA(psInput input) : SV_TARGET
         
         float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal) * sampleWeightArray[i];
         
+        // attenuation [distance: 32, 96] => [attenuation: 1, 0]
+        float maxSSAODistance = CHUNK_SIZE * 3;
+        float minSSAODistance = CHUNK_SIZE;
         float distance = length(viewPos.xyz);
-        float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
+        float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
         
         sumOcclusionFactor += occlusionFactor * attenuation;
         
-        validSampleCount++;
+        validSampleCount += sampleWeightArray[i];
     }
     
-    sumOcclusionFactor /= validSampleCount;
+    if (validSampleCount == 0)
+        return 0.0;
     
+    sumOcclusionFactor /= validSampleCount;
     
     return sumOcclusionFactor;
 }

@@ -2,79 +2,75 @@
 
 ## 1. 개요
 
-SSAO는 **화면 공간(Screen-Space)에서 주변 기하의 차폐(Occlusion)를 근사**하여, 구석이나 틈새에 자연스러운 그림자를 생성하는 기법이다. 전역 조명(Global Illumination) 없이도 공간감과 깊이감을 크게 향상시킨다.
+Voxen에서는 Deferred Shading 파이프라인의 일부로, G-Buffer의 Position/Normal 정보를 활용하여 **View Space**에서 반구 샘플링 기반 SSAO를 계산한다.
 
-Voxen에서는 Deferred Shading 파이프라인의 일부로, G-Buffer의 Position/Normal 정보를 활용하여 View Space에서 반구 샘플링 기반 SSAO를 계산한다.
+Block들과 Instance에 적절한 occlusion 를 Screen Space에서 생성한다.
 
 ## 2. 도입 동기
 
-복셀 환경은 직각의 모서리와 평면이 반복되는 구조다. Ambient Light만 있으면 모든 면이 균일하게 밝아져, 블록 사이의 구석이나 벽과 바닥의 접합부가 시각적으로 구분되지 않는다.
+원래의 Minecraft 형식의 Voxel에서든 인접한 블록의 경우의 수를 두고 AO 레벨을 Vertex Data에 옮겨서 사용한다.
 
-SSAO를 적용하면 **기하적으로 차폐된 영역이 어두워져**, 블록 사이의 틈, 동굴 내부, 처마 밑 등에 자연스러운 접촉 그림자(Contact Shadow)가 생긴다. 이는 복셀의 직각 구조에서 특히 효과적인데, 모서리마다 뚜렷한 차폐 관계가 존재하기 때문이다.
+현재 코드에서도 8byte Vertex Data에 `미사용 3비트`가 존재하여 구현할 수 있었다.
+
+```
+Bit:  31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+      [  미사용  3비트  ] [    X 6비트    ] [    Y 6비트    ] [    Z 6비트    ] [F 3] [  TexIndex 8비트  ]
+```
+
+이 방식을 사용할 수 있지만, 렌더러를 구현하는 입장에서 SSAO를 직접 구현해보고 싶었다.
+
+이 SSAO를 하기 위해 G-Buffer가 필요했고, Forward Rendering 단계를 Deferred Pass와 Forward Pass를 구분하여 파이프라인을 재정리하게 되는 계기가 되었다.
 
 ## 3. 핵심 아이디어
 
 ### 3.1 SSAO의 원리
 
-SSAO의 핵심 질문은: **"이 픽셀 주변에 얼마나 많은 기하가 가려(차폐)하고 있는가?"** 이다.
+0. 반구 형태의 무작위 샘플 포인트를 배치하고, 반구 자체를 회전 시킬 `Tangent Random Vector`도 배치한다.
+1. 픽셀의 `View Position`과 `View Normal`을 가져온다.
+2. `View Normal`과 `Tangent Random Vector`를 기준으로 TBN Matrix를 구성하여 샘플 포인트를 View 좌표의 offset으로 변환한다.
+3. `View Position`에 offset을 더한 좌표(`Sample Position`)를 화면에 투영한다.
+4. 투영된 값을 텍스쳐 좌표로 활용하여 원래 G-Buffer에 저장되어 있는 값과 Depth를 비교한다.
+5. 저장되어 있는 값보다 샘플 위치가 멀리 뒤에 있으면 가려지는 부분이므로 Occlusion 값을 증가시킨다.
+6. 이러한 과정을 Sample(16)만큼 반복하여 비율을 결정한다.
 
-각 픽셀에 대해:
+### 3.2 View Space에서 연산 수행
 
-1. View Space에서 해당 픽셀의 **위치(P)와 법선(N)** 을 가져온다
-2. 법선 방향 **반구(Hemisphere)** 내에 무작위 샘플 포인트를 배치한다
-3. 각 샘플 포인트를 화면에 투영하여, **그 위치에 실제로 기록된 깊이(Depth)** 와 비교한다
-4. 샘플 포인트가 실제 기하보다 **뒤에** 있으면 → 그 방향은 차폐됨(Occluded)
-5. 차폐된 샘플의 비율이 Occlusion Factor가 된다
+- **깊이 비교의 단순화**: View Space에서 Z값은 카메라로부터의 거리이므로, "앞/뒤" 판정이 Z 비교 하나로 가능하다.
+- **투영 후 스크린 혹은 텍스쳐 좌표 변환이 용이**: View Space 샘플 포인트를 Projection Matrix로 곱하면 바로 텍스처 좌표를 얻을 수 있다.
+- **View Space 기준으로 상대적인 값이 작음**: World 기준이 아닌, View Space기준이라 연산에 안정적이다.
 
-```
-          N (법선)
-          ↑
-    ○ ○ ○ | ○ ○ ○     ← 반구 위 샘플 포인트들
-   ○  ○   |   ○  ○
-  ─────────P─────────  ← 표면
-  ████████████████████  ← 근처 기하 (차폐물)
+### 3.3 Edge Preserved Blur
 
-  → 기하에 가려진 샘플 = Occluded → 어두워짐
-```
-
-### 3.2 View Space에서 수행하는 이유
-
-SSAO를 View Space에서 수행하는 것은 표준적인 접근이다:
-
-- **깊이 비교의 단순화**: View Space에서 Z값은 카메라로부터의 거리이므로, "앞/뒤" 판정이 Z 비교 하나로 가능하다
-- **투영 후 화면 좌표 변환이 용이**: View Space 샘플 포인트를 Projection Matrix로 곱하면 바로 텍스처 좌표를 얻는다
-- **법선 기반 반구 방향**이 카메라 기준으로 일관되어 시각적으로 안정적이다
-
-### 3.3 노이즈 회전을 통한 Banding 제거
-
-16개의 샘플만으로 반구를 촘촘히 채우기는 부족하다. 적은 샘플 수에서는 동일 방향 패턴이 반복되어 **줄무늬(Banding)** 가 보인다.
-
-이를 해결하기 위해 픽셀마다 **랜덤 회전 벡터**를 적용하여 샘플 커널을 회전시킨다. 같은 16개 방향이지만 픽셀마다 다른 각도로 회전되므로, Banding이 **고주파 노이즈**로 분산된다. 이 노이즈는 이후 Blur로 제거한다.
+- SSAO만 렌더링 하는 경우 노이즈가 눈에 보여 Blur처리를 해야한다.
+- 단순히 Gaussian Blur로 처리하는 경우 차폐의 정도가 Edge 부분에서 급격히 값이 섞이게 되어 어색한 결과가 나온다
+- Bilateral Blur를 사용하여 Edge를 살린다.
 
 ## 4. 구현 내용
 
-### 4.1 CPU: 샘플 커널과 노이즈 생성 (PostEffect.cpp)
+### 4.1 CPU: 샘플 커널과 노이즈 생성 (SSAO.cpp)
 
-#### 샘플 커널 (sampleKernel[16])
+#### 샘플 커널 (sampleKernel[16]) 구성
 
 ```cpp
-for (int i = 0; i < 16; ++i) {
-    Vector4 sampleKernel;
-    sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;  // [-1, 1]
-    sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;  // [-1, 1]
-    sampleKernel.z = randomFloats(generator);                  // [0, 1] ← 반구 (법선 방향만)
-    sampleKernel.Normalize();
-    sampleKernel *= randomFloats(generator);
+// Initialize()
+for (UINT i = 0; i < KERNEL_COUNT; ++i) {
+	Vector4 sampleKernel;
 
-    float scale = (float)i / 16;
-    sampleKernel *= Lerp(0.1f, 1.0f, scale * scale);
+	sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;
+	sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
+	sampleKernel.z = randomFloats(generator); // hemisphere
+	sampleKernel.w = 0.0f;
+	sampleKernel.Normalize();
+
+	sampleKernel *= randomFloats(generator); // Random Scaling
+
+	float scale = (float)i / KERNEL_COUNT;
+	sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale); // 점진적 Scaling
+    ...
 }
 ```
 
-- **X, Y**: `[-1, 1]` 범위 — 법선에 수직인 평면 위의 임의 방향
-- **Z**: `[0, 1]` 범위 — 법선 방향(양의 반구)으로만 샘플. 음수가 없으므로 표면 아래로 샘플링하지 않는다
-- **정규화 후 랜덤 스케일링**: 단위 반구 위의 점을 잡은 뒤, 랜덤 길이를 곱해 반구 **내부**에 균일하게 분포시킨다
-- **`Lerp(0.1, 1.0, scale²)`**: 인덱스가 작을수록 짧은 오프셋(표면 가까이), 클수록 긴 오프셋. **가까운 샘플이 더 많아** 디테일한 차폐를 포착하면서도 먼 차폐도 감지한다
+`sampleKernel.z` 값은 [0, 1]로 구성하는데, 이후에 TBN Matrix에 곱해지는 경우 법선 방향으로 증가한다.
 
 #### 회전 노이즈 (rotationNoise[16])
 
@@ -88,11 +84,15 @@ for (int i = 0; i < 16; ++i) {
 }
 ```
 
-16개의 정규화된 랜덤 방향 벡터를 4×4 그리드로 배열한다. 이 벡터들은 셰이더에서 **Gram-Schmidt 과정**을 통해 법선 주위의 TBN 기저를 구성하는 데 사용된다.
+16개의 정규화된 랜덤 방향 벡터를 4×4 그리드로 배열한다. 이 벡터들은 셰이더에서 **Gram-Schmidt 과정**을 통해 법선 주위의 Tangent Vector가 된다.
 
-### 4.2 GPU: 노이즈 인덱싱 (SsaoPS.hlsl)
+`rotationNoise.xyz` 값은 `[-1, 1]`로 구성되는데 법선의 방향을 현재상태에서 모르기 때문에 반구의 형태가 아닌 구의 형태로 구성한다.
 
-SSAO에서 노이즈를 적용하는 가장 일반적인 방법은 **4×4 노이즈 텍스처를 타일링**하는 것이다. Voxen에서는 노이즈를 **Constant Buffer(배열)**로 전달하고, 셰이더에서 픽셀 좌표의 **정수 나머지 연산**으로 직접 인덱싱한다.
+### 4.2 GPU: 회전 노이즈 인덱싱 (SsaoPS.hlsl)
+
+**16개의 회전 노이즈 텍스처를 타일링**하는 것이 첫 번째다.
+
+픽셀 스크린 좌표를 `% 4` 연산으로 인덱싱하여 4x4 픽셀에 `rotationNoise[16]`을 모두 사용한다.
 
 ```hlsl
 uint ix = uint(screenPos.x) % 4;
@@ -100,104 +100,107 @@ uint iy = uint(screenPos.y) % 4;
 float3 randomVec = normalize(rotationNoise[ix + 4 * iy].xyz);
 ```
 
-#### 픽셀 좌표 모듈로 인덱싱
-
-`screenPos`는 `SV_POSITION`으로부터 얻은 픽셀 좌표다. `% 4` 연산으로 x, y 각각 `{0, 1, 2, 3}` 인덱스가 4픽셀 주기로 반복되며, `rotationNoise[ix + 4 * iy]`로 **16개 배열 전체를 균등하게 참조**한다.
-
-화면 해상도와 비율에 무관하게 항상 4×4 픽셀 단위의 정사각형 타일이 보장된다. `appWidth`와 `appHeight`로 스케일링하지 않고 정수 모듈로를 사용하기 때문에, x/y 축 타일링 주기가 동일하게 유지된다.
-
-#### 4×4 배열 완전 활용
-
-이전 구현의 `frac(texcoord * appWidth / 2.0) * 3.0` + bilinear 보간 방식은, 픽셀 좌표가 정수이므로 `frac(pixel / 2.0)`이 0 또는 0.5만 가졌다. fx는 0 또는 1.5만 취하게 되어, **배열의 마지막 행/열(인덱스 3)에 접근하지 않는 낭비**가 있었다.
-
-모듈로 인덱싱은 4픽셀 주기마다 `{0, 1, 2, 3}`을 정확히 한 번씩 순환하여 16개 노이즈 벡터 모두를 균등하게 활용한다.
-
-### 4.3 법선 방향 반구 구성 (TBN)
+### 4.3 ViewSpace를 기준으로한 TBN Matrix 구성
 
 ```hlsl
-float3 T = normalize(randomVec - viewNormal * dot(viewNormal, randomVec));
+float3 T = normalize(randomVec - viewNormal * dot(viewNormal, randomVec)); // randomVec에서 Normal방향의 수직성분을 제거
 float3 B = cross(viewNormal, T);
 float3x3 TBN = float3x3(T, B, viewNormal);
 ```
 
 랜덤 벡터를 법선 평면에 투영하여 Tangent를 구하는 **Gram-Schmidt 직교화**다.
 
-1. `randomVec`에서 법선 방향 성분을 제거 → 법선에 수직인 벡터 `T`
-2. `N × T = B` → 세 번째 직교 축
-3. `TBN = [T, B, N]` — 법선을 Z축으로 하는 직교 기저
-
-이 TBN 행렬로 샘플 커널을 변환하면, **법선 방향의 반구**에 맞춰 샘플이 배치된다. 랜덤 벡터가 픽셀마다 다르므로, 동일한 16개 커널 방향이 픽셀마다 다른 각도로 회전된다.
+TBN Matrix의 Basis(각 T,B,N 벡터)가 View Space 기준으로 형성된 TBN Matrix이므로 `TBN_Space좌표 * TBNMatrix => ViewSpace좌표`가 될 것이다.
 
 ### 4.4 반구 샘플링과 차폐 판정
 
 ```hlsl
-float radius = 1.5;
-float bias = 0.05;
+ float occlusionFactor = 0.0;
+ float radius = 1.5;
+ float bias = 0.05;
 
-for (uint i = 0; i < 16; ++i)
-{
-    // 1. 샘플 위치 계산 (View Space)
+ uint validSampleCount = 0;
+ const float INVALID_POSITION = -1.0;
+ const uint SSAO_SAMPLE_COUNT = 16;
+ [unroll]
+ for (uint i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+ {
+    // 1. 샘플 위치 TBN Matrix 계산 (View Space)
     float3 sampleOffset = mul(sampleKernel[i].xyz, TBN);
-    float3 samplePos = viewPos + sampleOffset * radius;
+    float3 samplePos = viewPos + sampleOffset * radius; // samplePos of viewspace
 
-    // 2. 화면 좌표로 투영
-    float4 sampleProjPos = mul(float4(samplePos, 1.0), proj);
-    sampleProjPos.xyz /= sampleProjPos.w;
+    // 2. NDC 좌표 투영
+    float4 sampleProjPos = float4(samplePos, 1.0);
+    sampleProjPos = mul(sampleProjPos, proj);
+    sampleProjPos.xyz /= sampleProjPos.w; // [-1, 1]
 
-    float2 sampleTexcoord;
-    sampleTexcoord.x = saturate(sampleProjPos.x * 0.5 + 0.5);
-    sampleTexcoord.y = saturate(-(sampleProjPos.y * 0.5) + 0.5);
+    // 3. NDC -> Texcoord 연산
+    float2 sampleTexcoord = sampleProjPos.xy;
+    sampleTexcoord.x = saturate(sampleTexcoord.x * 0.5 + 0.5); // [-1, 1] -> [0, 1]
+    sampleTexcoord.y = saturate(-(sampleTexcoord.y * 0.5) + 0.5); // [-1, 1] -> [1, 0]
 
-    // 3. 해당 화면 위치의 실제 깊이 로드
-    float4 position = positionTex.Load(sampleScreenCoord, 0);
+    // 4. Texcoord -> Screencoord : Texture2DMS를 사용하기에 Screen coord 변경
+    float2 sampleScreenCoord = texcoordToScreen(sampleTexcoord, appWidth, appHeight);
+    float4 position = positionTex.Load(sampleScreenCoord, 0); // SampleIndex 중 아무거나 하나 집어도 무관: 샘플의 위치가 다르다고 가정하면 됨
     float4 storedViewPos = mul(float4(position.xyz, 1.0), view);
+    if (position.w == INVALID_POSITION)
+        storedViewPos.z = 1000.0; // 기하정보가 없는 경우 체크
 
-    // 4. 깊이 비교 → 차폐 판정
-    float rangeCheck = pow(smoothstep(0.0, 1.0, radius / distance), 2.0);
-    occlusionFactor += (storedViewPos.z + bias < samplePos.z ? 1.0 : 0.0) * rangeCheck;
-}
+    // 5. range Weight 설정
+    float diff = max(1e-4, length(viewPos - storedViewPos.xyz));
+    float w = smoothstep(0.0, 1.0, radius / diff);
+    float rangeWeight = pow(w, 2.0);
+
+    // 6. Depth 검사
+    // 저장되어 있는 값이 더 가까운 경우 차폐가 생김
+    // 동일한 위치인 경우 저장되어 있는 값을 뒤로 밀어 차폐가 생기지 않게함 -> bias 더함
+    occlusionFactor += (storedViewPos.z + bias < samplePos.z ? 1.0 : 0.0) * rangeWeight;
+    validSampleCount++;
+ }
+
+ return occlusionFactor / float(validSampleCount);
 ```
 
-단계별 원리:
+샘플 위치를 TBN 연산으로 ViewSpace로 변환한다.
 
-1. **샘플 오프셋 변환**: 커널의 반구 좌표를 TBN으로 회전한 뒤, 현재 픽셀의 View Space 위치에 `radius`만큼 떨어진 점을 계산한다
+그것을 저장되어 있는 텍스쳐에 샘플링할 수 있도록 좌표계 변환을 진행한다.
 
-2. **화면 투영**: View Space 샘플 점을 Projection Matrix로 투영하여 텍스처 좌표를 구한다. NDC `[-1,1]`을 UV `[0,1]`로 변환하며, Y축은 DX 좌표계에 맞춰 반전한다
+이후 Depth를 비교하기 전 Range 검사를 진행한다.
 
-3. **실제 기하 깊이 로드**: 투영된 텍스처 좌표 위치의 G-Buffer에서 World Position을 읽고, View Space로 변환한다. `position.w == -1.0`인 경우(하늘/빈 공간)는 매우 먼 거리(1000)로 설정하여 차폐에 기여하지 않게 한다
+- Range Weight를 활용하는 이유: 멀리 떨어져있는 메쉬끼리는 서로 간접광에 미치는 영향이 별로 없기 때문이다.
 
-4. **차폐 판정**: `storedViewPos.z + bias < samplePos.z` — 실제 기하의 Z(+bias)가 샘플 점의 Z보다 작으면, **샘플 점이 기하 뒤에 묻혀 있으므로 차폐됨**
+Depth 비교 시에는 `bias`를 활용하여 비슷한 Depth나 같은 표면에 있는 곳에는 차폐가 생기지 않도록 한다.
 
-#### Range Check (거리 감쇠)
-
-```hlsl
-float w = smoothstep(0.0, 1.0, radius / max(1e-4, length(viewPos - storedViewPos.xyz)));
-float rangeCheck = pow(w, 2.0);
-```
-
-**샘플링 지점의 기하가 현재 픽셀과 너무 멀리 떨어져 있으면 차폐로 인정하지 않는다.** 예를 들어, 절벽 가장자리에서 바닥이 차폐물로 감지되면 원치 않는 어둠이 생긴다.
-
-- `radius / distance` — 기하가 반경 내에 있으면 1에 가깝고, 멀면 0에 가까움
-- `smoothstep` + `pow(2)` — 거리에 따라 부드럽게 감쇠하되, 경계에서 급격히 떨어지도록
-
-### 4.5 거리 감쇠와 최종 출력
+### 4.5 거리 감쇠(attenuation)와 최종 출력
 
 ```hlsl
+float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal);
+
+float maxSSAODistance = CHUNK_SIZE * 3;
+float minSSAODistance = CHUNK_SIZE;
 float distance = length(viewPos.xyz);
-float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - 32.0));
+float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
 
-return 1.0 - (occlusionFactor * attenuation);
+return (occlusionFactor * attenuation);
 ```
 
-- `attenuation` — 카메라에서 **LOD 렌더 거리** 이상 떨어진 픽셀에서는 SSAO 효과를 점진적으로 페이드아웃한다. 먼 거리의 SSAO는 해상도 한계로 부정확해지므로, 이를 방지하는 것이다
-- 최종 출력은 `1.0 - occlusion` — 차폐가 없으면 1.0(밝음), 완전 차폐면 0.0(어두움)
-- 이 값은 이후 `ShadingBasicPS.hlsl`에서 `ao = pow(ssao, 4.0)`으로 강화되어 Ambient Lighting에 곱해진다
+- 먼 거리의 SSAO는 해상도 한계로 부정확해지므로, 이를 방지하기 위해 사용된다.
+- `minSSAODistance(32.0)` 내부 거리에서는 SSAO 효과를 확실히 하고 `maxSSAODistance(96.0)` 이후부터는 나타나지 않게 조정한다.
+- 차폐가 있으면 값이 `1.0` 없으면 값이 `0.0`이다. 이는 라이팅 연산에 활용할 때는 뒤집어 사용한다. `1.0 - ao`
 
-### 4.6 MSAA Edge 처리 (mainMSAA)
+### 4.6 MSAA Edge 처리 (`mainMSAA` 분기)
 
-Edge 픽셀에서는 4개 MSAA 샘플 각각에 대해 SSAO를 계산한다. 단, **Alpha-Clip 기하 포함 여부에 따라 두 경로**로 분기하여, 가능한 경우 Coverage 기반 가중치로 중복 연산을 줄인다.
+`main`에서는 단순히 Non-Edge Pixel이라 한번만 처리했으면 됐으나, Edge 픽셀에서는 `mainMSAA`함수로 분기하여 4개 MSAA 샘플 각각에 대해 SSAO를 계산해야 한다.
 
-#### semiAlphaCount 검사
+이 때, G-Buffer 과정 중에 생성한 `SV_Coverage` 값을 활용하여 SampleWeight를 두고 좀 더 최적화가 가능하다.
+
+하지만 단순히 `SV_Coverage`값을 기준으로 SampleWeight 연산을 하게되는 경우 잎사귀와 같이 `SemiAlpha`가 Clip된 부분의 영역에서 문제가 발생한다.
+
+이로써, `SemiAlpha가` 없는 Pixel의 경우는 SampleWeight를 활용하여 반복 횟수를 줄이고, `SemiAlpha가` 존재하는 경우 단순히 `SAMPLE_COUNT` 만큼 SSAO 검사 반복문을 진행한다.
+
+#### semiAlphaCount 검사 -> 마스킹값 체크
+
+G-Buffer에서 Alpha-Clip 기하가 있는 샘플은 `normalEdgeTex.w = 2.0`으로 마킹된다. 이 값을 읽어 픽셀 내 Alpha-Clip 샘플 수를 파악한다.
 
 ```hlsl
 const float SEMIALPHA_MASK = 2.0;
@@ -210,11 +213,21 @@ for (uint s = 0; s < SAMPLE_COUNT; ++s)
 }
 ```
 
-G-Buffer 채우기 패스에서 Alpha-Clip 기하가 있는 샘플은 `normalEdgeTex.w = 2.0`으로 마킹된다. 이 값을 읽어 픽셀 내 Alpha-Clip 샘플 수를 파악한다.
-
 #### coverageAnalysis — SV_Coverage 기반 중복 샘플 병합
 
-```hlsl
+`coverageTex`에는 G-Buffer 채우기 패스의 `SV_Coverage` 값이 저장되어 있다.
+
+Coverage 값이 동일한 두 샘플은 **동일한 기하를 덮고 있음**을 의미하므로(실제로는 다른 메쉬가 섞일 순 있음), 대표 샘플의 weight를 증가시키고 나머지를 0으로 처리하여 skip한다.
+
+예를 들어 4샘플 중 3개가 동일 표면을 덮는 경우:
+
+```
+sample 0: weight 3  ← 대표, getOcclusionFactor 1회 계산 후 3의 가중치를 곱해서 사용
+sample 1: weight 0  ← skip
+sample 2: weight 0  ← skip
+sample 3: weight 1  ← 다른 표면, getOcclusionFactor 1회 계산
+→ getOcclusionFactor 2회 (vs 미사용 시 4회)
+
 uint4 coverageAnalysis(uint4 coverage)
 {
     uint4 sampleWeight = uint4(1, 1, 1, 1);
@@ -232,40 +245,49 @@ uint4 coverageAnalysis(uint4 coverage)
 }
 ```
 
-`coverageTex`에는 G-Buffer 채우기 패스의 `SV_Coverage` 값이 저장되어 있다. Coverage 값이 동일한 두 샘플은 **동일한 기하를 덮고 있음**을 의미하므로, 대표 샘플의 weight를 증가시키고 나머지를 0으로 처리하여 skip한다.
-
-예를 들어 4샘플 중 3개가 동일 표면을 덮는 경우:
-
-```
-sample 0: weight 3  ← 대표, getOcclusionFactor 1회 계산
-sample 1: weight 0  ← skip
-sample 2: weight 0  ← skip
-sample 3: weight 1  ← 다른 표면, getOcclusionFactor 1회 계산
-→ getOcclusionFactor 2회 (vs 미사용 시 4회)
-```
-
-#### 분기 처리
+#### sampleWeight 활용
 
 ```hlsl
 if (semiAlphaCount == 0)
 {
-    // SV_Coverage 기반 weight 계산 → 중복 샘플 skip
+    uint4 coverage;
+    uint4 sampleWeight;
+
+    coverage.x = coverageTex.Load(input.posProj.xy, 0);
+    coverage.y = coverageTex.Load(input.posProj.xy, 1);
+    coverage.z = coverageTex.Load(input.posProj.xy, 2);
+    coverage.w = coverageTex.Load(input.posProj.xy, 3);
+
     sampleWeight = coverageAnalysis(coverage);
-    sampleWeightArray[0..3] = sampleWeight.xyzw;
+    sampleWeightArray[0] = sampleWeight.x;
+    sampleWeightArray[1] = sampleWeight.y;
+    sampleWeightArray[2] = sampleWeight.z;
+    sampleWeightArray[3] = sampleWeight.w;
 }
-// semiAlphaCount > 0: 모든 weight = 1 유지 (전체 순회)
 ```
 
 - **semiAlphaCount == 0**: Alpha-Clip 기하 없음 → Coverage 값이 표면 동일성의 신뢰할 수 있는 기준이 되므로 `coverageAnalysis` 적용
 - **semiAlphaCount > 0**: Alpha-Clip 기하 존재 → Coverage 마스크가 클립 여부를 반영하여 표면 동일성 판단에 사용할 수 없으므로 모든 샘플을 독립적으로 계산
 
-#### 실측 결과
+#### 결과: SampleWeight 없이 4회 반복 VS SampleWeight 활용하여 반복(현재코드) - RenderDoc Duration
 
-SSAO 패스 단독 기준 **110μs → 100μs** (약 9% 개선). 단, `mainMSAA`는 전체 화면 중 Edge 픽셀에서만 실행되므로 전체 프레임 렌더링 시간에 대한 기여는 미미하다.
+SSAO 패스 단독 기준 **110μs → 100μs** (약 9% 개선).
+
+단, SSAO의 `mainMSAA`는 전체 화면 중 Edge 픽셀에서만 실행되므로 전체 프레임 렌더링 시간에 대한 기여는 사실 미미하다.
+
+구현의 복잡도와 결과를 비교하여 생각하면 단순히 4회 반복으로도 충분하나, SampleWeight를 활용한 쉐이더 구현 실습을 해보고 싶었다.
 
 ### 4.7 Edge-Preserving Blur (BlurBilateralPS.hlsl)
 
-SSAO 결과의 노이즈를 제거하되, 차폐 경계를 보존하기 위해 **Bilateral Filter** 를 사용한다.
+SSAO 결과의 노이즈를 제거하되, 경계를 보존하기 위해 **Bilateral Filter** 를 사용한다.
+
+Voxel 특성상 Edge가 많고, 이 경계에서 섞이지 않아야 한다.
+
+섞이는 경우 다음과 같이 잎사귀 근처에서 차폐가 섞인다. 그래서 **Bilateral Filter**를 사용하되 입맛에 맞춰 변경한다.
+
+<img width="950" height="550" alt="Image" src="https://github.com/user-attachments/assets/565890e3-0d8c-4bda-9139-43a9b7c4bb19" />
+
+<img width="950" height="550" alt="Image" src="https://github.com/user-attachments/assets/ad703081-80f0-46ef-833e-92c14ea1d7a7" />
 
 #### 핵심 설계
 
@@ -273,55 +295,54 @@ SSAO 결과의 노이즈를 제거하되, 차폐 경계를 보존하기 위해 *
 float4 base = renderTex.Sample(linearClampSS, input.texcoord);
 float sigma = 0.325;
 
-// center 픽셀은 항상 포함 — sumWeight 최소 1.0 보장
 sumColor  += base;
 sumWeight += 1.0;
 
-for (int i = -1; i <= 1; ++i)
-for (int j = -1; j <= 1; ++j)
+[unroll]
+for (int i = -2; i <= 2; ++i)
 {
-    if (i == 0 && j == 0) continue;
+    for (int j = -2; j <= 2; ++j)
+    {
+        if (i == 0 && j == 0)
+            continue;
 
-    float4 s    = renderTex.Sample(linearClampSS, input.texcoord + offset);
-    float  diff = length(base - s);
+        float2 offset = float2(dx * i, dy * j);
+        float4 s = renderTex.Sample(linearClampSS, input.texcoord + offset);
 
-    // range weight: 값이 유사할수록 높은 기여
-    // occlusion weight: 차폐가 높은 샘플일수록 높은 기여
-    float w = exp(-diff * diff / (sigma * sigma)) * pow(s, 1.25);
+        float diff = length(base - s);
+        float w = exp(-diff * diff / (sigma * sigma)) * pow(s, 1.25);
 
-    sumColor  += s * w;
-    sumWeight += w;
+        sumColor  += s * w;
+        sumWeight += w;
+    }
 }
-return sumColor / sumWeight;
 ```
 
-두 가지 weight가 결합된다:
+두 가지 weight를 사용한다:
 
-- **Range weight** `exp(-diff²/σ²)`: SSAO 값 차이가 클수록(=경계) weight를 0으로 수렴시켜 섞지 않는다. σ가 작을수록 경계 차단이 예민해진다
+- **Range weight** `exp(-diff²/σ²)`
+  - SSAO 값 차이가 클수록(=경계) weight를 0으로 수렴시켜 섞지 않는다. σ가 작을수록 경계 차단이 예민해진다
 
-- **Occlusion weight** `pow(s, 1.25)`: Range weight만으로는 해결되지 않는 문제를 보완한다. Alpha-Clip 잎사귀 경계처럼 차폐가 있는 픽셀(s≈1.0)과 차폐가 없는 빈 픽셀(s≈0.0)이 인접할 때, Range weight가 충분히 차단하더라도 낮은 차폐 샘플이 조금씩 섞이면 occluded 영역의 차폐값이 희석된다. Occlusion weight는 샘플 자체의 차폐 정도를 가중치로 부여하여, 차폐가 낮은 샘플(빈 공간, Alpha-Clip 구멍)의 영향력을 원천적으로 억제한다. `pow(s, 1.25)`의 지수는 이 억제를 선형보다 강하게 적용하기 위한 튜닝 값이다
+- **Occlusion weight** `pow(s, 1.25)`
+  - Range weight만으로는 해결되지 않는 문제를 보완한다.
+  - Alpha-Clip 잎사귀 경계처럼 차폐가 있는 픽셀(s≈1.0)과 차폐가 없는 빈 픽셀(s≈0.0)이 인접할 때, Range weight가 충분히 차단하더라도 낮은 차폐 샘플이 조금씩 섞이면 occluded 영역의 차폐값이 섞인다.
+  - Occlusion weight는 샘플 자체의 차폐 정도를 가중치로 부여하여, 차폐가 낮은 샘플(빈 공간, Alpha-Clip 구멍)의 영향력을 떨어뜨려 퍼지지 않게한다.
 
-결과적으로 두 weight의 역할이 명확히 분리된다: **Range weight가 경계를 감지하고, Occlusion weight가 경계 너머 빈 공간의 영향력을 제거**한다.
+이 때, 주변의 샘플을 5x5만큼 샘플하는데 이유는 다음과 같다.
 
-#### 2D 단일 패스 (비분리)
-
-Gaussian Blur는 `G(x,y) = G(x) × G(y)` 로 분리되어 X→Y 2패스로 구현 가능하다. Bilateral은 range weight가 2D 이웃 전체의 값 차이에 의존하므로 **수학적으로 분리 불가능**하다.
-
-X 패스 후 경계 픽셀의 값이 중간값으로 변하면, Y 패스에서 그 중간값을 center로 사용해 range weight를 계산하게 되어 경계 보존이 무너진다. 따라서 3×3 이웃을 한 번에 처리하는 **단일 2D 패스**로 구현한다.
-
-#### Ping-pong 버퍼 구성
-
-단일 패스라도 동일 버퍼 읽기/쓰기 충돌을 막기 위해 ping-pong 방식을 사용한다:
-
-```
-Pass 1: ssaoSRV        → ssaoBlurRTV[0]
-Pass 2: ssaoBlurSRV[0] → ssaoBlurRTV[1]
-Pass 3: ssaoBlurSRV[1] → ssaoBlurRTV[0]
-        ...
-마지막:                → CopyResource → ssaoBuffer
+```hlsl
+// SsaoPS.hlsl
+// 4x4px -> same random vector
+// 4x4 pixel 마다 주기 반복
+uint ix = uint(screenPos.x) % 4;
+uint iy = uint(screenPos.y) % 4;
+float3 randomVec = normalize(rotationNoise[ix + 4 * iy].xyz);
 ```
 
-### 4.8 전체 파이프라인
+- 주변 3x3 샘플을 한다면 반복되는 4x4픽셀에서의 Rotation Random Vector를 올바르게 섞지 못해 노이즈 보여 부드럽지 못했다.
+- 비용이 조금 더 들지만 5x5 샘플로 부드럽게 Blur 처리를 할 수 있었다.
+
+### 5. 전체 파이프라인
 
 ```
 [CPU - PostEffect.cpp]
@@ -333,65 +354,55 @@ rotationNoise[16]: 4×4 랜덤 회전 벡터
 screenPos → % 4 → 4×4 노이즈 인덱스
 randomVec → Gram-Schmidt → TBN (법선 방향 반구)
         ↓
-16 samples × (TBN 변환 → View Space offset → 화면 투영 → 깊이 비교)
+16 samples × (TBN 변환 → View Space offset → 화면 투영 샘플 → RangeCheck → 깊이 비교)
         ↓
 occlusionFactor / 16 → 거리 감쇠 → 차폐값 저장
-        ↓ BlurBilateralPS (3×3, range weight + occlusion weight)
-ssaoTex → ShadingBasicPS에서 pow(ao, 4) 후 Ambient에 곱함
+        ↓ BlurBilateralPS (5×5, range weight + occlusion weight)
+ssaoTex → ShadingBasicPS에서 활용
 ```
 
-## 5. 문제점 & 해결
+## 6. 문제점 & 해결
 
-### 5.1 View 변경 시 노이즈 Flickering
-
-**문제**: 노이즈 인덱스 계산에 부동소수점 연산이 개입하면, 카메라의 미세한 이동 시 동일한 픽셀에 할당되는 노이즈 벡터가 달라져 **깜빡거림(Flickering)** 이 발생할 수 있다.
-
-**해결**: `uint(screenPos.x) % 4`로 정수 픽셀 좌표에 직접 나머지 연산을 적용한다. 화면의 픽셀 (x, y)는 항상 동일한 나머지 인덱스 `(x%4, y%4)`로 매핑되므로, 카메라가 어떻게 이동하든 동일 픽셀은 항상 동일한 노이즈 벡터를 사용한다. 부동소수점 정밀도 문제가 개입할 여지가 없어 Flickering이 구조적으로 제거된다.
-
-### 5.2 적은 샘플 수에 의한 Banding
-
-**문제**: 16개 샘플로는 반구 전체를 균일하게 커버할 수 없어, 동일 패턴이 반복되는 줄무늬(Banding)가 보인다.
-
-**해결**: 픽셀마다 다른 회전 벡터로 TBN 기저를 회전시켜, Banding을 고주파 노이즈로 분산시킨다. 이 노이즈는 이후 Blur 패스(2회)로 평활화된다. 결과적으로 16개 샘플만으로도 시각적으로 충분히 부드러운 AO를 얻는다.
-
-### 5.3 Alpha-Clip 경계에서의 Blur Artifact
+### 6.1 Alpha-Clip 경계에서의 Blur Artifact
 
 **문제**: 잎사귀처럼 Alpha Clip된 메시의 경계에서, 실제 차폐가 있는 픽셀(SSAO≈1.0)과 Alpha Clip으로 비어있는 픽셀(SSAO≈0.0)이 인접한다. 일반 Gaussian Blur는 이 둘을 평균내어 경계에 0.5 중간값을 생성한다. 결과적으로 잎사귀 주변에 흐릿한 테두리(Half-Occlusion Ring)가 나타난다.
 
-초기에는 **Bloom 기반 스무딩**으로 해결했다. Bloom의 down/up sampling은 단순 평균이 아니라 밝은(occluded) 값을 주변으로 확장하는 경향이 있어, 0.5 중간값 생성 없이 차폐 영역을 자연스럽게 퍼뜨린다. 그러나 SSAO 노이즈가 그대로 증폭되어 시각적으로 두드러지는 문제가 있었다.
+초기에는 **Bloom 기반 스무딩**으로 해결했다. Bloom의 down/up sampling은 단순 평균이 아니라 밝은(occluded) 값을 주변으로 확장하는 경향이 있어, 0.5 중간값 생성 없이 차폐 영역을 자연스럽게 퍼뜨린다. 그러나 SSAO 노이즈가 그대로 누수되어 시각적으로 두드러지는 문제가 있었다.
 
-**최종 해결**: Range weight와 Occlusion weight를 결합한 Bilateral Filter. 0.0↔1.0 경계에서 range weight가 0에 수렴하여 섞지 않으며, occlusion weight가 낮은 차폐 샘플(빈 공간)의 영향력을 억제한다.
+**해결**: Range weight와 Occlusion weight를 결합한 Bilateral Filter. 0.0↔1.0 경계에서 range weight가 0에 수렴하여 섞지 않으며, occlusion weight가 낮은 차폐 샘플(빈 공간)의 영향력을 억제한다.
 
-### 5.4 Alpha-Clip 경계에서의 SV_Coverage 신뢰성 문제
+### 6.2 Alpha-Clip 경계에서의 SV_Coverage 신뢰성 문제
 
 **문제**: Coverage 값이 동일한 두 샘플을 "동일 기하"로 판단하는 `coverageAnalysis`는, Alpha-Clip 기하가 있는 픽셀에서 신뢰할 수 없다. Alpha-Clip은 서브픽셀 단위로 클립을 적용하므로 동일한 Coverage 마스크를 가지더라도 실제로는 서로 다른 표면(클립된 잎사귀 / 뒤의 배경)일 수 있다. 이 경우 `coverageAnalysis`가 다른 표면을 동일 기하로 묶어 weight를 부여하면 잘못된 occlusionFactor가 계산된다.
 
 **해결**: G-Buffer 채우기 패스에서 Alpha-Clip 기하 샘플에 `normalEdgeTex.w = 2.0`으로 마킹한다. `mainMSAA`에서 `semiAlphaCount`를 검사하여, Alpha-Clip 샘플이 하나라도 있으면 `coverageAnalysis`를 건너뛰고 모든 샘플을 weight = 1로 독립 계산한다.
 
-### 5.6 Bilateral Filter의 비분리성
+### 6.3 mainMSAA 분기에 대한 트레이드 오프
 
-**문제**: Gaussian Blur처럼 X→Y 2패스 분리를 시도했다. X 패스 이후 경계 픽셀에 중간값이 생기고, Y 패스에서 그 중간값을 center로 삼아 range weight를 계산하면 경계 양쪽 샘플을 동등하게 취급하여 경계 보존이 무너진다.
+**비교**: SemiAlpha Count Check + SampleWeight의 비용과 그에 따른 반복 횟수 감소 **VS** 단순히 조건 없이 4회 반복
 
-**해결**: 3×3 이웃을 한 번에 처리하는 2D 단일 패스로 구현한다. 다만 **Multi-pass 2D bilateral**(완전한 2D 연산을 여러 번 반복)은 각 패스가 수학적으로 올바르기 때문에 유효하다.
+**해결**: 전자로 선택, 구현 복잡도는 늘어나지만 실질적으로 미비하지만 빨라지고, 구현의 연습의 계기.
 
-### 5.7 먼 거리 기하에 의한 오차 (Halo Artifact)
+### 6.4 먼 거리의 SSAO Flickering
 
-**문제**: 반경 내에 실제로는 관련 없는 먼 거리 기하가 감지되면, 가장자리에 비정상적인 어두운 테두리(Halo)가 생긴다.
+**문제**: 먼 거리의 오브젝트의 경우 부정확한 값으로 인해 SSAO가 카메라 움직임에 따라 크게 흔들린다.
 
-**해결**: `rangeCheck = pow(smoothstep(0, 1, radius / distance), 2)` — 샘플 반경보다 먼 기하의 차폐 기여를 급격히 감쇠시킨다. 또한 `position.w == -1.0`(빈 공간)일 때 Z를 1000으로 설정하여, 하늘이 차폐물로 오인되지 않도록 한다.
+**해결**: SSAO를 거리 따라 적용하여 감쇄시켜 먼 거리에 있는 오브젝트에 대한 차폐를 생기지 않도록한다.
 
-## 6. 결과
+```
+float maxSSAODistance = CHUNK_SIZE * 3;
+float minSSAODistance = CHUNK_SIZE;
+float distance = length(viewPos.xyz);
+float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
 
-- 블록 모서리, 벽과 바닥 접합부, 동굴 내부 등에 **자연스러운 접촉 그림자**가 생겨 공간감이 크게 향상된다
-- 16 샘플 + 4×4 노이즈 회전 + Bilateral Blur 조합으로, 적은 연산량에 비해 시각적으로 충분한 품질을 달성한다
-- 픽셀 좌표 모듈로 인덱싱으로, 카메라 이동/회전 시에도 **Flickering 없이 안정적인 AO** 를 유지한다
-- 거리 감쇠(`attenuation`)로 먼 거리에서의 부정확한 AO가 자연스럽게 사라진다
-- Range weight + Occlusion weight 결합 Bilateral Filter로 Alpha-Clip 잎사귀 경계에서도 **경계 artifact 없이 부드러운 AO** 를 달성한다
+return (occlusionFactor * attenuation);
+```
 
 ## 7. 회고
 
-- 현재 샘플 반경(`radius = 1.5`)과 편향(`bias = 0.05`)이 하드코딩되어 있다. 이를 파라미터화하면 씬에 따라 AO 범위와 강도를 조절할 수 있을 것이다
-- Bilateral Filter는 수학적으로 분리 불가능(non-separable)하여 X/Y 2패스로 구현할 수 없고, 3×3 단일 패스로 처리한다. 더 넓은 커널이 필요하다면 Multi-pass 2D bilateral을 반복하는 방식이 유일한 선택이다
-- 현재는 단일 반경으로 샘플링하지만, 멀티 스케일 AO(여러 반경으로 합산)를 도입하면 근거리 접촉 그림자와 원거리 대규모 차폐를 동시에 표현할 수 있다
-- SSAO 결과에 `pow(ao, 4.0)`을 적용하는 것은 시각적 튜닝이지만, HDR 파이프라인에서 톤 매핑과의 상호작용을 고려하면 감마 커브보다는 물리 기반의 가중치가 더 적절할 수 있다
-- Geometry 기반 Bilateral(G-Buffer position/normal을 경계 판단 기준으로 사용)을 도입하면 SSAO 값 노이즈에 독립적인 더 안정적인 경계 보존이 가능하다
+- 처음으로 해보는 G-Buffer를 활용한 Screen Space 로직이였다.
+  - https://learnopengl.com/Advanced-Lighting/SSAO 를 참고하여 단순 구현 자체는 난이도가 높지는 않았다.
+  - 하지만, Edge 문제, Alpha Cliped에서의 문제, Filckering 등 다양한 문제가 존재했고 해결할 수 있었던 챕터였다.
+- 단순히 Blur, Filter하면 Gaussian 밖에 모르는 나에게 Edge Preserve 방식의 Blur를 학습할 수 있는 계기였다.
+  - 원래는 차폐가 없는 곳이 섞이는게 싫어서 단순히 차폐가 있는 곳에 대한 Bloom을 처리했지만 불필요한 차폐가 번져 문제가 있었고 다른 Filtering 방식을 찾아봤다.
+- Edge 픽셀에 대해서 SampleWeight를 두고 최적화하는 방식도 알 수 있었다.

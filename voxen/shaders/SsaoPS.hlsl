@@ -90,7 +90,7 @@ float getOcclusionFactor(float2 screenPos, float3 viewPos, float3 viewNormal)
     
     float occlusionFactor = 0.0;
     float radius = 1.5;
-    float bias = 0.05;
+    float bias = 0.01;
     
     uint validSampleCount = 0;
     const float INVALID_POSITION = -1.0;
@@ -144,9 +144,10 @@ float main(psInput input) : SV_TARGET
     
     float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal);
     
-    // attenuation [distance: 32, 260] => [attenuation: 1, 0]
-    float distance = length(viewPos);
-    float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
+    float maxSSAODistance = CHUNK_SIZE * 3;
+    float minSSAODistance = CHUNK_SIZE;
+    float distance = length(viewPos.xyz);
+    float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
     
     return (occlusionFactor * attenuation);
 }
@@ -209,16 +210,21 @@ float mainMSAA(psInput input) : SV_TARGET
         
         float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal) * sampleWeightArray[i];
         
+        // attenuation [distance: 32, 96] => [attenuation: 1, 0]
+        float maxSSAODistance = CHUNK_SIZE * 3;
+        float minSSAODistance = CHUNK_SIZE;
         float distance = length(viewPos.xyz);
-        float attenuation = saturate((lodRenderDistance - distance) / (lodRenderDistance - CHUNK_SIZE));
+        float attenuation = saturate((maxSSAODistance - distance) / (maxSSAODistance - minSSAODistance));
         
         sumOcclusionFactor += occlusionFactor * attenuation;
         
-        validSampleCount++;
+        validSampleCount += sampleWeightArray[i];
     }
     
-    sumOcclusionFactor /= validSampleCount;
+    if (validSampleCount == 0)
+        return 0.0;
     
+    sumOcclusionFactor /= validSampleCount;
     
     return sumOcclusionFactor;
 }

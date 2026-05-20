@@ -29,6 +29,7 @@ cbuffer AppConstantBuffer : register(b7)
     float appHeight;
     float mirrorWidth;
     float mirrorHeight;
+    float4 imGUIData;
 }
 
 cbuffer CameraConstantBuffer : register(b8)

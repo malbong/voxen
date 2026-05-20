@@ -395,6 +395,8 @@ void App::ImGuiFrame()
 
 void App::Update(float dt)
 {
+	DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+
 	if (m_keyToggled['P']) {
 		return;
 	}
