@@ -8,7 +8,7 @@
 using namespace DirectX::SimpleMath;
 
 Light::Light()
-	: m_dir(cos(Utils::PI / 4.0f), 0.0f, cos(Utils::PI / 4.0f)), m_scale(0.0f),
+	: m_dir(cos(Utils::PI * 0.25f), 0.0f, cos(Utils::PI * 0.25f)), m_scale(0.0f),
 	  m_radianceColor(1.0f), m_radianceWeight(1.0f), m_lightConstantBuffer(nullptr),
 	  m_shadowConstantBuffer(nullptr)
 {
@@ -40,10 +40,10 @@ void Light::Update(UINT dateTime, Camera& camera)
 	{
 		// dir
 		Matrix rotationAxisMatrix = Matrix::CreateFromAxisAngle(
-			Vector3(-cos(Utils::PI / 4.0f), 0.0f, cos(Utils::PI / 4.0f)), angle);
+			Vector3(-cos(Utils::PI * 0.25f), 0.0f, cos(Utils::PI * 0.25f)), angle);
 
 		m_dir = Vector3::Transform(
-			Vector3(cos(Utils::PI / 4.0f), 0.0f, cos(Utils::PI / 4.0f)), rotationAxisMatrix);
+			Vector3(cos(Utils::PI * 0.25f), 0.0f, cos(Utils::PI * 0.25f)), rotationAxisMatrix);
 		m_dir.Normalize();
 
 		m_up = XMVector3TransformNormal(Vector3(0.0f, 1.0f, 0.0f), rotationAxisMatrix);

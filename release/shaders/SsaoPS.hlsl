@@ -131,6 +131,9 @@ float getOcclusionFactor(float2 screenPos, float3 viewPos, float3 viewNormal)
 
 float main(psInput input) : SV_TARGET
 {   
+    if (!useSSAO)
+        return 0.0;
+    
     float3 worldNormal = normalEdgeTex.Load(input.posProj.xy, 0).xyz;
     if (length(worldNormal) == 0)
         return 0.0;
@@ -154,6 +157,9 @@ float main(psInput input) : SV_TARGET
 
 float mainMSAA(psInput input) : SV_TARGET
 {
+    if (!useSSAO)
+        return 0.0;
+    
     // check semiAlpha masking
     const float SEMIALPHA_MASK = 2.0;
     uint semiAlphaCount = 0;

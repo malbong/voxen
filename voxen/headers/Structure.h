@@ -138,8 +138,11 @@ struct AppConstantData {
 	float appHeight;
 	float mirrorWidth;
 	float mirrorHeight;
-	Vector4 imGUIData;
+	uint32_t useFullSemiAlphaEdge;
+	uint32_t useSSAO;
+	Vector2 appDummy;
 };
+
 
 struct DateConstantData {
 	uint32_t days;

@@ -27,7 +27,7 @@ public:
 	Date();
 	~Date();
 
-	bool Initialize();
+	bool Initialize(UINT initDateTime);
 	void Update(float dt);
 
 	inline UINT GetDateTime() { return m_iDateTime; }

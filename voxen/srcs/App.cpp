@@ -254,7 +254,7 @@ bool App::InitScene()
 	if (!m_worldMap.Initialize(m_camera.GetPosition()))
 		return false;
 
-	if (!m_date.Initialize()) {
+	if (!m_date.Initialize(1000)) {
 		return false;
 	}
 
@@ -306,16 +306,17 @@ void App::ImGuiFrame()
 		ImGui::GetIO().Framerate);
 
 	ImGui::Text("P: Pause");
-	ImGui::Text("F: Light Move");
+	ImGui::Text("L: Light Move");
 	ImGui::Text("M: World Map");
 	ImGui::Text("V: Frustum Culling View");
 	ImGui::Text("R: Reflection World View");
 	ImGui::Text("G: GBuffer View");
 	ImGui::Text("E: Edge View");
+	ImGui::Text("F: Toggle Full SemiAlpha Edge");
 	ImGui::Text("O: SSAO View");
-	ImGui::Text("B: Toggle SSAO Blur[Bilateral vs Gaussian]");
+	ImGui::Text("I: Toggle SSAO");
 	ImGui::Text("");
-
+	
 	float worldX = m_camera.GetPosition().x;
 	float worldY = m_camera.GetPosition().y;
 	float worldZ = m_camera.GetPosition().z;
@@ -395,13 +396,20 @@ void App::ImGuiFrame()
 
 void App::Update(float dt)
 {
-	DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+	if ((bool)m_constantData.useFullSemiAlphaEdge == m_keyToggled['F']) {
+		m_constantData.useFullSemiAlphaEdge = !m_keyToggled['F'];
+		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+	}
+	if ((bool)m_constantData.useSSAO == m_keyToggled['I']) {
+		m_constantData.useSSAO = !m_keyToggled['I'];
+		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+	}
 
 	if (m_keyToggled['P']) {
 		return;
 	}
 
-	if (m_keyToggled['F']) {
+	if (m_keyToggled['L']) {
 		m_date.Update(dt);
 	}
 	else {
