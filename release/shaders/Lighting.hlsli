@@ -159,12 +159,15 @@ float3 getSpecularTerm(float3 albedo, float3 pixelToEye, float3 normal, float me
     // 언리얼 PBR 코스노트 코드
     // float3 specularIrradiance = specularIBLTex.SampleLevel(linearSampler, reflect(-pixelToEye, normal), roughness * 5.0f).rgb;
     // 내 코드와 이유
+    // 정적인 환경맵을 IBLBacker로 구워서 specularIBLTex로 사용할 수 없는 환경임
+    // 이러한 이유로 specularIBLTex를 근사하여 만듦
+    // roughness가 높으면 DiffuseIrradiance와 유사하게 구성하고, roughness가 낮으면 반사방향의 skyColor를 가져오는 방식을 취함
     float3 ambientColor = getAmbientColor();
     float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + ambientColor;
     
     float3 reflectDir = normalize(reflect(-pixelToEye, normal));
     float3 reflectionColor = useSkyColor ? getSkyColor(reflectDir) : ambientColor;
-    float reflectRadianceWeight = max(dot(reflectDir, lightDir), 0.0);
+    float reflectRadianceWeight = abs(dot(reflectDir, lightDir));
     float3 reflectRadiance = reflectionColor * reflectRadianceWeight;
     
     float3 specularIrradiance = lerp(reflectRadiance, diffuseIrradiance, roughness);

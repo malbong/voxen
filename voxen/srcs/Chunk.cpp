@@ -178,8 +178,6 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 				Biome::GetBiomeTerrainHeight(memory->continentalinessNoises[x][z],
 					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z],
 					memory->temperatureNoises[x][z], memory->humidityNoises[x][z]);
-
-			memory->elevationNoises[x][z] = 88.0f;
 		}
 	}
 }
@@ -221,13 +219,6 @@ void Chunk::InitBasicBlockType(ChunkLoadMemory* memory)
 					memory->elevationNoises[x][z]);
 
 				m_blocks[x][y][z].SetType(blockType);
-				/**/
-				if (blockType != BLOCK_TYPE::BLOCK_AIR) {
-					if (worldX < 0) {
-						m_blocks[x][y][z].SetType(BLOCK_TYPE::BLOCK_GOLD);
-					}
-				}
-				
 			}
 		}
 	}

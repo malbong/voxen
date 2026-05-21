@@ -167,7 +167,7 @@ float3 getSpecularTerm(float3 albedo, float3 pixelToEye, float3 normal, float me
     
     float3 reflectDir = normalize(reflect(-pixelToEye, normal));
     float3 reflectionColor = useSkyColor ? getSkyColor(reflectDir) : ambientColor;
-    float reflectRadianceWeight = max(dot(reflectDir, lightDir), 0.0);
+    float reflectRadianceWeight = abs(dot(reflectDir, lightDir));
     float3 reflectRadiance = reflectionColor * reflectRadianceWeight;
     
     float3 specularIrradiance = lerp(reflectRadiance, diffuseIrradiance, roughness);
