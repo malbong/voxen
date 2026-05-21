@@ -17,6 +17,21 @@ struct psInput
     float2 texcoord : TEXCOORD;
 };
 
+float3 texcoordToViewPos(float2 texcoord, float projDepth)
+{
+    float4 posProj;
+    
+    posProj.xy = texcoord * 2.0 - 1.0;
+    posProj.y *= -1;
+    posProj.z = projDepth;
+    posProj.w = 1.0;
+
+    float4 posView = mul(posProj, invProj);
+    posView.xyz /= posView.w;
+    
+    return posView.xyz;
+}
+
 float3 getFogColor(float3 lightDir, float3 eyeDir)
 {
     float dirWeight = max(dot(lightDir, eyeDir), 0.0);

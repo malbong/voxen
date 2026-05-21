@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DArray blockAtlasTextureArray : register(t0);
 Texture2DArray normalAtlasTextureArray : register(t1);
@@ -184,7 +185,7 @@ float4 mainMirror(psInput input) : SV_TARGET
     
     float3 mer = merAtlasTextureArray.Sample(pointWrapSS, float3(input.texcoord, input.texIndex)).rgb;
     
-    float3 ambient = getAmbientLighting(1.0, albedo.rgb, input.posWorld, input.normal, mer.r, mer.b);
+    float3 ambient = getAmbientLighting(1.0, albedo.rgb, input.posWorld, input.normal, mer.r, mer.b, false);
     
     return float4(ambient, albedo.a);
 }

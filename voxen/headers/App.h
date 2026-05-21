@@ -35,6 +35,9 @@ public:
 	static const UINT MIRROR_WIDTH = APP_WIDTH / 2;
 	static const UINT MIRROR_HEIGHT = APP_HEIGHT / 2;
 
+	static const UINT GLOBAL_LIGHTING_STARTING_SLOT = 10;
+	static const UINT GLOBAL_LIGHTING_SRVS_COUNT = 4;
+
 private:
 	bool InitWindow();
 	bool InitDirectX();
@@ -42,6 +45,9 @@ private:
 	bool InitScene();
 
 	void SetGlobalConstantBuffer();
+
+	void SetGlobalLightingSRVs();
+	void UnsetGlobalLightingSRVs();
 
 	void ImGuiFrame();
 	void Update(float dt);

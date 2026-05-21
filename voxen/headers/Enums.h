@@ -172,6 +172,7 @@ enum BLOCK_TYPE : uint8_t {
 	BLOCK_GOLD = 22,
 	BLOCK_MUD = 31,
 	BLOCK_MOSS = 32,
+	BLOCK_AMETHYST = 33,
 
 	// tree
 	BLOCK_OAK_LOG = 23,

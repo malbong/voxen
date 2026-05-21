@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DMS<float4, SAMPLE_COUNT> msaaRenderTex : register(t0);
 Texture2D mirrorWorldTex : register(t1);
@@ -50,9 +51,9 @@ float3 getWaterAlbedo(float2 texcoord, uint stillIndex, float3 worldPos, float3 
 float3 normalMapping(float2 texcoord, uint stillIndex)
 {
     float3 normalTex = waterStillNormalAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, stillIndex)).rgb;
-    normalTex = normalize(2.0 * normalTex - 1.0); // TBN �����̽��� �����ϴ� TBN ��ǥ
+    normalTex = normalize(2.0 * normalTex - 1.0); // TBN ????????? ??????? TBN ???
     
-    // Water Plane�� �����̹Ƿ� ���� TBN��� ���� �����ߴٰ� �����ϰ� ����
+    // Water Plane?? ???????? ???? TBN??? ???? ???????? ??????? ????
     //  float3 T = float3(1.0, 0.0, 0.0); // T`
     //  float3 B = float3(0.0, 0.0, -1.0); // B`
     //  float3 N = float3(0.0, 1.0, 0.0); // N` 
@@ -78,7 +79,7 @@ float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
     
     // water color
     float3 albedo = getWaterAlbedo(input.texcoord, waterStillTextureIndex, input.posWorld, mappedNormal);
-    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, mappedNormal, 0.0, roughness);
+    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, mappedNormal, 0.0, roughness, true);
     float3 directLighting = getDirectLighting(mappedNormal, input.posWorld, albedo, 0.0, roughness, true);
     float3 waterColor = ambientLighting + directLighting;
         
@@ -103,7 +104,7 @@ float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
         
         // fresnel factor
         float3 planeToEye = normalize(eyePos - input.posWorld);
-        float3 reflectCoeff = float3(0.02, 0.02, 0.02); // fresnel 값의 최소
+        float3 reflectCoeff = float3(0.02, 0.02, 0.02); // fresnel ���� �ּ�
         float3 fresnelFactor = schlickFresnel(mappedNormal, planeToEye, reflectCoeff);
         
         // blending 3 colors

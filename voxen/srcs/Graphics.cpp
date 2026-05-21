@@ -1116,13 +1116,18 @@ bool Graphics::InitPixelShaders()
 	}
 
 	// basicMirrorPS
-	if (!DXUtils::CreatePixelShader(L"shaders/BasicPS.hlsl", basicMirrorPS, nullptr, "mainMirror")) {
+	macros.clear();
+	macros.push_back({ "USE_MIRROR", "1" });
+	macros.push_back({ NULL, NULL });
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/BasicPS.hlsl", basicMirrorPS, macros.data(), "mainMirror")) {
 		std::cout << "failed create basic mirror ps" << std::endl;
 		return false;
 	}
 
 	// basicMirrorAlphaClipPS
 	macros.clear();
+	macros.push_back({ "USE_MIRROR", "1" });
 	macros.push_back({ "USE_ALPHA_CLIP", "1" });
 	macros.push_back({ NULL, NULL });
 	if (!DXUtils::CreatePixelShader(

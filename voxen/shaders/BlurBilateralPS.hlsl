@@ -37,7 +37,7 @@ float4 main(psInput input) : SV_TARGET
             float4 s = renderTex.Sample(linearClampSS, input.texcoord + offset);
 
             float diff = length(base - s);
-            float w = exp(-diff * diff / (sigma * sigma)) * pow(s, 1.25);
+            float4 w = exp(-diff * diff / (sigma * sigma)) * pow(abs(s), float4(1.25, 1.25, 1.25, 1.25));
 
             sumColor  += s * w;
             sumWeight += w;

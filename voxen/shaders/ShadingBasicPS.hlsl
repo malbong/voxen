@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DMS<float4, SAMPLE_COUNT> normalEdgeTex : register(t0);
 Texture2DMS<float4, SAMPLE_COUNT> positionTex : register(t1);
@@ -43,12 +44,16 @@ float4 main(psInput input) : SV_TARGET
     mer /= SAMPLE_COUNT;
     
     float metallic = mer.r;
-    float roughness = mer.b;
+    
+    float roughnessBias = 0.05;
+    float roughness = min(1.0, mer.b + roughnessBias);
     
     float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
     ao = pow(ao, 2.0);
     
-    float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
+    //float3 ambientLighting = float3(0.0, 0.0, 0.0);
+    float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness, true);
+    //float3 directLighting = float3(0.0, 0.0, 0.0);
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
     
     float3 lighting = ambientLighting + directLighting;
@@ -90,7 +95,8 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
         ao = pow(ao, 2.0);
         
-        float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
+        //float3 ambientLighting = float3(0.0, 0.0, 0.0);
+        float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness, true);
         float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
         
         float3 lighting = ambientLighting + directLighting;

@@ -148,7 +148,7 @@ bool App::Initialize()
 
 bool App::InitWindow()
 {
-	// Window ì´ˆê¸°í™”
+	// Window ÃÊ±âÈ­
 	{
 		const wchar_t CLASS_NAME[] = L"Voxen Class";
 		HINSTANCE hInstance = GetModuleHandle(0);
@@ -175,7 +175,7 @@ bool App::InitWindow()
 		UpdateWindow(m_hwnd);
 	}
 
-	// RAW INPUT ë“±ë¡
+	// RAW INPUT µî·Ï
 	{
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
@@ -288,7 +288,7 @@ void App::Run()
 			Update(ImGui::GetIO().DeltaTime);
 			Render();
 
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ë Œë”ë§
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ·»´õ¸µ
 
 			Graphics::swapChain->Present(1, 0);
 		}
@@ -297,10 +297,10 @@ void App::Run()
 
 void App::ImGuiFrame()
 {
-	ImGui_ImplDX11_NewFrame(); // GUI í”„ë ˆì„ ì‹œì‘
+	ImGui_ImplDX11_NewFrame(); // GUI ÇÁ·¹ÀÓ ½ÃÀÛ
 	ImGui_ImplWin32_NewFrame();
 
-	ImGui::NewFrame(); // ì–´ë–¤ ê²ƒë“¤ì„ ë Œë”ë§ í• ì§€ ê¸°ë¡ ì‹œì‘
+	ImGui::NewFrame(); // ¾î¶² °ÍµéÀ» ·»´õ¸µ ÇÒÁö ±â·Ï ½ÃÀÛ
 	ImGui::Begin("Scene Control");
 	ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 		ImGui::GetIO().Framerate);
@@ -391,7 +391,7 @@ void App::ImGuiFrame()
 	ImGui::Text("BIOME: %s", biomeString);
 
 	ImGui::End();
-	ImGui::Render(); // ë Œë”ë§í•  ê²ƒë“¤ ê¸°ë¡ ë
+	ImGui::Render(); // ·»´õ¸µÇÒ °Íµé ±â·Ï ³¡
 }
 
 void App::Update(float dt)
@@ -452,6 +452,27 @@ void App::SetGlobalConstantBuffer()
 		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
 }
 
+void App::SetGlobalLightingSRVs()
+{
+	Graphics::context->OMSetRenderTargets(0, nullptr, nullptr);
+
+	std::vector<ID3D11ShaderResourceView*> ppLightSRVs;
+	ppLightSRVs.push_back(Graphics::brdfSRV.Get());
+	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
+	ppLightSRVs.push_back(Graphics::sunSRV.Get());
+	ppLightSRVs.push_back(Graphics::moonSRV.Get());
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)ppLightSRVs.size(), ppLightSRVs.data());
+}
+
+void App::UnsetGlobalLightingSRVs()
+{
+	std::vector<ID3D11ShaderResourceView*> nullSRVs(GLOBAL_LIGHTING_SRVS_COUNT, nullptr);
+
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)nullSRVs.size(), nullSRVs.data());
+}
+
 void App::Render()
 {
 	SetGlobalConstantBuffer();
@@ -460,6 +481,8 @@ void App::Render()
 	{
 		RenderShadowMap();
 	}
+
+	SetGlobalLightingSRVs();
 
 	// 1. Deferred Render Pass
 	{
@@ -636,19 +659,12 @@ void App::ShadingBasic()
 	ppSRVs.push_back(Graphics::ssaoSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
 
-	Graphics::context->PSSetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
-	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
-
 	Graphics::SetPipelineStates(Graphics::shadingBasicPSO);
 	SimpleQuadRenderer::GetInstance()->Render();
 
 	Graphics::SetPipelineStates(
 		m_keyToggled['E'] ? Graphics::shadingBasicEdgeHighlightPSO : Graphics::shadingBasicEdgePSO);
 	SimpleQuadRenderer::GetInstance()->Render();
-		
-
-	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
-	Graphics::context->PSSetShaderResources(10, 2, nullSRV);
 }
 
 void App::ConvertToMSAA()
@@ -739,7 +755,7 @@ void App::RenderMirrorWorld()
 			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV);
 	}
 
-	// ì›ë˜ì˜ ê¸€ë¡œë²Œë¡œ ë‘ê¸°
+	// ¿ø·¡ÀÇ ±Û·Î¹ú·Î µÎ±â
 	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
@@ -761,18 +777,15 @@ void App::RenderWaterPlane()
 	ppSRVs.push_back(Graphics::waterStillAtlasMapSRV.Get());
 	ppSRVs.push_back(Graphics::waterStillNormalAtlasMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-	Graphics::context->PSSetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
-	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::waterPlanePSO);
 	ChunkManager::GetInstance()->RenderTransparency();
-
-	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
-	Graphics::context->PSSetShaderResources(10, 2, nullSRV);
 }
 
 void App::RenderShadowMap()
 {
+	UnsetGlobalLightingSRVs();
+
 	Graphics::context->RSSetViewports(Light::CASCADE_NUM, Graphics::shadowViewports);
 
 	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::shadowDSV.Get());
@@ -936,13 +949,13 @@ void App::LockCursor()
 	if (!m_isActive) {
 		POINT topLeft = { 0, 0 };
 		POINT bottomRight = { APP_WIDTH, APP_HEIGHT };
-		ClientToScreen(m_hwnd, &topLeft);	  // ì¢Œì¸¡ìƒë‹¨ í¬ì¸í„°
-		ClientToScreen(m_hwnd, &bottomRight); // ìš°ì¸¡í•˜ë‹¨ í¬ì¸í„°
+		ClientToScreen(m_hwnd, &topLeft);	  // ÁÂÃø»ó´Ü Æ÷ÀÎÅÍ
+		ClientToScreen(m_hwnd, &bottomRight); // ¿ìÃøÇÏ´Ü Æ÷ÀÎÅÍ
 		RECT clipRect = { topLeft.x, topLeft.y, bottomRight.x, bottomRight.y };
 
 		ClipCursor(&clipRect);
 
-		ShowCursor(false); // ì „ì—­ ì¹´ìš´íŠ¸ë¡œ ë™ì‘í•˜ê¸° ë•Œë¬¸ì— m_isActiveë¥¼ ì´ìš©í•œ flag ì²˜ë¦¬ í•„ìš”
+		ShowCursor(false); // Àü¿ª Ä«¿îÆ®·Î µ¿ÀÛÇÏ±â ¶§¹®¿¡ m_isActive¸¦ ÀÌ¿ëÇÑ flag Ã³¸® ÇÊ¿ä
 
 		m_isActive = true;
 	}

@@ -1,7 +1,7 @@
 #include "Date.h"
 #include "DXUtils.h"
 
-Date::Date() : m_days(0), m_iDateTime(0.0f), m_fDateTime(0.0f) {}
+Date::Date() : m_days(0), m_iDateTime(0), m_fDateTime(0.0f) {}
 
 Date::~Date() {}
 
