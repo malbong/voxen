@@ -47,7 +47,7 @@ float4 main(psInput input) : SV_TARGET
     
     float roughnessBias = 0.05;
     float roughness = min(1.0, mer.b + roughnessBias);
-    
+    roughness = 0.0;
     float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
     ao = pow(ao, 2.0);
     
@@ -57,9 +57,7 @@ float4 main(psInput input) : SV_TARGET
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
     
     float3 lighting = ambientLighting + directLighting;
-    float3 clampLighting = clamp(lighting, 0.0f, 1000.0f);
-    
-    return float4(clampLighting, 1.0);
+    return float4(lighting, 1.0);
 }
 
 float4 mainMSAA(psInput input) : SV_TARGET
@@ -68,7 +66,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         return float4(1, 0, 0, 1);
     #endif
     
-    float3 sumClampLighting = float3(0.0, 0.0, 0.0);
+    float3 sumLighting = float3(0.0, 0.0, 0.0);
     
     uint validSampleCount = 0;
     
@@ -90,7 +88,9 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float3 mer = merTex.Load(input.posProj.xy, i).rgb;
         
         float metallic = mer.r;
-        float roughness = mer.b;
+        
+        float roughnessBias = 0.05;
+        float roughness = min(1.0, mer.b + roughnessBias);
         
         float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
         ao = pow(ao, 2.0);
@@ -100,12 +100,11 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
         
         float3 lighting = ambientLighting + directLighting;
-        float3 clampLighting = clamp(lighting, 0.0f, 1000.0f);
-        sumClampLighting += clampLighting;
+        sumLighting += lighting;
     }
     
     if (validSampleCount == 0)
         discard;
        
-    return float4(sumClampLighting / validSampleCount, 1.0);
+    return float4(sumLighting / validSampleCount, 1.0);
 }

@@ -112,7 +112,7 @@ float3 getSkyColor(float3 posDir)
     return skyColor;
 }
 
-float3 getAmbientColor()
+float3 getBasicAmbientColor()
 {
     float3 ambientColor = float3(1.0, 1.0, 1.0);
     
@@ -120,17 +120,18 @@ float3 getAmbientColor()
     float dayAltitude = sin(PI / 24.0);
     if (sunAltitude <= dayAltitude)
     {
-        float maxHorizonColorAltitude = -sin(PI / 24.0);
-        
         float sunAniso = max(dot(lightDir, eyeDir), 0.0);
         float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
         
-        float w = smoothstep(maxHorizonColorAltitude, dayAltitude,
-                                clamp(sunAltitude, maxHorizonColorAltitude, dayAltitude));
-        ambientColor = lerp(eyeHorizonColor, ambientColor, w);
+        float maxHorizonColorAltitude = -sin(PI / 24.0);
+        float altitudeWeight = smoothstep(maxHorizonColorAltitude, dayAltitude, sunAltitude);
+
+        ambientColor = lerp(eyeHorizonColor, ambientColor, altitudeWeight);
     }
     
-    return ambientColor;
+    float basicAmbientWeight = 0.5;
+    
+    return ambientColor * basicAmbientWeight;
 }
 
 float3 getDiffuseTerm(float3 albedo, float3 pixelToEye, float3 normal, float metallic)
@@ -147,9 +148,9 @@ float3 getDiffuseTerm(float3 albedo, float3 pixelToEye, float3 normal, float met
     // float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + getAmbientColor();
     // - diffuseIBL은 모든 방향에서 오는 간접광에 대한 diffuse를 모아 둔 것
     // - 기본적으로 밝은 이미지에 노멀 방향이 라이트 방향과 유사하면 다른 곳 대비 더 밝음
-    // - 그래서 기본색(getAmbientColor)에 노멀방향에 대한 라이트색을 "더해서" 더 밝게 표현
+    // - 그래서 기본색(getBasicAmbientColor)에 노멀방향에 대한 직접광 라이트색을 "더해서" 더 밝게 표현
     // - roughness는 사용되지 않음 -> 모든 방향에서 오는 빛을 모으는 과정이라 결국 모든 방향에서 더하면 거칠든 매끄럽든 동일하다는 가정
-    float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + getAmbientColor();
+    float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + getBasicAmbientColor();
     
     return kd * albedo * diffuseIrradiance;
 }
@@ -162,13 +163,11 @@ float3 getSpecularTerm(float3 albedo, float3 pixelToEye, float3 normal, float me
     // 정적인 환경맵을 IBLBacker로 구워서 specularIBLTex로 사용할 수 없는 환경임
     // 이러한 이유로 specularIBLTex를 근사하여 만듦
     // roughness가 높으면 DiffuseIrradiance와 유사하게 구성하고, roughness가 낮으면 반사방향의 skyColor를 가져오는 방식을 취함
-    float3 ambientColor = getAmbientColor();
-    float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + ambientColor;
+    float3 basicAmbientColor = getBasicAmbientColor();
+    float3 diffuseIrradiance = (radianceColor * max(dot(normal, lightDir), 0.0)) + basicAmbientColor;
     
     float3 reflectDir = normalize(reflect(-pixelToEye, normal));
-    float3 reflectionColor = useSkyColor ? getSkyColor(reflectDir) : ambientColor;
-    float reflectRadianceWeight = abs(dot(reflectDir, lightDir));
-    float3 reflectRadiance = reflectionColor * reflectRadianceWeight;
+    float3 reflectRadiance = useSkyColor ? getSkyColor(reflectDir) : basicAmbientColor;
     
     float3 specularIrradiance = lerp(reflectRadiance, diffuseIrradiance, roughness);
     
@@ -186,8 +185,7 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
     float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic);
     float3 specularTerm = getSpecularTerm(albedo, pixelToEye, normal, metallic, roughness, useSkyColor);
     
-    float weight = 0.5;
-    return ao * (diffuseTerm + specularTerm) * weight;
+    return ao * (diffuseTerm + specularTerm);
 }
 
 float getShadowFactor(float3 posWorld, float3 normal)

@@ -33,7 +33,7 @@ bool Light::Initialize()
 
 void Light::Update(UINT dateTime, Camera& camera)
 {
-	const float MAX_RADIANCE_WEIGHT = 2.5;
+	const float MAX_RADIANCE_WEIGHT = 2.0;
 	float angle = (float)dateTime / Date::DAY_CYCLE_AMOUNT * 2.0f * Utils::PI;
 
 	// light
