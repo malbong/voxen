@@ -18,9 +18,10 @@ public:
 	~Camera();
 
 	bool Initialize(Vector3 pos);
-	void Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY);
+	void Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY);
 	void RenderPickingBlock();
 	void RenderViewFrustum();
+	void ChangePosition(Vector3 newPosition);
 
 	inline Vector3 GetPosition() { return m_eyePos; }
 	inline Vector3 GetChunkPosition() { return m_chunkPos; }
@@ -47,7 +48,7 @@ public:
 
 
 private:
-	void UpdatePosition(bool keyPressed[256], float dt);
+	void UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt);
 	void UpdateBasis();
 	void UpdateViewDirection(bool keyPressed[256], float dt);
 	void UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY);

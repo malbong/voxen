@@ -41,7 +41,7 @@ bool getPlanetTexcoord(float3 posDir, float3 planetDir, float size, out float2 o
     if (PDotP > 0.0 && length(p) < size)
     {
         float3 N = -planetDir;
-        float3 T = float3(cos(PI / 4.0), 0.0, -cos(PI / 4.0));
+        float3 T = float3(1.0, 0.0, 0.0);
         float3 B = cross(N, T);
         float3x3 TBNMatrix = float3x3(T, B, N);
         

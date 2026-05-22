@@ -416,7 +416,7 @@ void App::Update(float dt)
 		m_date.Update(0.0f);
 	}
 
-	m_camera.Update(dt, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY);
+	m_camera.Update(dt, m_keyToggled, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY);
 
 	m_postEffect.Update(dt, m_camera.IsUnderWater());
 

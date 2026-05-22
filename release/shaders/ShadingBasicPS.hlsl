@@ -47,7 +47,7 @@ float4 main(psInput input) : SV_TARGET
     
     float roughnessBias = 0.05;
     float roughness = min(1.0, mer.b + roughnessBias);
-    roughness = 0.0;
+    
     float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
     ao = pow(ao, 2.0);
     
@@ -88,7 +88,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         float3 mer = merTex.Load(input.posProj.xy, i).rgb;
         
         float metallic = mer.r;
-        
+
         float roughnessBias = 0.05;
         float roughness = min(1.0, mer.b + roughnessBias);
         

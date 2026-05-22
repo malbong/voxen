@@ -105,9 +105,9 @@ bool Camera::Initialize(Vector3 pos)
 	return true;
 }
 
-void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY)
+void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY)
 {
-	UpdatePosition(keyPressed, dt);
+	UpdatePosition(keyToggled, keyPressed, dt);
 	UpdateViewDirection(keyPressed, dt);
 	UpdateViewDirection(mouseDeltaX, mouseDeltaY);
 
@@ -144,8 +144,19 @@ void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouse
 	}
 }
 
-void Camera::UpdatePosition(bool keyPressed[256], float dt)
+void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt)
 {
+	if (keyToggled[0x71]) {
+		dt *= 0.2f;
+	}
+
+	if (keyToggled[0x70]) {
+		m_eyePos = Vector3(158.0f, 128.0f, 50.0f);
+
+		keyToggled[0x70] = !keyToggled[0x70];
+		m_isOnConstantDirtyFlag = true;
+	}
+
 	if (keyPressed['W']) {
 		MoveForward(dt);
 		m_isOnConstantDirtyFlag = true;

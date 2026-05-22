@@ -216,9 +216,148 @@ BLOCK_TYPE Block::GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, flo
 	}
 }
 
+BLOCK_TYPE GetTestBlocks(int x, int y, int z)
+{
+	if (100 <= y && y <= 101) {
+		return BLOCK_GRASS;
+	}
+
+	const int width = 10;
+	const int height = 128;
+
+	int offsetX = 10;
+	int offsetZ = 64;
+
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_GOLD_ORE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_GOLD_RAW;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_GOLD;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_IRON_ORE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_IRON_RAW;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_IRON;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_COPPER_ORE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_COPPER_RAW;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_COPPER;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_DIAMOND_ORE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_DIAMOND;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_REDSTONE_ORE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_REDSTONE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_AMETHYST;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_DIRT;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_GRAVEL;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_ICE;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_MUD;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_SAND;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_MOSS;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_SNOW;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_GRASS;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_OAK_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_SPRUCE_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_MANGROVE_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_BIRCH_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_CHERRY_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_ACACIA_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_JUNGLE_LOG;
+	}
+	offsetX += width;
+	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
+		return BLOCK_CACTUS;
+	}
+
+	return BLOCK_AIR;
+}
+
 BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float erosion,
 	float peaksValley, float temperature, float humidity, float distribution, float elevation)
 {
+	if (0 <= x && x < 400 && 0 <= z && z < 256 && 100 <= y && y <= 102) {
+		return GetTestBlocks(x, y, z);
+	}
+
 	if (y == Terrain::MIN_HEIGHT_LEVEL)
 		return BLOCK_BEDROCK;
 
