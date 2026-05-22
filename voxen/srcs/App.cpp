@@ -315,6 +315,7 @@ void App::ImGuiFrame()
 	ImGui::Text("F: Toggle Full SemiAlpha Edge");
 	ImGui::Text("O: SSAO View");
 	ImGui::Text("I: Toggle SSAO");
+	ImGui::Text("F1: Go to Materials For Lighting");
 	ImGui::Text("");
 	
 	float worldX = m_camera.GetPosition().x;

@@ -54,7 +54,7 @@ float4 main(psInput input) : SV_TARGET
     float distance = length(input.posWorld.xz - eyePos.xz);
     float clampedDistance = clamp(distance, maxRenderDistance, cloudScale);
     float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clampedDistance);
-    float albedo = lerp(volumeColor, eyeHorizonColor, horizonWeight);
+    float3 albedo = lerp(volumeColor, eyeHorizonColor, horizonWeight);
     
     // ambient lighting
     float3 normal = getNormal(input.face);

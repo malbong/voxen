@@ -1,5 +1,11 @@
 # Lighting PBR — 동적 태양광 기반 PBR 라이팅
 
+<img width="1920" height="1076" alt="Image" src="https://github.com/user-attachments/assets/61f867c4-c6b7-4bdc-b20f-0af94d5e11db" />
+
+<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/f6a5388f-af15-49f5-92f2-c425b04b84fc" />
+
+<img width="1911" height="1074" alt="Image" src="https://github.com/user-attachments/assets/632a2bec-fc12-4d73-b7d0-017d89baf698" />
+
 ## 1. 개요
 
 Voxen의 라이팅 시스템은 **동적으로 회전하는 태양**을 단일 Directional 광원이다.

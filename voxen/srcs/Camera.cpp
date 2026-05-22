@@ -147,11 +147,14 @@ void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG m
 void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt)
 {
 	if (keyToggled[0x71]) {
-		dt *= 0.2f;
+		dt *= 0.15f;
 	}
 
 	if (keyToggled[0x70]) {
 		m_eyePos = Vector3(158.0f, 128.0f, 50.0f);
+		m_forward = Vector3(0.0f, 0.0f, 1.0f);
+		m_right = Vector3(1.0f, 0.0f, 0.0f);
+		m_up = Vector3(0.0f, 1.0f, 0.0f);
 
 		keyToggled[0x70] = !keyToggled[0x70];
 		m_isOnConstantDirtyFlag = true;

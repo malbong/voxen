@@ -222,10 +222,10 @@ BLOCK_TYPE GetTestBlocks(int x, int y, int z)
 		return BLOCK_GRASS;
 	}
 
-	const int width = 10;
+	const int width = 8;
 	const int height = 128;
 
-	int offsetX = 10;
+	int offsetX = 32;
 	int offsetZ = 64;
 
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
@@ -315,35 +315,35 @@ BLOCK_TYPE GetTestBlocks(int x, int y, int z)
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_GRASS;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_OAK_LOG;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_SPRUCE_LOG;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_MANGROVE_LOG;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_BIRCH_LOG;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_CHERRY_LOG;
 	}
-	offsetX += width;
+	offsetX += width / 2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_ACACIA_LOG;
 	}
-	offsetX += width;
+	offsetX += width/2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_JUNGLE_LOG;
 	}
-	offsetX += width;
+	offsetX += width/2;
 	if (offsetX <= x && x < width + offsetX && offsetZ <= z && z < height + offsetZ) {
 		return BLOCK_CACTUS;
 	}
