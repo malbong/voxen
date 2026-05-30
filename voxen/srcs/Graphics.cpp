@@ -241,6 +241,7 @@ namespace Graphics {
 	D3D11_VIEWPORT cullingViewerViewport;
 	D3D11_VIEWPORT reflectionWorldViewport;
 	D3D11_VIEWPORT GBufferViewerViewport[5];
+	D3D11_VIEWPORT cascadeShadowMapViewerViewport;
 
 
 	// device, context, swapChain
@@ -1607,12 +1608,18 @@ void Graphics::InitViewports()
 		reflectionWorldMapTopY, App::MIRROR_WIDTH, App::MIRROR_HEIGHT);
 
 	// GBufferViewerViewport
-	int width = (App::APP_WIDTH) / 5;
-	int height = (App::APP_HEIGHT) / 5;
+	UINT gBufferViewerWidth = (App::APP_WIDTH) / 5;
+	UINT gBufferViewerHeight = (App::APP_HEIGHT) / 5;
 	for (int i = 0; i < 5; ++i) {
-		int topY = (App::APP_HEIGHT / 5) * i;
-		DXUtils::UpdateViewport(GBufferViewerViewport[i], 0, topY, width, height);
+		UINT topY = (App::APP_HEIGHT / 5) * i;
+		DXUtils::UpdateViewport(
+			GBufferViewerViewport[i], 0, topY, gBufferViewerWidth, gBufferViewerHeight);
 	}
+
+	// cascadeShadowMapViewerViewport
+	UINT csmViewerHeight = (App::APP_HEIGHT) / 2;
+	UINT csmViewerWidth = csmViewerHeight * 3;
+	DXUtils::UpdateViewport(cascadeShadowMapViewerViewport, 0, 0, csmViewerWidth, csmViewerHeight);
 }
 
 void Graphics::InitGraphicsPSO()

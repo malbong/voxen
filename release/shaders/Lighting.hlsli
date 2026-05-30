@@ -182,13 +182,13 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
 {
     float3 pixelToEye = normalize(eyePos - position);
     
-    float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic);
+    float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic) * 0.5;
     float3 specularTerm = getSpecularTerm(albedo, pixelToEye, normal, metallic, roughness, useSkyColor);
     
     return ao * (diffuseTerm + specularTerm);
 }
 
-float getShadowFactor(float3 posWorld, float3 normal)
+float getShadowFactor(float3 posWorld, float3 normal, out uint outCascadeIndex)
 {
     float width, height, numMips;
     shadowTex.GetDimensions(0, width, height, numMips);
@@ -196,6 +196,9 @@ float getShadowFactor(float3 posWorld, float3 normal)
     float topLXOffsets[3] = { topLX.x, topLX.y, topLX.z };
     float viewPortWidth[3] = { viewPortW.x, viewPortW.y, viewPortW.z };
     float pcfMargin = 0.02;
+    
+    const float baseBias[3] = { 0.002, 0.0015, 0.001 };
+    const float slopeBias[3] = { 0.005, 0.005, 0.005 };
     
     [loop]
     for (int i = 0; i < 3; ++i)
@@ -210,17 +213,17 @@ float getShadowFactor(float3 posWorld, float3 normal)
             continue;
         }
         
-        float bias = 0.002 + 0.01 * pow(1.0 - max(dot(lightDir, normal), 0.0), 3.0);
         float2 lightTexcoord = float2(lightProj.x * 0.5 + 0.5, lightProj.y * -0.5 + 0.5);
         
         float2 scaledTexcoord;
         scaledTexcoord.x = (lightTexcoord.x * (viewPortWidth[i] / width)) + (topLXOffsets[i] / width);
         scaledTexcoord.y = (lightTexcoord.y * (viewPortWidth[i] / height));
         
+        float bias = baseBias[i] + slopeBias[i] * pow(1.0 - max(dot(lightDir, normal), 0.0), 3.0);
         float percentLit = 0.0;
         percentLit = shadowTex.SampleCmpLevelZero(shadowCompareSS, scaledTexcoord, lightProj.z - bias).r;
         
-        float delta = 0.25 / viewPortWidth[i];
+        float delta = (0.25) / viewPortWidth[i];
         [unroll]
         for (int y = -1; y <= 1; ++y)
         {
@@ -230,6 +233,8 @@ float getShadowFactor(float3 posWorld, float3 normal)
                                    scaledTexcoord.xy + float2(x * delta, y * delta), lightProj.z - bias).r;
             }
         }
+        
+        outCascadeIndex = i;
         
         float shadowValue = percentLit / 10.0;
         return shadowValue + (1.0 - shadowValue) * (1.0 - saturate(radianceWeight / maxRadianceWeight));
@@ -257,12 +262,29 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
     float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metallic);
     float3 diffuseBRDF = kd * albedo;
     
-    float shadowFactor = useShadow ? getShadowFactor(position, normal) : 1.0;
+    uint cascadeIndex = 0;
+    float shadowFactor = useShadow ? getShadowFactor(position, normal, cascadeIndex) : 1.0;
     shadowFactor = pow(shadowFactor, 3.0);
-    
+
     float3 radiance = radianceWeight * radianceColor * shadowFactor;
+
+    float3 directLightingColor = (diffuseBRDF + specularBRDF) * radiance * NdotI;
     
-    return (diffuseBRDF + specularBRDF) * radiance * NdotI;
+    if (useCascadeColor)
+    {
+        float3 cascadeColor = float3(1, 1, 1);
+        if (cascadeIndex == 0)
+            cascadeColor = float3(1, 0, 0);
+        else if (cascadeIndex == 1)
+            cascadeColor = float3(0, 1, 0);
+        else
+            cascadeColor = float3(0, 0, 1);
+        
+        directLightingColor *= 0.5f;
+        directLightingColor += cascadeColor * 0.5;
+    }
+    
+    return directLightingColor;
 }
 
 #endif

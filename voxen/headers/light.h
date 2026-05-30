@@ -27,15 +27,21 @@ public:
 	ComPtr<ID3D11Buffer> m_shadowConstantBuffer;
 	
 	inline Matrix GetViewMatrix() { return XMMatrixLookToLH(Vector3::Zero, -m_dir, m_up); }
+	inline Matrix GetShadowViewMatrix()
+	{
+		return XMMatrixLookToLH(Vector3::Zero, -m_shadowDir, m_shadowUp);
+	}
 	inline Matrix GetProjectionMatrixFromCascade(int i) { return m_proj[i]; };
 
 private:
 	Vector3 m_dir;
+	Vector3 m_shadowDir;
 	float m_scale;
 	Vector3 m_radianceColor;
 	float m_radianceWeight;
 
 	Vector3 m_up;
+	Vector3 m_shadowUp;
 	Matrix m_proj[CASCADE_NUM];
 
 	LightConstantData m_lightConstantData;

@@ -244,6 +244,7 @@ namespace Graphics {
 	extern D3D11_VIEWPORT cullingViewerViewport;
 	extern D3D11_VIEWPORT reflectionWorldViewport;
 	extern D3D11_VIEWPORT GBufferViewerViewport[5];
+	extern D3D11_VIEWPORT cascadeShadowMapViewerViewport;
 
 
 	// device, context, swapChain

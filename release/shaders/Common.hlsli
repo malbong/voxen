@@ -28,7 +28,8 @@ cbuffer AppConstantBuffer : register(b7)
     float mirrorHeight;
     bool useFullSemiAlphaEdge;
     bool useSSAO;
-    float2 appDummy;
+    bool useCascadeColor;
+    float appDummy;
 }
 
 cbuffer CameraConstantBuffer : register(b8)

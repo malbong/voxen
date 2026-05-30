@@ -12,7 +12,14 @@ struct psInput
 
 float4 main(psInput input) : SV_TARGET
 {
-    if (blockAtlasTextureArray.SampleLevel(pointWrapSS, float3(input.texcoord, input.texIndex), 0.0).a != 1.0)
+    const uint LAST_CASCADE_INDEX = 2;
+
+    if (input.VPIndex == LAST_CASCADE_INDEX)
+    {
+        discard;
+    }
+    
+    if (blockAtlasTextureArray.SampleLevel(pointWrapSS, float3(input.texcoord, input.texIndex), 0.0).a < 1.0)
         discard;
     
     return float4(1, 1, 1, 1);

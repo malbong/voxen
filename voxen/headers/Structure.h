@@ -140,7 +140,8 @@ struct AppConstantData {
 	float mirrorHeight;
 	uint32_t useFullSemiAlphaEdge;
 	uint32_t useSSAO;
-	Vector2 appDummy;
+	uint32_t useCascadeColor;
+	float appDummy;
 };
 
 

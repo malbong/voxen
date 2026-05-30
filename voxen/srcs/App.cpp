@@ -313,6 +313,7 @@ void App::ImGuiFrame()
 	ImGui::Text("G: GBuffer View");
 	ImGui::Text("E: Edge View");
 	ImGui::Text("F: Toggle Full SemiAlpha Edge");
+	ImGui::Text("C: Cascade Shadow Map View");
 	ImGui::Text("O: SSAO View");
 	ImGui::Text("I: Toggle SSAO");
 	ImGui::Text("F1: Go to Materials For Lighting");
@@ -394,17 +395,31 @@ void App::ImGuiFrame()
 	ImGui::End();
 	ImGui::Render(); // 렌더링할 것들 기록 끝
 }
-
-void App::Update(float dt)
+void App::UpdateAppConstantBuffer() 
 {
+	bool constantBufferDirtyFlag = false;
+
 	if ((bool)m_constantData.useFullSemiAlphaEdge == m_keyToggled['F']) {
 		m_constantData.useFullSemiAlphaEdge = !m_keyToggled['F'];
-		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+		constantBufferDirtyFlag = true;
 	}
 	if ((bool)m_constantData.useSSAO == m_keyToggled['I']) {
 		m_constantData.useSSAO = !m_keyToggled['I'];
-		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+		constantBufferDirtyFlag = true;
 	}
+	if ((bool)m_constantData.useCascadeColor != m_keyToggled['X']) {
+		m_constantData.useCascadeColor = m_keyToggled['X'];
+		constantBufferDirtyFlag = true;
+	}
+
+	if (constantBufferDirtyFlag) {
+		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
+		constantBufferDirtyFlag = false;
+	}
+}
+void App::Update(float dt)
+{
+	UpdateAppConstantBuffer();
 
 	if (m_keyToggled['P']) {
 		return;
@@ -566,6 +581,13 @@ void App::Render()
 	{
 		if (m_keyToggled['O']) {
 			RenderSSAOViewer();
+		}
+	}
+	
+	// 11. Cascade Shadow Map View
+	{
+		if (m_keyToggled['C']) {
+			RenderCascadeShadowMapViewer();
 		}
 	}
 
@@ -943,6 +965,19 @@ void App::RenderSSAOViewer()
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::ssaoSRV.GetAddressOf());
 
 	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void App::RenderCascadeShadowMapViewer()
+{ 
+	Graphics::context->RSSetViewports(1, &Graphics::cascadeShadowMapViewerViewport);
+
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::shadowSRV.GetAddressOf());
+
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
 void App::LockCursor()

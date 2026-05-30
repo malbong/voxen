@@ -49,6 +49,8 @@ private:
 	void SetGlobalLightingSRVs();
 	void UnsetGlobalLightingSRVs();
 
+	void UpdateAppConstantBuffer();
+
 	void ImGuiFrame();
 	void Update(float dt);
 	void Render();
@@ -78,6 +80,7 @@ private:
 	void RenderReflectionWorld();
 	void RenderGBufferViewer();
 	void RenderSSAOViewer();
+	void RenderCascadeShadowMapViewer();
 
 	void LockCursor();
 	void UnlockCursor();

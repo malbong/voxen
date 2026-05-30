@@ -14,7 +14,7 @@ struct gsInput
 
 struct gsOutput
 {
-    float4 pos : SV_POSITION;
+    float4 posProj : SV_POSITION;
 #ifdef USE_INSTANCE
     float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
@@ -34,7 +34,7 @@ void main(triangle gsInput input[3], inout TriangleStream<gsOutput> output)
         for (int i = 0; i < 3; ++i)
         {
             float4 position = float4(input[i].posWorld.xyz, 1.0);
-            element.pos = mul(position, viewProj[cascade]);
+            element.posProj = mul(position, viewProj[cascade]);
             
 #ifdef USE_INSTANCE
             element.texcoord = input[i].texcoord;

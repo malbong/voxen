@@ -8,9 +8,8 @@
 using namespace DirectX::SimpleMath;
 
 Light::Light()
-	: m_dir(0.0, 0.0f, 1.0f), m_scale(0.0f),
-	  m_radianceColor(1.0f), m_radianceWeight(1.0f), m_lightConstantBuffer(nullptr),
-	  m_shadowConstantBuffer(nullptr)
+	: m_dir(0.0, 0.0f, 1.0f), m_scale(0.0f), m_radianceColor(1.0f), m_radianceWeight(1.0f),
+	  m_lightConstantBuffer(nullptr), m_shadowConstantBuffer(nullptr)
 {
 }
 
@@ -39,13 +38,18 @@ void Light::Update(UINT dateTime, Camera& camera)
 	// light
 	{
 		// dir
-		Matrix rotationAxisMatrix = Matrix::CreateFromAxisAngle(
-			Vector3(-1.0f, 0.0f, 0.0f), angle);
+		Matrix rotationAxisMatrix = Matrix::CreateFromAxisAngle(Vector3(-1.0f, 0.0f, 0.0f), angle);
 
 		m_dir = Vector3::Transform(Vector3(0.0, 0.0f, 1.0f), rotationAxisMatrix);
 		m_dir.Normalize();
 
 		m_up = XMVector3TransformNormal(Vector3(0.0f, 1.0f, 0.0f), rotationAxisMatrix);
+
+		// shadow dir
+		Matrix shadowRotationAxisMatrix = Matrix::CreateFromAxisAngle(Vector3(-1.0f, 0.0f, 0.0f), angle);
+		m_shadowDir = Vector3::Transform(Vector3(0.0, 0.0f, 1.0f), shadowRotationAxisMatrix);
+		m_shadowDir.Normalize();
+		m_shadowUp = XMVector3TransformNormal(Vector3(0.0f, 1.0f, 0.0f), shadowRotationAxisMatrix);
 
 		// strength
 		if (Date::NIGHT_START <= dateTime && dateTime < Date::NIGHT_END) {
@@ -54,7 +58,7 @@ void Light::Update(UINT dateTime, Camera& camera)
 		else {
 			float currentAltitude = m_dir.y;
 			float nightEndAltitude = -1.7f / 12.0f * Utils::PI;
-			
+
 			float w = (currentAltitude - nightEndAltitude) / (1.0f - nightEndAltitude);
 
 			m_radianceWeight = Utils::Smootherstep(0.0f, MAX_RADIANCE_WEIGHT, w);
@@ -87,7 +91,8 @@ void Light::Update(UINT dateTime, Camera& camera)
 		else if (Date::NIGHT_START <= dateTime && dateTime < Date::NIGHT_END) {
 			m_radianceColor = RADIANCE_NIGHT_COLOR;
 		}
-		else if (Date::NIGHT_END <= dateTime && dateTime <= Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
+		else if (Date::NIGHT_END <= dateTime &&
+				 dateTime <= Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
 
 			if (Date::NIGHT_END <= dateTime && dateTime < Date::MAX_SUNRISE) {
 				float radianceColorFactor =
@@ -97,7 +102,8 @@ void Light::Update(UINT dateTime, Camera& camera)
 					Utils::Lerp(RADIANCE_NIGHT_COLOR, RADIANCE_SUNRISE_COLOR, radianceColorFactor);
 			}
 
-			if (Date::MAX_SUNRISE <= dateTime && dateTime < Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
+			if (Date::MAX_SUNRISE <= dateTime &&
+				dateTime < Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
 				float radianceColorFactor =
 					(float)(dateTime - Date::MAX_SUNRISE) /
 					(Date::DAY_START + Date::DAY_CYCLE_AMOUNT - Date::MAX_SUNRISE);
@@ -118,12 +124,12 @@ void Light::Update(UINT dateTime, Camera& camera)
 
 	// shadow
 	{
-		float cascade[CASCADE_NUM + 1] = { 0.0f, 0.015f, 0.035f, 0.15f};
-		float diagonals[CASCADE_NUM] = { 30.0f, 88.0f, 337.0f };
+		float cascade[CASCADE_NUM + 1] = { 0.00f, 0.01f, 0.03f, 0.08f };
+		float constantDiagonals[CASCADE_NUM] = { 36.0f, 110.0f, 275.0f };
 
 		Matrix cameraViewProjInverse =
 			(camera.GetViewMatrix() * camera.GetProjectionMatrix()).Invert();
-		Matrix lightViewMatrix = GetViewMatrix();
+		Matrix lightViewMatrix = GetShadowViewMatrix();
 
 		Vector3 frustumCorner[8]{ { -1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f },
 			{ 1.0f, -1.0f, 0.0f }, { -1.0f, -1.0f, 0.0f },
@@ -162,25 +168,26 @@ void Light::Update(UINT dateTime, Camera& camera)
 				lightViewCornerMin = XMVectorMin(lightViewCornerMin, lightViewCascadeCorner[j]);
 				lightViewCornerMax = XMVectorMax(lightViewCornerMax, lightViewCascadeCorner[j]);
 			}
-			
-			Vector3 diagonal(diagonals[i]);
-			float cascadeBound = diagonals[i];
 
+			Vector3 vDiagonal(constantDiagonals[i]);
 			Vector3 maxminVector = lightViewCornerMax - lightViewCornerMin;
-			Vector3 borderOffset = (diagonal - maxminVector) * 0.5f;
+			Vector3 borderOffset = (vDiagonal - maxminVector) * 0.5f;
 
 			lightViewCornerMax += borderOffset;
 			lightViewCornerMin -= borderOffset;
-			
-			float worldUnitsPerTexel = cascadeBound / (float)CASCADE_SIZE;
 
-			lightViewCornerMin /= worldUnitsPerTexel;
-			lightViewCornerMin = XMVectorFloor(lightViewCornerMin);
-			lightViewCornerMin *= worldUnitsPerTexel;
+			float cascadeWorldBound = vDiagonal.x;
+			float worldUnitsPerTexel = cascadeWorldBound / (float)CASCADE_SIZE;
 
-			lightViewCornerMax /= worldUnitsPerTexel;
-			lightViewCornerMax = XMVectorFloor(lightViewCornerMax);
-			lightViewCornerMax *= worldUnitsPerTexel;
+			float minX = std::floor(lightViewCornerMin.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minY = std::floor(lightViewCornerMin.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minZ = std::floor(lightViewCornerMin.z / worldUnitsPerTexel) * worldUnitsPerTexel;
+			lightViewCornerMin = Vector3(minX, minY, minZ);
+
+			float maxX = std::floor(lightViewCornerMax.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float maxY = std::floor(lightViewCornerMax.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float maxZ = std::floor(lightViewCornerMax.z / worldUnitsPerTexel) * worldUnitsPerTexel;
+			lightViewCornerMax = Vector3(maxX, maxY, maxZ);
 
 			m_proj[i] = XMMatrixOrthographicOffCenterLH(lightViewCornerMin.x, lightViewCornerMax.x,
 				lightViewCornerMin.y, lightViewCornerMax.y, lightViewCornerMin.z,
