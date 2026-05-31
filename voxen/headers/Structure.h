@@ -107,8 +107,11 @@ struct BlurConstantData {
 
 struct ShadowConstantData {
 	Matrix viewProj[3];
-	float topLX[4];
-	float viewportWidth[4];
+	Vector4 cascadeSplits;
+	uint32_t width;
+	uint32_t height;
+	uint32_t cascadeLevel;
+	uint32_t dummy;
 };
 
 struct FogFilterConstantData {
@@ -141,7 +144,7 @@ struct AppConstantData {
 	uint32_t useFullSemiAlphaEdge;
 	uint32_t useSSAO;
 	uint32_t useCascadeColor;
-	float appDummy;
+	uint32_t useCascadeBlend;
 };
 
 

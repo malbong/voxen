@@ -29,7 +29,7 @@ cbuffer AppConstantBuffer : register(b7)
     bool useFullSemiAlphaEdge;
     bool useSSAO;
     bool useCascadeColor;
-    float appDummy;
+    bool useCascadeBlend;
 }
 
 cbuffer CameraConstantBuffer : register(b8)
@@ -69,8 +69,11 @@ cbuffer LightConstantBuffer : register(b10)
 cbuffer ShadowConstantBuffer : register(b11)
 {
     Matrix shadowViewProj[3];
-    float4 topLX;
-    float4 viewPortW;
+    float4 cascadeSplits;
+    uint cascadeWidth;
+    uint cascadeHeight;
+    uint cascadeLevel;
+    uint shadowDummy;
 }
 
 cbuffer DateConstantBuffer : register(b12)

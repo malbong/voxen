@@ -245,5 +245,8 @@
     <FxCompile Include="shaders\BlurBilateralPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\SamplingCascadeShadowMapPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

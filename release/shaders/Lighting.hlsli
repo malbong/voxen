@@ -4,7 +4,7 @@
 #include "Common.hlsli"
 
 Texture2D brdfTex : register(t10);
-Texture2D shadowTex : register(t11);
+Texture2DArray shadowTex : register(t11);
 Texture2D sunTex : register(t12);
 Texture2D moonTex : register(t13);
 
@@ -188,56 +188,104 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
     return ao * (diffuseTerm + specularTerm);
 }
 
-float getShadowFactor(float3 posWorld, float3 normal, out uint outCascadeIndex)
+bool sampleCascade(float3 posWorld, uint cascadeIndex, float NdotL, out float outPercentLit)
 {
-    float width, height, numMips;
-    shadowTex.GetDimensions(0, width, height, numMips);
-    
-    float topLXOffsets[3] = { topLX.x, topLX.y, topLX.z };
-    float viewPortWidth[3] = { viewPortW.x, viewPortW.y, viewPortW.z };
-    float pcfMargin = 0.02;
-    
-    const float baseBias[3] = { 0.002, 0.0015, 0.001 };
+    const float baseBias[3] = { 0.0025, 0.002, 0.001 };
     const float slopeBias[3] = { 0.005, 0.005, 0.005 };
     
-    [loop]
-    for (int i = 0; i < 3; ++i)
+    float bias = baseBias[cascadeIndex] + slopeBias[cascadeIndex] * pow(1.0 - NdotL, 3.0);
+    
+    float4 lightProj = mul(float4(posWorld, 1.0), shadowViewProj[cascadeIndex]);
+    lightProj.xyz /= lightProj.w;
+    
+    /*
+    * lightProj.xy는 단순히 NDC [-1, 1] 범위 검사
+    * - 끝쪽은 다음 cascade를 검사하도록 진행
+    *
+    * lightProj.z는 bias를 이용한 NDC [0 + bias, 1] 범위 검사
+    * - lightProj.z가 bias보다 작아지는 경우를 방지하기 위함
+    *
+    * lightProj.z - bias가 음수가 되는 경우 다음과 같은 문제 발생
+    * - 실제 깊이(ligtingProj.z)가 샘플링된 곳보다 깊어 그림자가 생겨야하나, -bias로 인해 음수로 그림자가 생기지 않음
+    * - Peter Panning 현상과 유사하나, 단순히 bias가 커서 그림자가 안생기는 문제가 아닌, 음수 자체를 비교하는게 문제
+    * - DepthClipEnable = false로 동작하는 ShadowMap RS 특성상 카메라 뒤의 물체의 Depth가 clamp되어 0.0으로 기록
+    * - 이 때, lightProj.z값이 0.0에 수렴하는 값인 경우 문제가 발생할 것
+    */
+    if (-1.0 < lightProj.x && lightProj.x < 1.0 &&
+        -1.0 < lightProj.y && lightProj.y < 1.0 &&
+         0.0 < lightProj.z - bias && lightProj.z < 1.0)
     {
-        float4 lightProj = mul(float4(posWorld, 1.0), shadowViewProj[i]);
-        lightProj.xyz /= lightProj.w;
+        float2 lightTexcoord = float2(lightProj.x * 0.5 + 0.5, -(lightProj.y * 0.5) + 0.5);
+    
+        outPercentLit = shadowTex.SampleCmpLevelZero(shadowCompareSS, float3(lightTexcoord, cascadeIndex),
+                                                                        lightProj.z - bias, 0.0).r;
         
-        if (lightProj.x < -1.0 + pcfMargin || lightProj.x > 1.0 - pcfMargin ||
-            lightProj.y < -1.0 + pcfMargin || lightProj.y > 1.0 - pcfMargin ||
-            lightProj.z < 0.0 + pcfMargin || lightProj.z > 1.0 - pcfMargin)
-        {
+        return true;
+    }
+    
+    outPercentLit = 1.0;
+    return false;
+}
+
+float getShadowFactor(float3 posWorld, float3 normal, out uint outCascadeIndex)
+{
+    float NdotL = max(dot(lightDir, normal), 0.0);
+    
+    float blendRange = 0.3;
+    float viewDistZ = dot(posWorld - eyePos, eyeDir); // viewZ: |posWorld-eyePos| * |eyeDir| * cosTheta
+    
+    float cascadePlanes[4] = { cascadeSplits.x, cascadeSplits.y, cascadeSplits.z, cascadeSplits.w };
+    
+    [loop]
+    for (uint sampleCascadeIndex = 0; sampleCascadeIndex < cascadeLevel; ++sampleCascadeIndex)
+    {
+        float percentLit;
+        if (!sampleCascade(posWorld, sampleCascadeIndex, NdotL, percentLit))
             continue;
-        }
         
-        float2 lightTexcoord = float2(lightProj.x * 0.5 + 0.5, lightProj.y * -0.5 + 0.5);
+        outCascadeIndex = sampleCascadeIndex;
         
-        float2 scaledTexcoord;
-        scaledTexcoord.x = (lightTexcoord.x * (viewPortWidth[i] / width)) + (topLXOffsets[i] / width);
-        scaledTexcoord.y = (lightTexcoord.y * (viewPortWidth[i] / height));
-        
-        float bias = baseBias[i] + slopeBias[i] * pow(1.0 - max(dot(lightDir, normal), 0.0), 3.0);
-        float percentLit = 0.0;
-        percentLit = shadowTex.SampleCmpLevelZero(shadowCompareSS, scaledTexcoord, lightProj.z - bias).r;
-        
-        float delta = (0.25) / viewPortWidth[i];
-        [unroll]
-        for (int y = -1; y <= 1; ++y)
+        if (useCascadeBlend && sampleCascadeIndex < cascadeLevel - 1)
         {
-            for (int x = -1; x <= 1; ++x)
+            float cascadeFrustumNearZ;
+            float cascadeFrustumFarZ;
+            bool sameCascade = false; 
+            [unroll]
+            for (uint distCascadeIndex = 0; distCascadeIndex < cascadeLevel; ++distCascadeIndex)
             {
-                percentLit += shadowTex.SampleCmpLevelZero(shadowCompareSS,
-                                   scaledTexcoord.xy + float2(x * delta, y * delta), lightProj.z - bias).r;
+                cascadeFrustumNearZ = cascadePlanes[distCascadeIndex];
+                cascadeFrustumFarZ = cascadePlanes[distCascadeIndex + 1];
+                if (cascadeFrustumNearZ <= viewDistZ && viewDistZ <= cascadeFrustumFarZ)
+                {
+                    sameCascade = (sampleCascadeIndex == distCascadeIndex);
+                    break;
+                }
             }
+            
+            outCascadeIndex = 7;
+            if (sameCascade)
+            {
+                float blendStartZ = lerp(cascadeFrustumFarZ, cascadeFrustumNearZ, blendRange);
+                float blendWeight = smoothstep(blendStartZ, cascadeFrustumFarZ, viewDistZ);
+                outCascadeIndex = 6;
+                if (blendWeight > 0.0)
+                {
+                    float nextPercentLit;
+                    if (sampleCascade(posWorld, sampleCascadeIndex + 1, NdotL, nextPercentLit))
+                    {
+                        outCascadeIndex = 5;
+                        //percentLit = lerp(percentLit, nextPercentLit, blendWeight);
+                        percentLit = lerp(percentLit, nextPercentLit, 0.5);
+                    }
+                }
+            }
+            
         }
         
-        outCascadeIndex = i;
-        
-        float shadowValue = percentLit / 10.0;
-        return shadowValue + (1.0 - shadowValue) * (1.0 - saturate(radianceWeight / maxRadianceWeight));
+        // 해가 강할 수록 shadow를 진하게 표현
+        float radianceShadowWeight = clamp(radianceWeight / maxRadianceWeight, 0.0, 1.0);
+        float radianceShadow = lerp(percentLit, 1.0, 1.0 - radianceShadowWeight);
+        return radianceShadow;
     }
     
     return 1.0;
@@ -277,6 +325,12 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
             cascadeColor = float3(1, 0, 0);
         else if (cascadeIndex == 1)
             cascadeColor = float3(0, 1, 0);
+        else if (cascadeIndex == 5)
+            cascadeColor = float3(1, 1, 0); // 노랑: 블랜딩
+        else if (cascadeIndex == 6)
+            cascadeColor = float3(0, 1, 1); // 민트: 유효하지 않음
+        else if (cascadeIndex == 7)
+            cascadeColor = float3(1, 0, 1); // 바이올: not Same 튕김
         else
             cascadeColor = float3(0, 0, 1);
         

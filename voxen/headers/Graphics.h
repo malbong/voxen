@@ -4,7 +4,6 @@
 #include <wrl.h>
 
 #include "GraphicsPSO.h"
-#include "Light.h"
 
 using namespace Microsoft::WRL;
 
@@ -57,6 +56,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11PixelShader> samplingMSPS;
 	extern ComPtr<ID3D11PixelShader> samplingMSGammaPS;
 	extern ComPtr<ID3D11PixelShader> samplingCoveragePS;
+	extern ComPtr<ID3D11PixelShader> samplingCascadeShadowMapPS;
 	extern ComPtr<ID3D11PixelShader> fogFilterPS;
 	extern ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	extern ComPtr<ID3D11PixelShader> waterPlanePS;
@@ -240,7 +240,7 @@ namespace Graphics {
 	extern D3D11_VIEWPORT mirrorWorldViewport;
 	extern D3D11_VIEWPORT bloomViewport;
 	extern D3D11_VIEWPORT worldMapViewport;
-	extern D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
+	extern D3D11_VIEWPORT shadowViewports;
 	extern D3D11_VIEWPORT cullingViewerViewport;
 	extern D3D11_VIEWPORT reflectionWorldViewport;
 	extern D3D11_VIEWPORT GBufferViewerViewport[5];
@@ -286,6 +286,7 @@ namespace Graphics {
 	extern GraphicsPSO samplingMSPSO;
 	extern GraphicsPSO samplingMSGammaPSO;
 	extern GraphicsPSO samplingCoveragePSO;
+	extern GraphicsPSO samplingCascadeShadowMapPSO;
 	extern GraphicsPSO fogFilterPSO;
 	extern GraphicsPSO instancePSO;
 	extern GraphicsPSO instanceMirrorPSO;

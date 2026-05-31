@@ -1,5 +1,6 @@
 #include "Common.hlsli"
 
+// MS uint로 인한 PS 분리
 Texture2DMS<uint, SAMPLE_COUNT> samplingTextureMS : register(t0);
 
 struct psInput

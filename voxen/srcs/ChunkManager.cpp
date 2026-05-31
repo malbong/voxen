@@ -523,7 +523,7 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
 			m_renderChunkList.push_back(p.second);
 		}
 
-		for (int i = 0; i < Light::CASCADE_NUM; ++i) {
+		for (int i = 0; i < Light::CASCADE_LEVEL; ++i) {
 			if (FrustumCulling(chunkPos, camera, light, false, true, i)) {
 				m_renderShadowChunkList.push_back(p.second);
 				break;

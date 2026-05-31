@@ -1,6 +1,7 @@
 #include "Graphics.h"
 #include "DXUtils.h"
 #include "App.h"
+#include "Light.h"
 
 #include <iostream>
 
@@ -53,6 +54,7 @@ namespace Graphics {
 	ComPtr<ID3D11PixelShader> samplingMSPS;
 	ComPtr<ID3D11PixelShader> samplingMSGammaPS;
 	ComPtr<ID3D11PixelShader> samplingCoveragePS;
+	ComPtr<ID3D11PixelShader> samplingCascadeShadowMapPS;
 	ComPtr<ID3D11PixelShader> fogFilterPS;
 	ComPtr<ID3D11PixelShader> mirrorMaskingPS;
 	ComPtr<ID3D11PixelShader> waterPlanePS;
@@ -237,7 +239,7 @@ namespace Graphics {
 	D3D11_VIEWPORT mirrorWorldViewport;
 	D3D11_VIEWPORT bloomViewport;
 	D3D11_VIEWPORT worldMapViewport;
-	D3D11_VIEWPORT shadowViewports[Light::CASCADE_NUM];
+	D3D11_VIEWPORT shadowViewports;
 	D3D11_VIEWPORT cullingViewerViewport;
 	D3D11_VIEWPORT reflectionWorldViewport;
 	D3D11_VIEWPORT GBufferViewerViewport[5];
@@ -283,6 +285,7 @@ namespace Graphics {
 	GraphicsPSO samplingMSPSO;
 	GraphicsPSO samplingMSGammaPSO;
 	GraphicsPSO samplingCoveragePSO;
+	GraphicsPSO samplingCascadeShadowMapPSO;
 	GraphicsPSO fogFilterPSO;
 	GraphicsPSO instancePSO;
 	GraphicsPSO instanceMirrorPSO;
@@ -745,14 +748,16 @@ bool Graphics::InitDepthStencilBuffers()
 	// shadow DSV
 	format = DXGI_FORMAT_R32_TYPELESS;
 	bindFlag = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	if (!DXUtils::CreateTextureBuffer(
-			shadowBuffer, App::SHADOW_WIDTH, App::SHADOW_HEIGHT, false, format, bindFlag)) {
-		std::cout << "failed create basic depth stencil buffer" << std::endl;
+	if (!DXUtils::CreateTextureBuffer(shadowBuffer, Light::CASCADE_SIZE, Light::CASCADE_SIZE, false,
+			format, bindFlag, 1, Light::CASCADE_LEVEL)) {
+		std::cout << "failed create shadow depth stencil buffer" << std::endl;
 		return false;
 	}
 	ZeroMemory(&dsvDesc, sizeof(dsvDesc));
 	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+	dsvDesc.Texture2DArray.FirstArraySlice = 0;
+	dsvDesc.Texture2DArray.ArraySize = Light::CASCADE_LEVEL;
 	ret = Graphics::device->CreateDepthStencilView(
 		shadowBuffer.Get(), &dsvDesc, shadowDSV.GetAddressOf());
 	if (FAILED(ret)) {
@@ -760,13 +765,15 @@ bool Graphics::InitDepthStencilBuffers()
 		return false;
 	}
 	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 	srvDesc.Texture2DArray.MostDetailedMip = 0;
 	srvDesc.Texture2DArray.MipLevels = 1;
+	srvDesc.Texture2DArray.FirstArraySlice = 0;
+	srvDesc.Texture2DArray.ArraySize = Light::CASCADE_LEVEL;
 	ret = Graphics::device->CreateShaderResourceView(
 		Graphics::shadowBuffer.Get(), &srvDesc, shadowSRV.GetAddressOf());
 	if (FAILED(ret)) {
-		std::cout << "failed create shader resource view from shadow srv" << std::endl;
+		std::cout << "failed create shadow shader resource view" << std::endl;
 		return false;
 	}
 
@@ -825,7 +832,7 @@ bool Graphics::InitShaderResourceBuffers()
 		std::cout << "failed create texture from water still normal atlas file" << std::endl;
 		return false;
 	}
-
+	
 	format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	if (!DXUtils::CreateTexture2DFromFile(
 			grassColorMapBuffer, grassColorMapSRV, "assets/grass_colormap.png", format)) {
@@ -1203,6 +1210,13 @@ bool Graphics::InitPixelShaders()
 		return false;
 	}
 
+	// SamplingCascadeShadowMapPS
+	if (!DXUtils::CreatePixelShader(
+			L"shaders/SamplingCascadeShadowMapPS.hlsl", samplingCascadeShadowMapPS)) {
+		std::cout << "failed create sampling cascade shadow map ps" << std::endl;
+		return false;
+	}
+
 	// FogFilterPS
 	if (!DXUtils::CreatePixelShader(L"shaders/FogFilterPS.hlsl", fogFilterPS)) {
 		std::cout << "failed create fog filter ps" << std::endl;
@@ -1458,9 +1472,10 @@ bool Graphics::InitSamplerStates()
 	desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
 	desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
 	desc.ComparisonFunc = D3D11_COMPARISON_LESS;
-	desc.BorderColor[0] = 0.0f;
+	desc.BorderColor[0] = 100.0f;
 	desc.BorderColor[1] = 0.0f;
 	desc.BorderColor[2] = 0.0f;
+	desc.BorderColor[3] = 0.0f;
 	ret = Graphics::device->CreateSamplerState(&desc, shadowCompareSS.GetAddressOf());
 	if (FAILED(ret)) {
 		std::cout << "failed create shadowCompare SS" << std::endl;
@@ -1592,10 +1607,7 @@ void Graphics::InitViewports()
 		WorldMap::BIOME_MAP_UI_SIZE, WorldMap::BIOME_MAP_UI_SIZE);
 
 	// shadowViewports
-	for (int i = 0; i < Light::CASCADE_NUM; ++i) {
-		DXUtils::UpdateViewport(shadowViewports[i], Light::CASCADE_SIZE * i, 0, Light::CASCADE_SIZE,
-			Light::CASCADE_SIZE);
-	}
+	DXUtils::UpdateViewport(shadowViewports, 0, 0, Light::CASCADE_SIZE, Light::CASCADE_SIZE);
 
 	// cullingViewerViewport
 	DXUtils::UpdateViewport(
@@ -1703,6 +1715,10 @@ void Graphics::InitGraphicsPSO()
 	// samplingCoveragePSO
 	samplingCoveragePSO = samplingPSO;
 	samplingCoveragePSO.pixelShader = samplingCoveragePS;
+
+	// samplingCascadeShadowMapPSO
+	samplingCascadeShadowMapPSO = samplingPSO;
+	samplingCascadeShadowMapPSO.pixelShader = samplingCascadeShadowMapPS;
 
 	// fogFilterPSO
 	fogFilterPSO = samplingPSO;

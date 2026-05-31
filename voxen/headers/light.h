@@ -12,7 +12,7 @@ using namespace Microsoft::WRL;
 class Light {
 
 public:
-	static const UINT CASCADE_NUM = 3;
+	static const UINT CASCADE_LEVEL = 3;
 	static const UINT CASCADE_SIZE = 1024;
 
 	Light();
@@ -42,7 +42,7 @@ private:
 
 	Vector3 m_up;
 	Vector3 m_shadowUp;
-	Matrix m_proj[CASCADE_NUM];
+	Matrix m_proj[CASCADE_LEVEL];
 
 	LightConstantData m_lightConstantData;
 	ShadowConstantData m_shadowConstantData;

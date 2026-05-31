@@ -7,14 +7,14 @@ struct psInput
     float4 posProj : SV_POSITION;
     float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
-    uint VPIndex : SV_ViewportArrayIndex;
+    uint RTIndex : SV_RenderTargetArrayIndex;
 };
 
 float4 main(psInput input) : SV_TARGET
 {
     const uint LAST_CASCADE_INDEX = 2;
 
-    if (input.VPIndex == LAST_CASCADE_INDEX)
+    if (input.RTIndex == LAST_CASCADE_INDEX)
     {
         discard;
     }

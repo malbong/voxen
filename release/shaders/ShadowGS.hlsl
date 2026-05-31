@@ -19,7 +19,7 @@ struct gsOutput
     float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
 #endif
-    uint VPIndex : SV_ViewportArrayIndex;
+    uint RTIndex : SV_RenderTargetArrayIndex;
 };
 
 [maxvertexcount(9)]
@@ -29,7 +29,7 @@ void main(triangle gsInput input[3], inout TriangleStream<gsOutput> output)
     
     for (int cascade = 0; cascade < 3; ++cascade)
     {
-        element.VPIndex = cascade;
+        element.RTIndex = cascade;
 
         for (int i = 0; i < 3; ++i)
         {

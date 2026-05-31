@@ -30,8 +30,6 @@ public:
 
 	static const UINT APP_WIDTH = 1920;
 	static const UINT APP_HEIGHT = 1080;
-	static const UINT SHADOW_WIDTH = 3072;
-	static const UINT SHADOW_HEIGHT = 1024;
 	static const UINT MIRROR_WIDTH = APP_WIDTH / 2;
 	static const UINT MIRROR_HEIGHT = APP_HEIGHT / 2;
 

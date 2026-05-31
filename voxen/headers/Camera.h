@@ -21,7 +21,6 @@ public:
 	void Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY);
 	void RenderPickingBlock();
 	void RenderViewFrustum();
-	void ChangePosition(Vector3 newPosition);
 
 	inline Vector3 GetPosition() { return m_eyePos; }
 	inline Vector3 GetChunkPosition() { return m_chunkPos; }
@@ -39,6 +38,9 @@ public:
 	inline Vector3 GetPickingObjectPosition() { return m_pickingObjectPosition; }
 	inline DIR GetPickingObjectFace() { return m_pickingObjectFace;}
 
+	inline float GetNearZ() { return m_nearZ; }
+	inline float GetFarZ() { return m_farZ; }
+	
 	bool m_isOnConstantDirtyFlag;
 	bool m_isOnChunkDirtyFlag;
 

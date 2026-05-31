@@ -411,6 +411,11 @@ void App::UpdateAppConstantBuffer()
 		m_constantData.useCascadeColor = m_keyToggled['X'];
 		constantBufferDirtyFlag = true;
 	}
+	if ((bool)m_constantData.useCascadeBlend != m_keyToggled['Z']) {
+		m_constantData.useCascadeBlend = m_keyToggled['Z'];
+		constantBufferDirtyFlag = true;
+	}
+	
 
 	if (constantBufferDirtyFlag) {
 		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
@@ -809,7 +814,7 @@ void App::RenderShadowMap()
 {
 	UnsetGlobalLightingSRVs();
 
-	Graphics::context->RSSetViewports(Light::CASCADE_NUM, Graphics::shadowViewports);
+	Graphics::context->RSSetViewports(1, &Graphics::shadowViewports);
 
 	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::shadowDSV.Get());
 
@@ -950,7 +955,7 @@ void App::RenderGBufferViewer()
 	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[3]);
 	SimpleQuadRenderer::GetInstance()->Render();
 
-	Graphics::SetPipelineStates(Graphics::samplingCoveragePSO);
+	//Graphics::SetPipelineStates(Graphics::samplingCoveragePSO);
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::coverageSRV.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[4]);
 	SimpleQuadRenderer::GetInstance()->Render();
@@ -971,7 +976,7 @@ void App::RenderCascadeShadowMapViewer()
 { 
 	Graphics::context->RSSetViewports(1, &Graphics::cascadeShadowMapViewerViewport);
 
-	Graphics::SetPipelineStates(Graphics::samplingPSO);
+	Graphics::SetPipelineStates(Graphics::samplingCascadeShadowMapPSO);
 
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::shadowSRV.GetAddressOf());
 

@@ -47,9 +47,9 @@ void Light::Update(UINT dateTime, Camera& camera)
 
 		// shadow dir
 		float shadowAngle = angle;
-		shadowAngle /= (2.0f * Utils::PI) / 720.0f;
+		shadowAngle /= (2.0f * Utils::PI) / 2880.0f;
 		shadowAngle = std::floor(shadowAngle);
-		shadowAngle *= (2.0f * Utils::PI) / 720.0f;
+		shadowAngle *= (2.0f * Utils::PI) / 2880.0f;
 		Matrix shadowRotationAxisMatrix =
 			Matrix::CreateFromAxisAngle(Vector3(-1.0f, 0.0f, 0.0f), shadowAngle);
 		m_shadowDir = Vector3::Transform(Vector3(0.0, 0.0f, 1.0f), shadowRotationAxisMatrix);
@@ -129,22 +129,19 @@ void Light::Update(UINT dateTime, Camera& camera)
 
 	// shadow
 	{
+		m_shadowConstantData.width = CASCADE_SIZE;
+		m_shadowConstantData.height = CASCADE_SIZE;
+		m_shadowConstantData.cascadeLevel = CASCADE_LEVEL;
+
 		Matrix cameraViewProjInverse =
 			(camera.GetViewMatrix() * camera.GetProjectionMatrix()).Invert();
-		Matrix lightViewMatrix = GetShadowViewMatrix();
+		Matrix lightShadowViewMatrix = GetShadowViewMatrix();
+		Matrix lightShadowViewInvMatrix = lightShadowViewMatrix.Invert();
 
 		Vector3 frustumPoints[8] = { { -1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f },
 			{ 1.0f, -1.0f, 0.0f }, { -1.0f, -1.0f, 0.0f }, { -1.0f, 1.0f, 1.0f },
 			{ 1.0f, 1.0f, 1.0f }, { 1.0f, -1.0f, 1.0f }, { -1.0f, -1.0f, 1.0f } };
 
-		/*
-		* NDC frustum points -> world frustum points
-		* - NDC * (VP)-1 => World Frustum Points 
-		*/
-		Vector3 worldFrustumPoints[8];
-		for (int i = 0; i < 8; ++i) {
-			worldFrustumPoints[i] = Vector3::Transform(frustumPoints[i], cameraViewProjInverse);
-		}
 
 		/*
 		 * cascade
@@ -155,14 +152,25 @@ void Light::Update(UINT dateTime, Camera& camera)
 		 * - subfrustum의 near-far의 대각선이나, far평면의 대각선 성분중 큰 값을 정적으로 정의
 		 * - shadow가 렌더링할 실질적인 크기가 될 것
 		 */
-		const float cascade[CASCADE_NUM + 1] = { 0.00f, 0.01f, 0.03f, 0.08f };
-		const float constantDiagonals[CASCADE_NUM] = { 36.0f, 110.0f, 275.0f };
-		
+		const float cascadeScale[CASCADE_LEVEL + 1] = { 0.00f, 0.01f, 0.03f, 0.08f };
+		const float constantDiagonals[CASCADE_LEVEL] = { 36.0f, 110.0f, 275.0f };
+
+		/*
+		* NDC frustum points -> world frustum points
+		* - NDC * (VP)-1 => World Frustum Points 
+		*/
+		Vector3 worldFrustumPoints[8];
+		for (int i = 0; i < 8; ++i) {
+			worldFrustumPoints[i] = Vector3::Transform(frustumPoints[i], cameraViewProjInverse);
+		}
+
+
+		float cascadeFarDist[CASCADE_LEVEL] = { 0.0f, };
 		/*
 		* cascade 마다 구별되는 constant Buffer 구성
 		* - projection Matrix를 구성하기 위한 절차
 		*/
-		for (int cascadeIndex = 0; cascadeIndex < CASCADE_NUM; ++cascadeIndex) {
+		for (int cascadeIndex = 0; cascadeIndex < CASCADE_LEVEL; ++cascadeIndex) {
 
 			Vector3 cascadeWorldFrustumPoints[8];
 			Vector3 cascadeLightViewFrustumPoints[8];
@@ -173,17 +181,18 @@ void Light::Update(UINT dateTime, Camera& camera)
 			for (int j = 0; j < 4; ++j) {
 				Vector3 worldNearToFar = worldFrustumPoints[j + 4] - worldFrustumPoints[j];
 
-				Vector3 toNear = worldNearToFar * cascade[cascadeIndex];
-				Vector3 toFar = worldNearToFar * cascade[cascadeIndex + 1];
+				Vector3 toNear = worldNearToFar * cascadeScale[cascadeIndex];
+				Vector3 toFar = worldNearToFar * cascadeScale[cascadeIndex + 1];
 
 				cascadeWorldFrustumPoints[j] = worldFrustumPoints[j] + toNear;
 				cascadeWorldFrustumPoints[j + 4] = worldFrustumPoints[j] + toFar;
 
 				cascadeLightViewFrustumPoints[j] =
-					Vector3::Transform(cascadeWorldFrustumPoints[j], lightViewMatrix);
+					Vector3::Transform(cascadeWorldFrustumPoints[j], lightShadowViewMatrix);
 				cascadeLightViewFrustumPoints[j + 4] =
-					Vector3::Transform(cascadeWorldFrustumPoints[j + 4], lightViewMatrix);
+					Vector3::Transform(cascadeWorldFrustumPoints[j + 4], lightShadowViewMatrix);
 			}
+
 
 			/*
 			* light view 에서의 최대, 최소 벡터를 만듦
@@ -197,6 +206,7 @@ void Light::Update(UINT dateTime, Camera& camera)
 				lightViewPointsMax = XMVectorMax(lightViewPointsMax, cascadeLightViewFrustumPoints[j]);
 			}
 
+
 			/*
 			* 단순히 lightViewPointsMin을 이용하여 projection matrix를 구성할 경우 문제가 존재
 			* 1. 너무 딱 맞는 크기만 쉐도우 맵으로 렌더링됨 - 그림자가 생기지 않을 경우도 존재
@@ -208,6 +218,7 @@ void Light::Update(UINT dateTime, Camera& camera)
 			Vector3 maxminVector = lightViewPointsMax - lightViewPointsMin;
 			Vector3 borderOffset = (vDiagonal - maxminVector) * 0.5f;
 
+
 			/*
 			* Shadow Map으로 렌더링할 전체 크기를 vDiagonal 크기로 맞춰주는 과정
 			* borderOffset: (전체길이 - 실제길이) / 2
@@ -218,12 +229,14 @@ void Light::Update(UINT dateTime, Camera& camera)
 			lightViewPointsMax += borderOffset;
 			lightViewPointsMin -= borderOffset;
 
+
 			/*
 			* Stable Shadow Map을 위한 world size snap
 			* - 하나의 텍셀당 world 크기를 구함
 			* - 이는 vDiagonal 값이 정적이기 때문에 가능함
 			*/
 			float worldUnitsPerTexel = vDiagonal.x / (float)CASCADE_SIZE;
+
 
 			/*
 			* 실질적인 snap 과정
@@ -250,6 +263,7 @@ void Light::Update(UINT dateTime, Camera& camera)
 			float maxZ = std::floor(lightViewPointsMax.z / worldUnitsPerTexel) * worldUnitsPerTexel;
 			lightViewPointsMax = Vector3(maxX, maxY, maxZ);
 
+
 			/*
 			*  projection matrix 구성 후 constant data에 넣음
 			*/
@@ -257,11 +271,42 @@ void Light::Update(UINT dateTime, Camera& camera)
 				lightViewPointsMin.y, lightViewPointsMax.y, lightViewPointsMin.z,
 				lightViewPointsMax.z);
 
-			m_shadowConstantData.viewProj[cascadeIndex] = (lightViewMatrix * m_proj[cascadeIndex]).Transpose();
-			m_shadowConstantData.topLX[cascadeIndex] = (float)CASCADE_SIZE * cascadeIndex;
-			m_shadowConstantData.viewportWidth[cascadeIndex] = (float)CASCADE_SIZE;
-		}
+			m_shadowConstantData.viewProj[cascadeIndex] = (lightShadowViewMatrix * m_proj[cascadeIndex]).Transpose();
 
+			/*
+			 * 카메라 거리에 따라 Cascade Blending을 하기 위한 splits 데이터 설정
+			 * - 실제로 카메라를 감싸는 Light View Frustum의 크기가 커짐
+			 * - 그것을 world로 변환하여 카메라와의 z 거리를 계산하고 최대치를 splits 값으로 설정
+			 */
+			Vector3 lightViewPoints[8] = {
+				{ minX, minY, minZ },
+				{ maxX, minY, minZ },
+				{ minX, maxY, minZ },
+				{ maxX, maxY, minZ },
+				{ minX, minY, maxZ },
+				{ maxX, minY, maxZ },
+				{ minX, maxY, maxZ },
+				{ maxX, maxY, maxZ },
+			};
+
+			Vector3 cameraPos = camera.GetPosition();
+			Vector3 cameraDir = camera.GetForward();
+			float maxDist = -D3D11_FLOAT32_MAX;
+
+			for (int i = 0; i < 8; ++i) {
+				Vector3 lightWorldPoint =
+					Vector3::Transform(lightViewPoints[i], lightShadowViewInvMatrix);
+				float worldDistanceZ = (lightWorldPoint - cameraPos).Dot(cameraDir);
+				maxDist = max(worldDistanceZ, maxDist);
+			}
+
+			cascadeFarDist[cascadeIndex] = maxDist;
+			std::cout << maxDist << std::endl;
+		} // end for cascade index
+
+		m_shadowConstantData.cascadeSplits =
+			Vector4(0.0, cascadeFarDist[0], cascadeFarDist[1], cascadeFarDist[2]);
+	
 		DXUtils::UpdateConstantBuffer(m_shadowConstantBuffer, m_shadowConstantData);
 	}
 }

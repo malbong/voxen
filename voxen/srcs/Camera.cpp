@@ -146,7 +146,7 @@ void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG m
 
 void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt)
 {
-	if (keyToggled[0x71]) {
+	if (keyToggled[0x71]) { // F1
 		dt *= 0.15f;
 	}
 
@@ -157,6 +157,7 @@ void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt
 		m_up = Vector3(0.0f, 1.0f, 0.0f);
 
 		keyToggled[0x70] = !keyToggled[0x70];
+
 		m_isOnConstantDirtyFlag = true;
 	}
 
