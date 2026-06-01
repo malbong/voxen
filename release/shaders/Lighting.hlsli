@@ -190,8 +190,8 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
 
 bool sampleCascade(float3 posWorld, uint cascadeIndex, float NdotL, out float outPercentLit)
 {
-    const float baseBias[3] = { 0.0025, 0.002, 0.001 };
-    const float slopeBias[3] = { 0.005, 0.005, 0.005 };
+    const float baseBias[3] = { 0.0025, 0.002, 0.002 };
+    const float slopeBias[3] = { 0.005, 0.005, 0.002 };
     
     float bias = baseBias[cascadeIndex] + slopeBias[cascadeIndex] * pow(1.0 - NdotL, 3.0);
     
@@ -229,64 +229,68 @@ bool sampleCascade(float3 posWorld, uint cascadeIndex, float NdotL, out float ou
 
 float getShadowFactor(float3 posWorld, float3 normal, out uint outCascadeIndex)
 {
+    outCascadeIndex = cascadeLevel;
+    
     float NdotL = max(dot(lightDir, normal), 0.0);
     
-    float blendRange = 0.3;
+    float blendRange = 0.25;
     float viewDistZ = dot(posWorld - eyePos, eyeDir); // viewZ: |posWorld-eyePos| * |eyeDir| * cosTheta
     
-    float cascadePlanes[4] = { cascadeSplits.x, cascadeSplits.y, cascadeSplits.z, cascadeSplits.w };
+    float cascadeDistance[4] = { cascadeSplits.x, cascadeSplits.y, cascadeSplits.z, cascadeSplits.w };
     
-    [loop]
-    for (uint sampleCascadeIndex = 0; sampleCascadeIndex < cascadeLevel; ++sampleCascadeIndex)
+    // 거리 체크
+    uint cascadeIndex = cascadeLevel; // 3
+    [unroll]
+    for (uint i = 0; i < cascadeLevel; ++i)
     {
-        float percentLit;
-        if (!sampleCascade(posWorld, sampleCascadeIndex, NdotL, percentLit))
-            continue;
-        
-        outCascadeIndex = sampleCascadeIndex;
-        
-        if (useCascadeBlend && sampleCascadeIndex < cascadeLevel - 1)
+        if (cascadeDistance[i] <= viewDistZ && viewDistZ < cascadeDistance[i + 1])
         {
-            float cascadeFrustumNearZ;
-            float cascadeFrustumFarZ;
-            bool sameCascade = false; 
-            [unroll]
-            for (uint distCascadeIndex = 0; distCascadeIndex < cascadeLevel; ++distCascadeIndex)
-            {
-                cascadeFrustumNearZ = cascadePlanes[distCascadeIndex];
-                cascadeFrustumFarZ = cascadePlanes[distCascadeIndex + 1];
-                if (cascadeFrustumNearZ <= viewDistZ && viewDistZ <= cascadeFrustumFarZ)
-                {
-                    sameCascade = (sampleCascadeIndex == distCascadeIndex);
-                    break;
-                }
-            }
-            
-            outCascadeIndex = 7;
-            if (sameCascade)
-            {
-                float blendStartZ = lerp(cascadeFrustumFarZ, cascadeFrustumNearZ, blendRange);
-                float blendWeight = smoothstep(blendStartZ, cascadeFrustumFarZ, viewDistZ);
-                outCascadeIndex = 6;
-                if (blendWeight > 0.0)
-                {
-                    float nextPercentLit;
-                    if (sampleCascade(posWorld, sampleCascadeIndex + 1, NdotL, nextPercentLit))
-                    {
-                        outCascadeIndex = 5;
-                        //percentLit = lerp(percentLit, nextPercentLit, blendWeight);
-                        percentLit = lerp(percentLit, nextPercentLit, 0.5);
-                    }
-                }
-            }
-            
+            cascadeIndex = i;
+            break;
         }
-        
-        // 해가 강할 수록 shadow를 진하게 표현
-        float radianceShadowWeight = clamp(radianceWeight / maxRadianceWeight, 0.0, 1.0);
-        float radianceShadow = lerp(percentLit, 1.0, 1.0 - radianceShadowWeight);
-        return radianceShadow;
     }
+    
+    // 거리에 대한 유효성 검사
+    // 거리를 벗어나면 유효하지 않음 -> 그림자 없음
+    if (cascadeIndex == cascadeLevel)
+        return 1.0;
+    
+    // 샘플링 시도 -> 실패 시 다음 cascade로 이동 (예외적)
+    float percentLit;
+    if (!sampleCascade(posWorld, cascadeIndex, NdotL, percentLit))
+    {
+        cascadeIndex = min(cascadeIndex + 1, cascadeLevel - 1);
+        if (!sampleCascade(posWorld, cascadeIndex, NdotL, percentLit))
+            return 1.0;
+    }
+    
+    outCascadeIndex = cascadeIndex;
+    
+    if (useCascadeBlend && cascadeIndex + 1 < cascadeLevel)
+    {
+        const float bandWidth = 0.4;
+        float nearZ = cascadeDistance[cascadeIndex];
+        float farZ = cascadeDistance[cascadeIndex + 1];
+        float blendStartZ = lerp(farZ, nearZ, bandWidth);
+        
+        // viewDistZ가 blendStartZ 보다 작거나 같은 경우 blending을 하지 않게 됨
+        float blendWeight = smoothstep(blendStartZ, farZ, viewDistZ);
+        if (blendWeight > 0.0)
+        {
+            float nextPercentLit;
+            if (sampleCascade(posWorld, cascadeIndex + 1, NdotL, nextPercentLit))
+            {
+                percentLit = lerp(percentLit, nextPercentLit, blendWeight);
+                outCascadeIndex = cascadeLevel + 1;
+            }
+        }
+    }
+    
+    
+    // 해가 강할 수록 shadow를 진하게 표현
+    float radianceShadowWeight = clamp(radianceWeight / maxRadianceWeight, 0.0, 1.0);
+    float radianceShadow = lerp(percentLit, 1.0, 1.0 - radianceShadowWeight);
+    return radianceShadow;
     
     return 1.0;
 }
@@ -325,14 +329,12 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
             cascadeColor = float3(1, 0, 0);
         else if (cascadeIndex == 1)
             cascadeColor = float3(0, 1, 0);
-        else if (cascadeIndex == 5)
-            cascadeColor = float3(1, 1, 0); // 노랑: 블랜딩
-        else if (cascadeIndex == 6)
-            cascadeColor = float3(0, 1, 1); // 민트: 유효하지 않음
-        else if (cascadeIndex == 7)
-            cascadeColor = float3(1, 0, 1); // 바이올: not Same 튕김
-        else
+        else if (cascadeIndex == 2)
             cascadeColor = float3(0, 0, 1);
+        else if (cascadeIndex == cascadeLevel + 1) // blending
+            cascadeColor = float3(1, 1, 0);
+        else
+            cascadeColor = float3(0.25, 0.25, 0.25);
         
         directLightingColor *= 0.5f;
         directLightingColor += cascadeColor * 0.5;

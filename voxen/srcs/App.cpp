@@ -313,10 +313,13 @@ void App::ImGuiFrame()
 	ImGui::Text("G: GBuffer View");
 	ImGui::Text("E: Edge View");
 	ImGui::Text("F: Toggle Full SemiAlpha Edge");
-	ImGui::Text("C: Cascade Shadow Map View");
 	ImGui::Text("O: SSAO View");
 	ImGui::Text("I: Toggle SSAO");
+	ImGui::Text("C: Cascade Shadow Map View");
+	ImGui::Text("X: Cascade Color View");
+	ImGui::Text("Z: Toggle Cascade Blending");
 	ImGui::Text("F1: Go to Materials For Lighting");
+
 	ImGui::Text("");
 	
 	float worldX = m_camera.GetPosition().x;
@@ -411,8 +414,8 @@ void App::UpdateAppConstantBuffer()
 		m_constantData.useCascadeColor = m_keyToggled['X'];
 		constantBufferDirtyFlag = true;
 	}
-	if ((bool)m_constantData.useCascadeBlend != m_keyToggled['Z']) {
-		m_constantData.useCascadeBlend = m_keyToggled['Z'];
+	if ((bool)m_constantData.useCascadeBlend == m_keyToggled['Z']) {
+		m_constantData.useCascadeBlend = !m_keyToggled['Z'];
 		constantBufferDirtyFlag = true;
 	}
 	

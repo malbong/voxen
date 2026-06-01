@@ -218,7 +218,6 @@ void Light::Update(UINT dateTime, Camera& camera)
 			Vector3 maxminVector = lightViewPointsMax - lightViewPointsMin;
 			Vector3 borderOffset = (vDiagonal - maxminVector) * 0.5f;
 
-
 			/*
 			* Shadow Map으로 렌더링할 전체 크기를 vDiagonal 크기로 맞춰주는 과정
 			* borderOffset: (전체길이 - 실제길이) / 2
@@ -263,7 +262,7 @@ void Light::Update(UINT dateTime, Camera& camera)
 			float maxZ = std::floor(lightViewPointsMax.z / worldUnitsPerTexel) * worldUnitsPerTexel;
 			lightViewPointsMax = Vector3(maxX, maxY, maxZ);
 
-
+			
 			/*
 			*  projection matrix 구성 후 constant data에 넣음
 			*/
@@ -301,11 +300,11 @@ void Light::Update(UINT dateTime, Camera& camera)
 			}
 
 			cascadeFarDist[cascadeIndex] = maxDist;
-			std::cout << maxDist << std::endl;
 		} // end for cascade index
 
+		float farZ = camera.GetFarZ();
 		m_shadowConstantData.cascadeSplits =
-			Vector4(0.0, cascadeFarDist[0], cascadeFarDist[1], cascadeFarDist[2]);
+			Vector4(0.0, farZ * cascadeScale[1], farZ * cascadeScale[2], farZ * cascadeScale[3]);
 	
 		DXUtils::UpdateConstantBuffer(m_shadowConstantBuffer, m_shadowConstantData);
 	}

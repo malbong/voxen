@@ -6,7 +6,7 @@
 #include <algorithm>
 
 Camera::Camera()
-	: m_projFovAngleY(80.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
+	: m_projFovAngleY(70.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(30.0f), m_isUnderWater(false),
 	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
