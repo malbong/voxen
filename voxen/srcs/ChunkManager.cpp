@@ -73,7 +73,7 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 }
 
 void ChunkManager::Update(
-	float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown)
+	float dt, Camera& camera, const Light& light, bool mouseLeftDown, bool mouseRightDown)
 {
 	if (camera.m_isOnChunkDirtyFlag) {
 		UpdateChunkList(camera.GetChunkPosition());
@@ -504,7 +504,7 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 	}
 }
 
-void ChunkManager::UpdateRenderChunkList(Camera& camera, Light& light)
+void ChunkManager::UpdateRenderChunkList(Camera& camera, const Light& light)
 {
 	m_renderChunkList.clear();
 	m_renderMirrorChunkList.clear();
@@ -650,7 +650,7 @@ void ChunkManager::UpdateChunkConstant(float dt)
 }
 
 bool ChunkManager::FrustumCulling(
-	Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index)
+	Vector3 position, const Camera& camera, const Light& light, bool useMirror, bool useShadow, int index)
 {
 	Matrix invMat = Matrix();
 

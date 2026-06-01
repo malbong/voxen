@@ -19,21 +19,25 @@ public:
 	~Light();
 
 	bool Initialize();
-	void Update(UINT dateTime, Camera &camera);
+	void Update(UINT dateTime, const Camera& camera, bool toggle);
 
 	inline float GetRadianceWeight() const { return m_radianceWeight; }
 
 	ComPtr<ID3D11Buffer> m_lightConstantBuffer;
 	ComPtr<ID3D11Buffer> m_shadowConstantBuffer;
 	
-	inline Matrix GetViewMatrix() { return XMMatrixLookToLH(Vector3::Zero, -m_dir, m_up); }
-	inline Matrix GetShadowViewMatrix()
+	inline Matrix GetViewMatrix() const { return XMMatrixLookToLH(Vector3::Zero, -m_dir, m_up); }
+	inline Matrix GetShadowViewMatrix() const
 	{
 		return XMMatrixLookToLH(Vector3::Zero, -m_shadowDir, m_shadowUp);
 	}
-	inline Matrix GetProjectionMatrixFromCascade(int i) { return m_proj[i]; };
+	inline Matrix GetProjectionMatrixFromCascade(int i) const { return m_proj[i]; };
 
 private:
+	void UpdateByDate(UINT dateTime, const Camera& camera);
+	void FitToSceneOfCenter(const Camera& camera);
+	void FitToSceneOfSplits(const Camera& camera);
+
 	Vector3 m_dir;
 	Vector3 m_shadowDir;
 	float m_scale;

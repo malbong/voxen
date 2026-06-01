@@ -31,7 +31,7 @@ public:
 	static ChunkManager* GetInstance();
 
 	bool Initialize(Vector3 cameraChunkPos);
-	void Update(float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown);
+	void Update(float dt, Camera& camera, const Light& light, bool mouseLeftDown, bool mouseRightDown);
 
 	void RenderOpaqueChunk(Chunk* chunk);
 	void RenderSemiAlphaChunk(Chunk* chunk);
@@ -76,7 +76,7 @@ private:
 	void UpdateLoadChunkList(Camera& camera);
 	void UpdateUnloadChunkList();
 	void UpdatePatchChunkMap(Camera& camera);
-	void UpdateRenderChunkList(Camera& camera, Light& light);
+	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
 
@@ -84,7 +84,7 @@ private:
 	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
 
 	bool FrustumCulling(
-		Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index = 0);
+		Vector3 position, const Camera& camera, const Light& light, bool useMirror, bool useShadow, int index = 0);
 
 	void UpdateChunkBuffer(Chunk* chunk);
 	

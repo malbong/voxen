@@ -22,24 +22,24 @@ public:
 	void RenderPickingBlock();
 	void RenderViewFrustum();
 
-	inline Vector3 GetPosition() { return m_eyePos; }
-	inline Vector3 GetChunkPosition() { return m_chunkPos; }
-	inline Vector3 GetForward() { return m_forward; }
-	inline Matrix GetViewMatrix() { return XMMatrixLookToLH(m_eyePos, m_forward, m_up); }
-	inline Matrix GetProjectionMatrix()
+	inline Vector3 GetPosition() const { return m_eyePos; }
+	inline Vector3 GetChunkPosition() const { return m_chunkPos; }
+	inline Vector3 GetForward() const { return m_forward; }
+	inline Matrix GetViewMatrix() const { return XMMatrixLookToLH(m_eyePos, m_forward, m_up); }
+	inline Matrix GetProjectionMatrix() const
 	{
 		return XMMatrixPerspectiveFovLH(
 			XMConvertToRadians(m_projFovAngleY), m_aspectRatio, m_nearZ, m_farZ);
 	}
-	inline Matrix GetMirrorPlaneMatrix() { return m_mirrorPlaneMatrix; }
-	inline bool IsUnderWater() { return m_isUnderWater; }
+	inline Matrix GetMirrorPlaneMatrix() const { return m_mirrorPlaneMatrix; }
+	inline bool IsUnderWater() const { return m_isUnderWater; }
 
-	inline bool HasPickingObject() { return m_hasPickingObject; }
-	inline Vector3 GetPickingObjectPosition() { return m_pickingObjectPosition; }
-	inline DIR GetPickingObjectFace() { return m_pickingObjectFace;}
+	inline bool HasPickingObject() const { return m_hasPickingObject; }
+	inline Vector3 GetPickingObjectPosition() const { return m_pickingObjectPosition; }
+	inline DIR GetPickingObjectFace() const { return m_pickingObjectFace; }
 
-	inline float GetNearZ() { return m_nearZ; }
-	inline float GetFarZ() { return m_farZ; }
+	inline float GetNearZ() const { return m_nearZ; }
+	inline float GetFarZ() const { return m_farZ; }
 	
 	bool m_isOnConstantDirtyFlag;
 	bool m_isOnChunkDirtyFlag;

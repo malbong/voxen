@@ -450,7 +450,7 @@ void App::Update(float dt)
 
 	m_skybox.Update(m_date.GetDateTime());
 
-	m_light.Update(m_date.GetDateTime(), m_camera);
+	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['K']);
 
 	m_cloud.Update(dt, m_camera.GetPosition());
 
