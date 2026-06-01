@@ -307,17 +307,26 @@ void App::ImGuiFrame()
 
 	ImGui::Text("P: Pause");
 	ImGui::Text("L: Light Move");
-	ImGui::Text("M: World Map");
-	ImGui::Text("V: Frustum Culling View");
+	ImGui::Text("===========================================");
+	ImGui::Text("M: World Map View");
+	ImGui::Text("T: Frustum Culling View");
+	ImGui::Text("===========================================");
 	ImGui::Text("R: Reflection World View");
+	ImGui::Text("===========================================");
 	ImGui::Text("G: GBuffer View");
+	ImGui::Text("===========================================");
 	ImGui::Text("E: Edge View");
 	ImGui::Text("F: Toggle Full SemiAlpha Edge");
+	ImGui::Text("===========================================");
 	ImGui::Text("O: SSAO View");
 	ImGui::Text("I: Toggle SSAO");
-	ImGui::Text("C: Cascade Shadow Map View");
-	ImGui::Text("X: Cascade Color View");
+	ImGui::Text("===========================================");
 	ImGui::Text("Z: Toggle Cascade Blending");
+	ImGui::Text("X: Cascade Color View");
+	ImGui::Text("C: Cascade Shadow Map View");
+	ImGui::Text("V: Toggle [Center vs Split] Light View Box");
+	ImGui::Text("B: Toggle [Map vs Inteval] Based Cascade");
+	ImGui::Text("===========================================");
 	ImGui::Text("F1: Go to Materials For Lighting");
 
 	ImGui::Text("");
@@ -398,6 +407,7 @@ void App::ImGuiFrame()
 	ImGui::End();
 	ImGui::Render(); // 렌더링할 것들 기록 끝
 }
+
 void App::UpdateAppConstantBuffer() 
 {
 	bool constantBufferDirtyFlag = false;
@@ -416,6 +426,10 @@ void App::UpdateAppConstantBuffer()
 	}
 	if ((bool)m_constantData.useCascadeBlend == m_keyToggled['Z']) {
 		m_constantData.useCascadeBlend = !m_keyToggled['Z'];
+		constantBufferDirtyFlag = true;
+	}
+	if ((bool)m_constantData.useMapBasedCascade == m_keyToggled['B']) {
+		m_constantData.useMapBasedCascade = !m_keyToggled['B'];
 		constantBufferDirtyFlag = true;
 	}
 	
@@ -450,7 +464,7 @@ void App::Update(float dt)
 
 	m_skybox.Update(m_date.GetDateTime());
 
-	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['K']);
+	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['V']);
 
 	m_cloud.Update(dt, m_camera.GetPosition());
 
@@ -482,9 +496,9 @@ void App::SetGlobalLightingSRVs()
 
 	std::vector<ID3D11ShaderResourceView*> ppLightSRVs;
 	ppLightSRVs.push_back(Graphics::brdfSRV.Get());
-	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
 	ppLightSRVs.push_back(Graphics::sunSRV.Get());
 	ppLightSRVs.push_back(Graphics::moonSRV.Get());
+	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
 	Graphics::context->PSSetShaderResources(
 		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)ppLightSRVs.size(), ppLightSRVs.data());
 }
@@ -566,7 +580,7 @@ void App::Render()
 
 	// 7. Debug Camera for Frustum Culling
 	{
-		if (m_keyToggled['V']) {
+		if (m_keyToggled['T']) {
 			RenderFrustumCullingViewer();
 		}
 	}

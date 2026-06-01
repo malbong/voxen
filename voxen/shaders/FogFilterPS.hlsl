@@ -8,7 +8,7 @@ cbuffer FogConstantBuffer : register(b0)
     float fogDistMin;
     float fogDistMax;
     float fogStrength;
-    float dummy;
+    float fogDummy;
 };
 
 struct psInput

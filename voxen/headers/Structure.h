@@ -145,6 +145,8 @@ struct AppConstantData {
 	uint32_t useSSAO;
 	uint32_t useCascadeColor;
 	uint32_t useCascadeBlend;
+	uint32_t useMapBasedCascade;
+	Vector3 dummy;
 };
 
 

@@ -34,7 +34,7 @@ bool Light::Initialize()
 	return true;
 }
 
-void Light::Update(UINT dateTime, const Camera& camera, bool toggle)
+void Light::Update(UINT dateTime, const Camera& camera, bool useSplit)
 {
 	// light
 	{
@@ -43,10 +43,10 @@ void Light::Update(UINT dateTime, const Camera& camera, bool toggle)
 
 	// shadow
 	{
-		if (toggle)
-			FitToSceneOfCenter(camera);
-		else
+		if (useSplit)
 			FitToSceneOfSplits(camera);
+		else
+			FitToSceneOfCenter(camera);
 	}
 }
 

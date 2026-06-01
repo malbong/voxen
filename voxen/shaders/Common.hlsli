@@ -30,6 +30,8 @@ cbuffer AppConstantBuffer : register(b7)
     bool useSSAO;
     bool useCascadeColor;
     bool useCascadeBlend;
+    bool useMapBasedCascade;
+    float3 appDummy;
 }
 
 cbuffer CameraConstantBuffer : register(b8)

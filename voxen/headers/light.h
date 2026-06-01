@@ -19,7 +19,7 @@ public:
 	~Light();
 
 	bool Initialize();
-	void Update(UINT dateTime, const Camera& camera, bool toggle);
+	void Update(UINT dateTime, const Camera& camera, bool useSplit);
 
 	inline float GetRadianceWeight() const { return m_radianceWeight; }
 
@@ -35,8 +35,10 @@ public:
 
 private:
 	void UpdateByDate(UINT dateTime, const Camera& camera);
-	void FitToSceneOfCenter(const Camera& camera);
+
 	void FitToSceneOfSplits(const Camera& camera);
+	void FitToSceneOfCenter(const Camera& camera);
+	
 
 	Vector3 m_dir;
 	Vector3 m_shadowDir;

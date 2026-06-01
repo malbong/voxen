@@ -17,7 +17,7 @@ float4 main(psInput input) : SV_TARGET
     float dy = 1.0 / height;
     
     float4 sumColor = float4(0.0, 0.0, 0.0, 0.0);
-    float sumWeight = 0.0;
+    float4 sumWeight = 0.0;
 
     float4 base = renderTex.Sample(linearClampSS, input.texcoord);
     float sigma = 0.325;

@@ -2,11 +2,11 @@
     #define LIGHTING_HLSLI
 
 #include "Common.hlsli"
+#include "Shadow.hlsli"
 
 Texture2D brdfTex : register(t10);
-Texture2DArray shadowTex : register(t11);
-Texture2D sunTex : register(t12);
-Texture2D moonTex : register(t13);
+Texture2D sunTex : register(t11);
+Texture2D moonTex : register(t12);
 
 // https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 float3 schlickFresnel(float3 F0, float VdotH)
@@ -170,78 +170,6 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
     return ao * (diffuseTerm + specularTerm);
 }
 
-float getShadowFactor(float3 posWorld, float3 normal, out uint outCascadeIndex)
-{
-    outCascadeIndex = cascadeLevel;
-    float NdotL = max(dot(lightDir, normal), 0.0);
-
-    const float baseBias[3] = { 0.0025, 0.002, 0.002 };
-    const float slopeBias[3] = { 0.005, 0.005, 0.002 };
-    
-    int selectedCascade = -1;
-    float4 selectedProj;
-    float selectedBias;
-
-    [unroll]
-    for (int i = 0; i < (int)cascadeLevel; ++i)
-    {
-        float bias = baseBias[i] + slopeBias[i] * pow(1.0 - NdotL, 3.0);
-        float4 lp = mul(float4(posWorld, 1.0), shadowViewProj[i]);
-        lp.xyz /= lp.w;
-
-        if (all(abs(lp.xy) < 1.0) && bias < lp.z && lp.z < 1.0)
-        {
-            selectedCascade = i;
-            selectedProj = lp;
-            selectedBias = bias;
-            break;
-        }
-    }
-
-    if (selectedCascade < 0)
-        return 1.0;
-
-    outCascadeIndex = (uint)selectedCascade;
-
-    float2 uv = float2(selectedProj.x * 0.5 + 0.5, -selectedProj.y * 0.5 + 0.5);
-    float percentLit = shadowTex.SampleCmpLevelZero(
-        shadowCompareSS, float3(uv, selectedCascade), selectedProj.z - selectedBias).r;
-
-    if (useCascadeBlend && selectedCascade + 1 < (int)cascadeLevel)
-    {
-        float interiorDistXY = min(
-            min(selectedProj.x + 1.0, 1.0 - selectedProj.x),
-            min(selectedProj.y + 1.0, 1.0 - selectedProj.y)
-        );
-        float interiorDistZ = min(selectedProj.z, 1.0 - selectedProj.z);
-        float interiorDist = min(interiorDistXY, interiorDistZ);
-
-        const float blendRange = 0.2;
-        float blendWeight = 1.0 - smoothstep(0.0, blendRange, interiorDist);
-        
-        if (blendWeight > 0.0)
-        {
-            int nextIdx = selectedCascade + 1;
-            float bias_n = baseBias[nextIdx] + slopeBias[nextIdx] * pow(1.0 - NdotL, 3.0);
-            float4 lp_n = mul(float4(posWorld, 1.0), shadowViewProj[nextIdx]);
-            lp_n.xyz /= lp_n.w;
-
-            if (all(abs(lp_n.xy) < 1.0) && bias_n < lp_n.z && lp_n.z < 1.0)
-            {
-                float2 uv_n = float2(lp_n.x * 0.5 + 0.5, -lp_n.y * 0.5 + 0.5);
-                float nextLit = shadowTex.SampleCmpLevelZero(
-                    shadowCompareSS, float3(uv_n, nextIdx), lp_n.z - bias_n).r;
-
-                percentLit = lerp(percentLit, nextLit, blendWeight);
-                outCascadeIndex = cascadeLevel + 1;
-            }
-        }
-    }
-
-    float radianceShadowWeight = clamp(radianceWeight / maxRadianceWeight, 0.0, 1.0);
-    return lerp(percentLit, 1.0, 1.0 - radianceShadowWeight);
-}
-
 float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float metallic, float roughness, bool useShadow)
 {
     float3 pixelToEye = normalize(eyePos - position);
@@ -271,18 +199,8 @@ float3 getDirectLighting(float3 normal, float3 position, float3 albedo, float me
 
     if (useCascadeColor)
     {
-        float3 cascadeColor = float3(1, 1, 1);
-        if (cascadeIndex == 0)
-            cascadeColor = float3(1, 0, 0);
-        else if (cascadeIndex == 1)
-            cascadeColor = float3(0, 1, 0);
-        else if (cascadeIndex == 2)
-            cascadeColor = float3(0, 0, 1);
-        else if (cascadeIndex == cascadeLevel + 1) // blending
-            cascadeColor = float3(1, 1, 0);
-        else
-            cascadeColor = float3(0.25, 0.25, 0.25);
-
+        float3 cascadeColor = getCascadeColor(cascadeIndex);
+        
         directLightingColor *= 0.5f;
         directLightingColor += cascadeColor * 0.5;
     }

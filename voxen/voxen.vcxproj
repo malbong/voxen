@@ -193,6 +193,7 @@ xcopy "$(ProjectDir)shaders" "%OUT_DIR%\shaders\" /e /y /i</Command>
     <None Include=".clang-format" />
     <None Include="shaders\Common.hlsli" />
     <None Include="shaders\Lighting.hlsli" />
+    <None Include="shaders\Shadow.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="srcs\App.cpp" />
