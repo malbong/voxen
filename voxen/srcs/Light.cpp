@@ -34,7 +34,7 @@ bool Light::Initialize()
 	return true;
 }
 
-void Light::Update(UINT dateTime, const Camera& camera, bool useSplit)
+void Light::Update(UINT dateTime, const Camera& camera, bool useSplit, bool useTexelSnap)
 {
 	// light
 	{
@@ -44,16 +44,16 @@ void Light::Update(UINT dateTime, const Camera& camera, bool useSplit)
 	// shadow
 	{
 		if (useSplit)
-			FitToSceneOfSplits(camera);
+			FitToSceneOfSplits(camera, useTexelSnap);
 		else
-			FitToSceneOfCenter(camera);
+			FitToSceneOfCenter(camera, useTexelSnap);
 	}
 }
 
 /*
  * Camera 중심으로 하는 Lighting View Box 구성
  */
-void Light::FitToSceneOfCenter(const Camera& camera)
+void Light::FitToSceneOfCenter(const Camera& camera, bool useTexelSnap)
 {
 	Matrix lightShadowViewMatrix = GetShadowViewMatrix();
 
@@ -64,8 +64,7 @@ void Light::FitToSceneOfCenter(const Camera& camera)
 
 	Vector3 lightViewCameraPos = Vector3::Transform(camera.GetPosition(), lightShadowViewMatrix);
 
-	for (int cascadeIndex = 0; cascadeIndex < CASCADE_LEVEL; ++cascadeIndex)
-	{
+	for (int cascadeIndex = 0; cascadeIndex < CASCADE_LEVEL; ++cascadeIndex) {
 		float halfSize = cascadeHalfSizes[cascadeIndex];
 		float boxSize = halfSize * 2.0f;
 
@@ -77,15 +76,17 @@ void Light::FitToSceneOfCenter(const Camera& camera)
 		 * - 카메라 이동 시 그림자 떨림(shimmering) 방지
 		 * - boxSize가 고정이므로 min을 snap하면 max도 자동으로 texel-aligned
 		 */
-		float worldUnitsPerTexel = boxSize / (float)CASCADE_SIZE;
+		if (useTexelSnap) {
+			float worldUnitsPerTexel = boxSize / (float)CASCADE_SIZE;
 
-		float minX = std::floor(lightViewPointsMin.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float minY = std::floor(lightViewPointsMin.y / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float minZ = std::floor(lightViewPointsMin.z / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minX = std::floor(lightViewPointsMin.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minY = std::floor(lightViewPointsMin.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minZ = std::floor(lightViewPointsMin.z / worldUnitsPerTexel) * worldUnitsPerTexel;
 
-		lightViewPointsMin = Vector3(minX, minY, minZ);
-		lightViewPointsMax = lightViewPointsMin + Vector3(boxSize);
-
+			lightViewPointsMin = Vector3(minX, minY, minZ);
+			lightViewPointsMax = lightViewPointsMin + Vector3(boxSize);
+		}
+		
 		m_proj[cascadeIndex] = XMMatrixOrthographicOffCenterLH(lightViewPointsMin.x,
 			lightViewPointsMax.x, lightViewPointsMin.y, lightViewPointsMax.y, lightViewPointsMin.z,
 			lightViewPointsMax.z);
@@ -98,6 +99,10 @@ void Light::FitToSceneOfCenter(const Camera& camera)
 	 * Interval 중심으로 cascadeSplits 설정
 	 * - Cascade 선택의 방법 중 하나
 	 * - IntervalBasedCascade VS MapBasedCascade
+	 * - 값이 올바르지 않음
+	 *   - Z만을 이용해 계산하기 때문에 XY 범위에 들어오지 않으나 Z에 들어오는 경우 해당 Cascade를
+	 *       고르게 되는 문제 존재
+	 *   - 단순히 Splits 비교용으로 남겨둔 값 설정
 	 */
 	m_shadowConstantData.cascadeSplits =
 		Vector4(0.0, cascadeHalfSizes[0], cascadeHalfSizes[1], cascadeHalfSizes[2]);
@@ -106,9 +111,9 @@ void Light::FitToSceneOfCenter(const Camera& camera)
 }
 
 /*
-* Frustum을 적절히 잘라 Lighting View Box 구성
-*/
-void Light::FitToSceneOfSplits(const Camera& camera)
+ * Frustum을 적절히 잘라 Lighting View Box 구성
+ */
+void Light::FitToSceneOfSplits(const Camera& camera, bool useTexelSnap)
 {
 	Matrix cameraViewProjInverse = (camera.GetViewMatrix() * camera.GetProjectionMatrix()).Invert();
 	Matrix lightShadowViewMatrix = GetShadowViewMatrix();
@@ -128,9 +133,8 @@ void Light::FitToSceneOfSplits(const Camera& camera)
 	 * - subfrustum의 near-far의 대각선이나, far평면의 대각선 성분중 큰 값을 정적으로 정의
 	 * - shadow가 렌더링할 실질적인 크기가 될 것
 	 */
-	const float cascadeScale[CASCADE_LEVEL + 1] = { 0.00f, 0.01f, 0.03f, 0.08f };
-	const float constantDiagonals[CASCADE_LEVEL] = { 36.0f, 110.0f, 275.0f };
-
+	const float cascadeScale[CASCADE_LEVEL + 1] = { 0.00f, 0.01f, 0.03f, 0.15f };
+	const float constantDiagonals[CASCADE_LEVEL] = { 36.0f, 110.0f, 450.0f };
 
 	/*
 	 * NDC frustum points -> world frustum points
@@ -221,25 +225,23 @@ void Light::FitToSceneOfSplits(const Camera& camera)
 		 *
 		 * X가 텍셀당 world size
 		 * - min, max의 움직임이 텍셀당 world size 만큼 움직여야 이동될 것
-		 * - 예를 들면, 하나의 텍셀에 숟가락이 들어갔다면, 그 숟가락은 텍셀 한칸에 무조건 고정되게
-		 * 됨
-		 * - 이렇게 snap하게 되면 임의의 텍셀 사이에 숟가락이 들어가지 않아 카메라의 움직임에
-		 * 안정적이게 됨
 		 *
 		 * z 값도 단순히 snap
 		 * - 카메라의 움직임에 연관있는 데이터는 min/max.xy임
 		 * - 흔들림과 크게 관련이 없는 데이터 z 이지만, 일관성을 위해 유지
 		 * - 추가로 z값은 vDiagonal에 의해 near->far distance가 정적일 것
 		 */
-		float minX = std::floor(lightViewPointsMin.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float minY = std::floor(lightViewPointsMin.y / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float minZ = std::floor(lightViewPointsMin.z / worldUnitsPerTexel) * worldUnitsPerTexel;
-		lightViewPointsMin = Vector3(minX, minY, minZ);
+		if (useTexelSnap) {
+			float minX = std::floor(lightViewPointsMin.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minY = std::floor(lightViewPointsMin.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float minZ = std::floor(lightViewPointsMin.z / worldUnitsPerTexel) * worldUnitsPerTexel;
+			lightViewPointsMin = Vector3(minX, minY, minZ);
 
-		float maxX = std::floor(lightViewPointsMax.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float maxY = std::floor(lightViewPointsMax.y / worldUnitsPerTexel) * worldUnitsPerTexel;
-		float maxZ = std::floor(lightViewPointsMax.z / worldUnitsPerTexel) * worldUnitsPerTexel;
-		lightViewPointsMax = Vector3(maxX, maxY, maxZ);
+			float maxX = std::floor(lightViewPointsMax.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float maxY = std::floor(lightViewPointsMax.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+			float maxZ = std::floor(lightViewPointsMax.z / worldUnitsPerTexel) * worldUnitsPerTexel;
+			lightViewPointsMax = Vector3(maxX, maxY, maxZ);
+		}
 
 
 		/*
@@ -255,10 +257,10 @@ void Light::FitToSceneOfSplits(const Camera& camera)
 	} // end for cascade index
 
 	/*
-	* Interval 중심으로 cascadeSplits 설정
-	* - Cascade 선택의 방법 중 하나
-	* - IntervalBasedCascade VS MapBasedCascade
-	*/
+	 * Interval 중심으로 cascadeSplits 설정
+	 * - Cascade 선택의 방법 중 하나
+	 * - IntervalBasedCascade VS MapBasedCascade
+	 */
 	float farZ = camera.GetFarZ();
 	m_shadowConstantData.cascadeSplits =
 		Vector4(0.0, farZ * cascadeScale[1], farZ * cascadeScale[2], farZ * cascadeScale[3]);

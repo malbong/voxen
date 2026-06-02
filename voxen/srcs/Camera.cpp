@@ -147,7 +147,7 @@ void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG m
 void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt)
 {
 	if (keyToggled[0x71]) { // F1
-		dt *= 0.15f;
+		dt *= 0.25f;
 	}
 
 	if (keyToggled[0x70]) {

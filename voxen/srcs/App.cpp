@@ -320,12 +320,14 @@ void App::ImGuiFrame()
 	ImGui::Text("===========================================");
 	ImGui::Text("O: SSAO View");
 	ImGui::Text("I: Toggle SSAO");
+	ImGui::Text("U: Toggle SSAO Blur [Bilateral vs Gaussian]");
 	ImGui::Text("===========================================");
 	ImGui::Text("Z: Toggle Cascade Blending");
 	ImGui::Text("X: Cascade Color View");
 	ImGui::Text("C: Cascade Shadow Map View");
 	ImGui::Text("V: Toggle [Center vs Split] Light View Box");
 	ImGui::Text("B: Toggle [Map vs Inteval] Based Cascade");
+	ImGui::Text("N: Toggle Texel Snap");
 	ImGui::Text("===========================================");
 	ImGui::Text("F1: Go to Materials For Lighting");
 
@@ -412,28 +414,27 @@ void App::UpdateAppConstantBuffer()
 {
 	bool constantBufferDirtyFlag = false;
 
-	if ((bool)m_constantData.useFullSemiAlphaEdge == m_keyToggled['F']) {
-		m_constantData.useFullSemiAlphaEdge = !m_keyToggled['F'];
+	if ((bool)m_constantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
+		m_constantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
 		constantBufferDirtyFlag = true;
 	}
 	if ((bool)m_constantData.useSSAO == m_keyToggled['I']) {
-		m_constantData.useSSAO = !m_keyToggled['I'];
+		m_constantData.useSSAO = (uint32_t)!m_keyToggled['I'];
 		constantBufferDirtyFlag = true;
 	}
 	if ((bool)m_constantData.useCascadeColor != m_keyToggled['X']) {
-		m_constantData.useCascadeColor = m_keyToggled['X'];
+		m_constantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
 		constantBufferDirtyFlag = true;
 	}
 	if ((bool)m_constantData.useCascadeBlend == m_keyToggled['Z']) {
-		m_constantData.useCascadeBlend = !m_keyToggled['Z'];
+		m_constantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
 		constantBufferDirtyFlag = true;
 	}
 	if ((bool)m_constantData.useMapBasedCascade == m_keyToggled['B']) {
-		m_constantData.useMapBasedCascade = !m_keyToggled['B'];
+		m_constantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
 		constantBufferDirtyFlag = true;
 	}
 	
-
 	if (constantBufferDirtyFlag) {
 		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
 		constantBufferDirtyFlag = false;
@@ -464,7 +465,7 @@ void App::Update(float dt)
 
 	m_skybox.Update(m_date.GetDateTime());
 
-	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['V']);
+	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['V'], !m_keyToggled['N']);
 
 	m_cloud.Update(dt, m_camera.GetPosition());
 
@@ -680,7 +681,7 @@ void App::RenderSSAO()
 	{
 		int blurCount = 2;
 
-		if (!m_keyToggled['B']) {
+		if (!m_keyToggled['U']) {
 			m_postEffect.BlurBilateral(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
 				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
 		}
