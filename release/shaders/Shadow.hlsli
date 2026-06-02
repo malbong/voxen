@@ -44,6 +44,12 @@ float sampleCascade(float4 proj, uint cascadeIndex, float bias)
         shadowCompareSS, float3(lightTexcoord, cascadeIndex), proj.z - bias).r;
 }
 
+bool InBound(float3 ndc, float xMargin, float yMargin, float zMargin)
+{
+    zMargin = 0;
+    return abs(ndc.x) < 1.0 - xMargin && abs(ndc.y) < 1.0 - yMargin && zMargin < ndc.z && ndc.z < 1.0;
+}
+
 void mapBasedCascadeSelection(float3 posWorld, float NdotL, inout uint outCascade, out float4 outLightProj)
 {
     [unroll]
@@ -54,7 +60,7 @@ void mapBasedCascadeSelection(float3 posWorld, float NdotL, inout uint outCascad
         float4 lightProj = mul(float4(posWorld, 1.0), shadowViewProj[i]);
         lightProj.xyz /= lightProj.w;
 
-        if (all(abs(lightProj.xy) < 1.0) && bias < lightProj.z && lightProj.z < 1.0)
+        if (InBound(lightProj.xyz, 1e-3, 1e-3, bias))
         {
             outCascade = i;
             outLightProj = lightProj;
@@ -109,8 +115,8 @@ bool blendMapBased(float blendRange, uint cascadeIndex, float3 posWorld, float4 
         
         float4 nextLightProj = mul(float4(posWorld, 1.0), shadowViewProj[nextCascadeIndex]);
         nextLightProj.xyz /= nextLightProj.w;
-
-        if (all(abs(nextLightProj.xy) < 1.0) && nextBias < nextLightProj.z && nextLightProj.z < 1.0)
+        
+        if (InBound(nextLightProj.xyz, 1e-3, 1e-3, nextBias))
         {
             float nextPercentLit = sampleCascade(nextLightProj, nextCascadeIndex, nextBias);
 

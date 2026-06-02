@@ -1,6 +1,10 @@
+#include "Common.hlsli"
+
+#define CASCADE_LEVEL 3
+
 cbuffer ShadowConstantBuffer : register(b0)
 {
-    Matrix viewProj[3];
+    Matrix viewProj[CASCADE_LEVEL];
 }
 
 struct gsInput
@@ -27,7 +31,7 @@ void main(triangle gsInput input[3], inout TriangleStream<gsOutput> output)
 {
     gsOutput element;
     
-    for (int cascade = 0; cascade < 3; ++cascade)
+    for (int cascade = 0; cascade < CASCADE_LEVEL; ++cascade)
     {
         element.RTIndex = cascade;
 
