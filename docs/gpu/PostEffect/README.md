@@ -3,6 +3,55 @@
 <table>
   <tr>
     <td align="center">
+<img width="1913" height="1075" alt="Image" src="https://github.com/user-attachments/assets/14e44c5e-5dfe-4aa9-8140-2ea861430971" />
+<br/>
+      <b>Linear</b>
+    </td>
+    <td align="center">
+<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/9ffb39c2-d2cc-4813-9310-8cf958ee3799" />
+<br/>
+      <b>Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1912" height="1073" alt="Image" src="https://github.com/user-attachments/assets/264bcc5b-d40f-4f83-b897-b74ec90466af" />
+<br/>
+      <b>Luma Based Reinhard</b>
+    </td>
+    <td align="center">
+<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/b049735c-366d-4594-a06c-d0c4b4dd958b" />
+<br/>
+      <b>White Preserving Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1917" height="1076" alt="Image" src="https://github.com/user-attachments/assets/b5be4005-d02c-4b03-844c-a7b212738904" />
+<br/>
+      <b>Luma Based White Preserving Reinhard (기본설정)</b>
+    </td>
+    <td align="center">
+<img width="1913" height="1072" alt="Image" src="https://github.com/user-attachments/assets/02de1b78-eda1-4209-8e3d-21e1cce74899" />
+<br/>
+      <b>Filmic</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1913" height="1073" alt="Image" src="https://github.com/user-attachments/assets/15ce3f68-81f6-4d35-bb93-33c687c0ef99" />
+<br/>
+      <b>Uncharted</b>
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+---
+
+<table>
+  <tr>
+    <td align="center">
 <img width="1915" height="1075" alt="Image" src="https://github.com/user-attachments/assets/bd617cec-a408-414c-8db6-3660d69e810c" />
 <br/>
       <b>Linear</b>
@@ -42,53 +91,6 @@
     <td align="center">
       
 <img width="1916" height="1073" alt="Image" src="https://github.com/user-attachments/assets/e2af80fb-5f71-41f4-b2b1-e7adfca64407" />
-<br/>
-      <b>Uncharted</b>
-    </td>
-    <td></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td align="center">
-<img width="1913" height="1075" alt="Image" src="https://github.com/user-attachments/assets/14e44c5e-5dfe-4aa9-8140-2ea861430971" />
-<br/>
-      <b>Linear</b>
-    </td>
-    <td align="center">
-<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/9ffb39c2-d2cc-4813-9310-8cf958ee3799" />
-<br/>
-      <b>Reinhard</b>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-<img width="1912" height="1073" alt="Image" src="https://github.com/user-attachments/assets/264bcc5b-d40f-4f83-b897-b74ec90466af" />
-<br/>
-      <b>Luma Based Reinhard</b>
-    </td>
-    <td align="center">
-<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/b049735c-366d-4594-a06c-d0c4b4dd958b" />
-<br/>
-      <b>White Preserving Reinhard</b>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-<img width="1917" height="1076" alt="Image" src="https://github.com/user-attachments/assets/b5be4005-d02c-4b03-844c-a7b212738904" />
-<br/>
-      <b>Luma Based White Preserving Reinhard (기본설정)</b>
-    </td>
-    <td align="center">
-<img width="1913" height="1072" alt="Image" src="https://github.com/user-attachments/assets/02de1b78-eda1-4209-8e3d-21e1cce74899" />
-<br/>
-      <b>Filmic</b>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-<img width="1913" height="1073" alt="Image" src="https://github.com/user-attachments/assets/15ce3f68-81f6-4d35-bb93-33c687c0ef99" />
 <br/>
       <b>Uncharted</b>
     </td>
