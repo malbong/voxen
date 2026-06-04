@@ -23,20 +23,21 @@ public:
 		ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
 		ComPtr<ID3D11RenderTargetView> blurRTV[2]);
 	void Bloom(
-		ComPtr<ID3D11ShaderResourceView>& srv, int count, ComPtr<ID3D11RenderTargetView>& rtv);
-	void CombineFromBloom(ComPtr<ID3D11ShaderResourceView>& originSRV, ComPtr<ID3D11RenderTargetView>& rtv);
+		int count, ComPtr<ID3D11ShaderResourceView>& srv, ComPtr<ID3D11RenderTargetView>& rtv);
+	void CombineFromBloom(
+		ComPtr<ID3D11ShaderResourceView>& originSRV, ComPtr<ID3D11RenderTargetView>& rtv);
 
 	void FogFilter();
 	void WaterFilter();
 
 	ComPtr<ID3D11Buffer> m_fogFilterConstantBuffer;
 	ComPtr<ID3D11Buffer> m_waterFilterConstantBuffer;
-	
+
 
 private:
 	FogFilterConstantData m_fogFilterConstantData;
 	WaterFilterConstantData m_waterFilterConstantData;
-	
+
 	float m_waterAdaptationTime;
 	float m_waterMaxDuration;
 };

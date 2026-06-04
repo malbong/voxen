@@ -164,7 +164,7 @@ float3 getAmbientLighting(float ao, float3 albedo, float3 position, float3 norma
 {
     float3 pixelToEye = normalize(eyePos - position);
 
-    float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic) * 0.5;
+    float3 diffuseTerm = getDiffuseTerm(albedo, pixelToEye, normal, metallic);
     float3 specularTerm = getSpecularTerm(albedo, pixelToEye, normal, metallic, roughness, useSkyColor);
 
     return ao * (diffuseTerm + specularTerm);

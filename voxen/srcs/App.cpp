@@ -271,6 +271,12 @@ bool App::InitScene()
 		return false;
 	}
 
+	memset(&m_renderStatesConstantData, 0, sizeof(RenderStatesConstantData));
+	if (!DXUtils::CreateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData)) {
+		std::cout << "failed create render states constant buffer in app" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -309,7 +315,7 @@ void App::ImGuiFrame()
 	ImGui::Text("L: Light Move");
 	ImGui::Text("===========================================");
 	ImGui::Text("M: World Map View");
-	ImGui::Text("T: Frustum Culling View");
+	ImGui::Text("Q: Frustum Culling View");
 	ImGui::Text("===========================================");
 	ImGui::Text("R: Reflection World View");
 	ImGui::Text("===========================================");
@@ -319,7 +325,7 @@ void App::ImGuiFrame()
 	ImGui::Text("F: Toggle Full SemiAlpha Edge");
 	ImGui::Text("===========================================");
 	ImGui::Text("O: SSAO View");
-	ImGui::Text("I: Toggle SSAO");
+	ImGui::Text("I: Toggle SSAO On/Off");
 	ImGui::Text("U: Toggle SSAO Blur [Bilateral vs Gaussian]");
 	ImGui::Text("===========================================");
 	ImGui::Text("Z: Toggle Cascade Blending");
@@ -329,8 +335,11 @@ void App::ImGuiFrame()
 	ImGui::Text("B: Toggle [Map vs Inteval] Based Cascade");
 	ImGui::Text("N: Toggle Texel Snap");
 	ImGui::Text("===========================================");
+	ImGui::Text("T: Change Tone Mapping");
+	ImGui::Text("Y: Toggle Bloom");
+	ImGui::Text("===========================================");
 	ImGui::Text("F1: Go to Materials For Lighting");
-
+	ImGui::Text("F2: Camera Speed");
 	ImGui::Text("");
 	
 	float worldX = m_camera.GetPosition().x;
@@ -338,122 +347,61 @@ void App::ImGuiFrame()
 	float worldZ = m_camera.GetPosition().z;
 	ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
 
-	float c = Terrain::GetContinentalness((int)worldX, (int)worldZ);
-	float e = Terrain::GetErosion((int)worldX, (int)worldZ);
-	float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
-	ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
-
-	float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
-	float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
-	float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-	ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
-	Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-
-	BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h, (int)worldX, (int)worldZ);
-	const char* biomeString = nullptr;
-	switch (biomeType) {
-	case BIOME_TYPE::BIOME_OCEAN:
-		biomeString = "BIOME_OCEAN";
-		break;
-
-	case BIOME_TYPE::BIOME_TUNDRA:
-		biomeString = "BIOME_TUNDRA";
-		break;
-
-	case BIOME_TYPE::BIOME_TAIGA:
-		biomeString = "BIOME_TAIGA";
-		break;
-
-	case BIOME_TYPE::BIOME_PLAINS:
-		biomeString = "BIOME_PLAINS";
-		break;
-
-	case BIOME_TYPE::BIOME_SWAMP:
-		biomeString = "BIOME_SWAMP";
-		break;
-
-	case BIOME_TYPE::BIOME_FOREST:
-		biomeString = "BIOME_FOREST";
-		break;
-
-	case BIOME_TYPE::BIOME_SHRUBLAND:
-		biomeString = "BIOME_SHRUBLAND";
-		break;
-
-	case BIOME_TYPE::BIOME_DESERT:
-		biomeString = "BIOME_DESERT";
-		break;
-
-	case BIOME_TYPE::BIOME_RAINFOREST:
-		biomeString = "BIOME_RAINFOREST";
-		break;
-
-	case BIOME_TYPE::BIOME_SEASONFOREST:
-		biomeString = "BIOME_SEASONFOREST";
-		break;
-
-	case BIOME_TYPE::BIOME_SAVANNA:
-		biomeString = "BIOME_SAVANNA";
-		break;
-
-	case BIOME_TYPE::BIOME_SNOWY_TAIGA:
-		biomeString = "BIOME_SNOWY_TAIGA";
-		break;
-
-	default:
-		biomeString = "BIOME_NONE";
-		break;
-	}
-	ImGui::Text("BIOME: %s", biomeString);
-
 	ImGui::End();
 	ImGui::Render(); // 렌더링할 것들 기록 끝
 }
 
-void App::UpdateAppConstantBuffer() 
+void App::UpdateRenderStatesConstantBuffer()
 {
-	bool constantBufferDirtyFlag = false;
+	bool renderConstantBufferDirtyFlag = false;
 
-	if ((bool)m_constantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
-		m_constantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
-		constantBufferDirtyFlag = true;
+	if ((bool)m_renderStatesConstantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
+		m_renderStatesConstantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
+		renderConstantBufferDirtyFlag = true;
 	}
-	if ((bool)m_constantData.useSSAO == m_keyToggled['I']) {
-		m_constantData.useSSAO = (uint32_t)!m_keyToggled['I'];
-		constantBufferDirtyFlag = true;
+	if ((bool)m_renderStatesConstantData.useSSAO == m_keyToggled['I']) {
+		m_renderStatesConstantData.useSSAO = (uint32_t)!m_keyToggled['I'];
+		renderConstantBufferDirtyFlag = true;
 	}
-	if ((bool)m_constantData.useCascadeColor != m_keyToggled['X']) {
-		m_constantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
-		constantBufferDirtyFlag = true;
+	if ((bool)m_renderStatesConstantData.useCascadeColor != m_keyToggled['X']) {
+		m_renderStatesConstantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
+		renderConstantBufferDirtyFlag = true;
 	}
-	if ((bool)m_constantData.useCascadeBlend == m_keyToggled['Z']) {
-		m_constantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
-		constantBufferDirtyFlag = true;
+	if ((bool)m_renderStatesConstantData.useCascadeBlend == m_keyToggled['Z']) {
+		m_renderStatesConstantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
+		renderConstantBufferDirtyFlag = true;
 	}
-	if ((bool)m_constantData.useMapBasedCascade == m_keyToggled['B']) {
-		m_constantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
-		constantBufferDirtyFlag = true;
+	if ((bool)m_renderStatesConstantData.useMapBasedCascade == m_keyToggled['B']) {
+		m_renderStatesConstantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
+		renderConstantBufferDirtyFlag = true;
 	}
-	
-	if (constantBufferDirtyFlag) {
-		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
-		constantBufferDirtyFlag = false;
+	if ((bool)m_renderStatesConstantData.useBloom == m_keyToggled['Y']) {
+		m_renderStatesConstantData.useBloom = (uint32_t)!m_keyToggled['Y'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.toggleTonemappingFunctions != m_keyToggled['T']) {
+		m_renderStatesConstantData.toggleTonemappingFunctions = m_keyToggled['T'];
+		m_renderStatesConstantData.toneMappingFunctionIndex++;
+		m_renderStatesConstantData.toneMappingFunctionIndex %= 8;
+		
+		renderConstantBufferDirtyFlag = true;
+	}
+
+	if (renderConstantBufferDirtyFlag) {
+		DXUtils::UpdateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData);
+		renderConstantBufferDirtyFlag = false;
 	}
 }
+
 void App::Update(float dt)
 {
-	UpdateAppConstantBuffer();
+	UpdateRenderStatesConstantBuffer();
 
-	if (m_keyToggled['P']) {
+	if (m_keyToggled['P'])
 		return;
-	}
 
-	if (m_keyToggled['L']) {
+	if (m_keyToggled['L'])
 		m_date.Update(dt);
-	}
-	else {
-		m_date.Update(0.0f);
-	}
 
 	m_camera.Update(dt, m_keyToggled, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY);
 
@@ -479,6 +427,7 @@ void App::SetGlobalConstantBuffer()
 {
 	std::vector<ID3D11Buffer*> ppConstantBuffers;
 	ppConstantBuffers.push_back(m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_renderStatesConstantBuffer.Get());
 	ppConstantBuffers.push_back(m_camera.m_constantBuffer.Get());
 	ppConstantBuffers.push_back(m_skybox.m_constantBuffer.Get());
 	ppConstantBuffers.push_back(m_light.m_lightConstantBuffer.Get());
@@ -581,7 +530,7 @@ void App::Render()
 
 	// 7. Debug Camera for Frustum Culling
 	{
-		if (m_keyToggled['T']) {
+		if (m_keyToggled['Q']) {
 			RenderFrustumCullingViewer();
 		}
 	}
@@ -891,7 +840,7 @@ void App::RenderWaterFilter()
 
 void App::RenderBloom() 
 { 
-	m_postEffect.Bloom(Graphics::basicSRV, 3, Graphics::bloomRTV[0]);
+	m_postEffect.Bloom(3, Graphics::basicSRV, Graphics::bloomRTV[0]);
 	m_postEffect.CombineFromBloom(Graphics::basicSRV, Graphics::backBufferRTV);
 }
 

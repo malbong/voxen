@@ -47,7 +47,7 @@ private:
 	void SetGlobalLightingSRVs();
 	void UnsetGlobalLightingSRVs();
 
-	void UpdateAppConstantBuffer();
+	void UpdateRenderStatesConstantBuffer();
 
 	void ImGuiFrame();
 	void Update(float dt);
@@ -87,6 +87,9 @@ private:
 
 	ComPtr<ID3D11Buffer> m_constantBuffer;
 	AppConstantData m_constantData;
+
+	ComPtr<ID3D11Buffer> m_renderStatesConstantBuffer;
+	RenderStatesConstantData m_renderStatesConstantData;
 
 	bool m_keyPressed[256];
 	bool m_keyToggled[256];

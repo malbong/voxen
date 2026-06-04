@@ -26,15 +26,21 @@ cbuffer AppConstantBuffer : register(b7)
     float appHeight;
     float mirrorWidth;
     float mirrorHeight;
+}
+
+cbuffer RenderStatesConstantBuffer : register(b8)
+{
     bool useFullSemiAlphaEdge;
     bool useSSAO;
     bool useCascadeColor;
     bool useCascadeBlend;
     bool useMapBasedCascade;
-    float3 appDummy;
+    bool useBloom;
+    bool toggleTonemapping;
+    uint toneMappingFunctionIndex;
 }
 
-cbuffer CameraConstantBuffer : register(b8)
+cbuffer CameraConstantBuffer : register(b9)
 {
     Matrix view;
     Matrix proj;
@@ -48,7 +54,7 @@ cbuffer CameraConstantBuffer : register(b8)
     float3 cameraDummyData;
 };
 
-cbuffer SkyboxConstantBuffer : register(b9)
+cbuffer SkyboxConstantBuffer : register(b10)
 {
     float3 normalHorizonColor;
     float skyScale;
@@ -60,7 +66,7 @@ cbuffer SkyboxConstantBuffer : register(b9)
     float skyboxDummyData3;
 };
 
-cbuffer LightConstantBuffer : register(b10)
+cbuffer LightConstantBuffer : register(b11)
 {
     float3 lightDir;
     float radianceWeight;
@@ -68,7 +74,7 @@ cbuffer LightConstantBuffer : register(b10)
     float maxRadianceWeight;
 }
 
-cbuffer ShadowConstantBuffer : register(b11)
+cbuffer ShadowConstantBuffer : register(b12)
 {
     Matrix shadowViewProj[3];
     float4 cascadeSplits;
@@ -78,7 +84,7 @@ cbuffer ShadowConstantBuffer : register(b11)
     uint shadowDummy;
 }
 
-cbuffer DateConstantBuffer : register(b12)
+cbuffer DateConstantBuffer : register(b13)
 {
     uint days;
     uint dateTime;

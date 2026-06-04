@@ -141,20 +141,24 @@ struct AppConstantData {
 	float appHeight;
 	float mirrorWidth;
 	float mirrorHeight;
-	uint32_t useFullSemiAlphaEdge;
-	uint32_t useSSAO;
-	uint32_t useCascadeColor;
-	uint32_t useCascadeBlend;
-	uint32_t useMapBasedCascade;
-	Vector3 dummy;
 };
-
 
 struct DateConstantData {
 	uint32_t days;
 	uint32_t dateTime;
 	uint32_t dayCycleRealTime;
 	uint32_t dayCycleAmount;
+};
+
+struct RenderStatesConstantData {
+	uint32_t useFullSemiAlphaEdge;
+	uint32_t useSSAO;
+	uint32_t useCascadeColor;
+	uint32_t useCascadeBlend;
+	uint32_t useMapBasedCascade;
+	uint32_t useBloom;
+	uint32_t toggleTonemappingFunctions;
+	uint32_t toneMappingFunctionIndex;
 };
 
 struct BiomeWeightParams {

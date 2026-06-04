@@ -129,7 +129,7 @@ void PostEffect::BlurBilateral(int count, ComPtr<ID3D11ShaderResourceView>& src,
 }
 
 void PostEffect::Bloom(
-	ComPtr<ID3D11ShaderResourceView>& srv, int count, ComPtr<ID3D11RenderTargetView>& rtv)
+	int count, ComPtr<ID3D11ShaderResourceView>& srv, ComPtr<ID3D11RenderTargetView>& rtv)
 {
 	count = min(3, count);
 
