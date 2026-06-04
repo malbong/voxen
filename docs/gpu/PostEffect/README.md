@@ -1,5 +1,101 @@
 # Post Effect — HDR, Bloom, Tone Mapping, Filters
 
+<table>
+  <tr>
+    <td align="center">
+<img width="1915" height="1075" alt="Image" src="https://github.com/user-attachments/assets/bd617cec-a408-414c-8db6-3660d69e810c" />
+<br/>
+      <b>Linear</b>
+    </td>
+    <td align="center">
+<img width="1915" height="1076" alt="Image" src="https://github.com/user-attachments/assets/3d1b9827-bf40-48c5-bf1f-8f3715dc8948" />
+<br/>
+      <b>Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/3b433149-bcee-42fe-93d1-170429398b58" />
+<br/>
+      <b>Luma Based Reinhard</b>
+    </td>
+    <td align="center">
+<img width="1913" height="1073" alt="Image" src="https://github.com/user-attachments/assets/820b4269-6d8d-4dff-a0df-783a26d43a01" />
+<br/>
+      <b>White Preserving Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1914" height="1073" alt="Image" src="https://github.com/user-attachments/assets/9480d2e3-852a-42d6-a1fe-09d7137e4075" />
+<br/>
+      <b>Luma Based White Preserving Reinhard</b>
+    </td>
+    <td align="center">
+      
+<img width="1911" height="1070" alt="Image" src="https://github.com/user-attachments/assets/9ab8a2dc-e59c-4981-9d34-93ed794db45b" />
+<br/>
+      <b>Filmic</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      
+<img width="1916" height="1073" alt="Image" src="https://github.com/user-attachments/assets/e2af80fb-5f71-41f4-b2b1-e7adfca64407" />
+<br/>
+      <b>Uncharted</b>
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+<img width="1913" height="1075" alt="Image" src="https://github.com/user-attachments/assets/14e44c5e-5dfe-4aa9-8140-2ea861430971" />
+<br/>
+      <b>Linear</b>
+    </td>
+    <td align="center">
+<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/9ffb39c2-d2cc-4813-9310-8cf958ee3799" />
+<br/>
+      <b>Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1912" height="1073" alt="Image" src="https://github.com/user-attachments/assets/264bcc5b-d40f-4f83-b897-b74ec90466af" />
+<br/>
+      <b>Luma Based Reinhard</b>
+    </td>
+    <td align="center">
+<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/b049735c-366d-4594-a06c-d0c4b4dd958b" />
+<br/>
+      <b>White Preserving Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1917" height="1076" alt="Image" src="https://github.com/user-attachments/assets/b5be4005-d02c-4b03-844c-a7b212738904" />
+<br/>
+      <b>Luma Based White Preserving Reinhard</b>
+    </td>
+    <td align="center">
+<img width="1913" height="1072" alt="Image" src="https://github.com/user-attachments/assets/02de1b78-eda1-4209-8e3d-21e1cce74899" />
+<br/>
+      <b>Filmic</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+<img width="1913" height="1073" alt="Image" src="https://github.com/user-attachments/assets/15ce3f68-81f6-4d35-bb93-33c687c0ef99" />
+<br/>
+      <b>Uncharted</b>
+    </td>
+    <td></td>
+  </tr>
+</table>
+
 ## 1. 개요
 
 Voxen의 후처리(Post Effect)는 Deferred / Forward 셰이딩이 끝난 **HDR(R16G16B16A16_FLOAT) 이미지**를 입력 받아, 최종 LDR 백버퍼로 변환하기까지의 모든 화면 단위 효과를 처리한다.
@@ -89,15 +185,15 @@ Down (해상도 줄이기)               Up (해상도 복원)
 
 `CombineBloomPS.hlsl`에는 7종이 등록되어 있고, `toneMappingFunctionIndex` 상수로 런타임 전환한다.
 
-| Index | Name | 특징 (직관) |
-|---|---|---|
-| 1 | Linear | 단순 Clamp. 1.0 초과 영역 정보가 모두 소실됨 |
-| 2 | Reinhard | `c/(1+c)`로 무조건 압축. 어둡고 흐리멍덩한 톤이 되기 쉬움 |
-| 3 | LumaBasedReinhard | 휘도(luma)에만 압축 적용 → 색감(채도) 유지 |
-| 4 | WhitePreservingReinhard | "흰색 기준점" `w`를 두어 그 이하는 압축, 그 이상은 1로 고정 |
-| 5 | WhitePreservingLumaBasedReinhard | 4 + 3 결합. **현재 기본값** |
-| 6 | Filmic | 영화 카메라풍의 S-Curve. 어두운 부분은 들어올리고 밝은 부분은 부드럽게 |
-| 7 | Uncharted2 | Naughty Dog Hable 함수. S-Curve + White Point 정규화 |
+| Index | Name                             | 특징 (직관)                                                            |
+| ----- | -------------------------------- | ---------------------------------------------------------------------- |
+| 1     | Linear                           | 단순 Clamp. 1.0 초과 영역 정보가 모두 소실됨                           |
+| 2     | Reinhard                         | `c/(1+c)`로 무조건 압축. 어둡고 흐리멍덩한 톤이 되기 쉬움              |
+| 3     | LumaBasedReinhard                | 휘도(luma)에만 압축 적용 → 색감(채도) 유지                             |
+| 4     | WhitePreservingReinhard          | "흰색 기준점" `w`를 두어 그 이하는 압축, 그 이상은 1로 고정            |
+| 5     | WhitePreservingLumaBasedReinhard | 4 + 3 결합. **현재 기본값**                                            |
+| 6     | Filmic                           | 영화 카메라풍의 S-Curve. 어두운 부분은 들어올리고 밝은 부분은 부드럽게 |
+| 7     | Uncharted2                       | Naughty Dog Hable 함수. S-Curve + White Point 정규화                   |
 
 ### 3.4 Henyey-Greenstein 기반 Bloom 강도
 
@@ -122,14 +218,14 @@ for (int i = 0; i < 5; ++i) {
 }
 ```
 
-| 버퍼 | 해상도 | 포맷 | 용도 |
-|---|---|---|---|
-| `basicMSBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | Forward까지의 셰이딩 결과 |
-| `basicBuffer` | 원본 | R16G16B16A16_FLOAT | MSAA Resolve된 HDR |
-| `bloomBuffer[0]` | 원본 | R16G16B16A16_FLOAT | Bloom 최종 (업샘플 결과) |
-| `bloomBuffer[1..4]` | 1/2 ~ 1/16 | R16G16B16A16_FLOAT | 피라미드 중간 단계 |
-| `copyForwardRenderBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | FogFilter용 입력 복사본 |
-| `backBuffer` | 원본 | Swap Chain LDR | 최종 출력 |
+| 버퍼                      | 해상도      | 포맷               | 용도                      |
+| ------------------------- | ----------- | ------------------ | ------------------------- |
+| `basicMSBuffer`           | 원본 (MSAA) | R16G16B16A16_FLOAT | Forward까지의 셰이딩 결과 |
+| `basicBuffer`             | 원본        | R16G16B16A16_FLOAT | MSAA Resolve된 HDR        |
+| `bloomBuffer[0]`          | 원본        | R16G16B16A16_FLOAT | Bloom 최종 (업샘플 결과)  |
+| `bloomBuffer[1..4]`       | 1/2 ~ 1/16  | R16G16B16A16_FLOAT | 피라미드 중간 단계        |
+| `copyForwardRenderBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | FogFilter용 입력 복사본   |
+| `backBuffer`              | 원본        | Swap Chain LDR     | 최종 출력                 |
 
 ### 4.2 Fog Filter (FogFilterPS.hlsl)
 
@@ -228,12 +324,12 @@ for (int i = 0; i <= count; ++i) {   // count = 3
 }
 ```
 
-| 패스 | 입력 | 출력 | 출력 해상도 |
-|---|---|---|---|
-| Down 0 | `basicSRV` (원본 HDR) | `bloomRTV[1]` | 1/2 |
-| Down 1 | `bloomSRV[1]` | `bloomRTV[2]` | 1/4 |
-| Down 2 | `bloomSRV[2]` | `bloomRTV[3]` | 1/8 |
-| Down 3 | `bloomSRV[3]` | `bloomRTV[4]` | 1/16 |
+| 패스   | 입력                  | 출력          | 출력 해상도 |
+| ------ | --------------------- | ------------- | ----------- |
+| Down 0 | `basicSRV` (원본 HDR) | `bloomRTV[1]` | 1/2         |
+| Down 1 | `bloomSRV[1]`         | `bloomRTV[2]` | 1/4         |
+| Down 2 | `bloomSRV[2]`         | `bloomRTV[3]` | 1/8         |
+| Down 3 | `bloomSRV[3]`         | `bloomRTV[4]` | 1/16        |
 
 첫 패스의 입력이 **원본 HDR 그대로**라는 점이 중요하다. 별도의 Brightness Threshold 차감/마스킹 없이 진행한다 (5.1).
 
@@ -254,12 +350,12 @@ color /= 16.0;
 
 `linearClampSS` 샘플러로 읽기 때문에 하드웨어 바이리니어가 한 번 더 들어가 **소프트웨어 텐트 + 하드웨어 바이리니어**의 이중 평활화가 적용된다. 업스케일에서의 블록 아티팩트를 깔끔하게 막아준다.
 
-| 패스 | 입력 | 출력 | 출력 해상도 |
-|---|---|---|---|
-| Up 0 | `bloomSRV[4]` (1/16) | `bloomRTV[3]` | 1/8 |
-| Up 1 | `bloomSRV[3]` (1/8) | `bloomRTV[2]` | 1/4 |
-| Up 2 | `bloomSRV[2]` (1/4) | `bloomRTV[1]` | 1/2 |
-| Up 3 | `bloomSRV[1]` (1/2) | `bloomRTV[0]` | 원본 |
+| 패스 | 입력                 | 출력          | 출력 해상도 |
+| ---- | -------------------- | ------------- | ----------- |
+| Up 0 | `bloomSRV[4]` (1/16) | `bloomRTV[3]` | 1/8         |
+| Up 1 | `bloomSRV[3]` (1/8)  | `bloomRTV[2]` | 1/4         |
+| Up 2 | `bloomSRV[2]` (1/4)  | `bloomRTV[1]` | 1/2         |
+| Up 3 | `bloomSRV[1]` (1/2)  | `bloomRTV[0]` | 원본        |
 
 ### 4.6 Combine + Tone Mapping (CombineBloomPS.hlsl)
 

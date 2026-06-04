@@ -50,7 +50,7 @@ float3 simpleReinhardToneMapping(float3 color)
 
 float3 whitePreservingReinhardToneMapping(float3 color)
 {
-    float white = 2.25;
+    float white = 2.0;
     float white2 = white * white;
     
     color = color * (1.0 + color / white2) / (1.0 + color);
@@ -70,7 +70,7 @@ float3 lumaBasedReinhardToneMapping(float3 color)
 
 float3 whitePreservingLumaBasedReinhardToneMapping(float3 color)
 {
-    float white = 2.25;
+    float white = 2.0;
     float white2 = white * white;
     
     float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
