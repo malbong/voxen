@@ -29,7 +29,7 @@
     <td align="center">
 <img width="1914" height="1073" alt="Image" src="https://github.com/user-attachments/assets/9480d2e3-852a-42d6-a1fe-09d7137e4075" />
 <br/>
-      <b>Luma Based White Preserving Reinhard</b>
+      <b>Luma Based White Preserving Reinhard (기본설정)</b>
     </td>
     <td align="center">
       
@@ -78,7 +78,7 @@
     <td align="center">
 <img width="1917" height="1076" alt="Image" src="https://github.com/user-attachments/assets/b5be4005-d02c-4b03-844c-a7b212738904" />
 <br/>
-      <b>Luma Based White Preserving Reinhard</b>
+      <b>Luma Based White Preserving Reinhard (기본설정)</b>
     </td>
     <td align="center">
 <img width="1913" height="1072" alt="Image" src="https://github.com/user-attachments/assets/02de1b78-eda1-4209-8e3d-21e1cce74899" />
