@@ -52,6 +52,72 @@
 <table>
   <tr>
     <td align="center">
+
+<img width="1914" height="1071" alt="Image" src="https://github.com/user-attachments/assets/3c8c3519-c11f-4e5f-a836-adfce1224822" />
+
+<br/>
+      <b>Linear</b>
+    </td>
+    <td align="center">
+
+<img width="1916" height="1071" alt="Image" src="https://github.com/user-attachments/assets/4d1f0b7e-9648-44c5-80e0-af25a889e3a0" />
+
+<br/>
+      <b>Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+
+<img width="1916" height="1073" alt="Image" src="https://github.com/user-attachments/assets/f14aa765-1ab4-49c6-9da6-6f6557df6173" />
+
+<br/>
+      <b>Luma Based Reinhard</b>
+    </td>
+    <td align="center">
+
+<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/f21b9041-b608-4dce-a28d-50bf2987488f" />
+
+<br/>
+      <b>White Preserving Reinhard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+
+
+<img width="1914" height="1075" alt="Image" src="https://github.com/user-attachments/assets/40c27a9d-8771-49c5-8744-354334df72d9" />
+
+<br/>
+      <b>Luma Based White Preserving Reinhard</b>
+    </td>
+    <td align="center">
+
+
+<img width="1915" height="1072" alt="Image" src="https://github.com/user-attachments/assets/88761916-d654-4404-8489-df67f30f3eda" />
+
+<br/>
+      <b>Filmic</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+
+
+<img width="1914" height="1073" alt="Image" src="https://github.com/user-attachments/assets/36f0000c-e4a9-4de1-97f3-a8001e9cc3b9" />
+
+<br/>
+      <b>Uncharted</b>
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+---
+
+<table>
+  <tr>
+    <td align="center">
 <img width="1915" height="1075" alt="Image" src="https://github.com/user-attachments/assets/bd617cec-a408-414c-8db6-3660d69e810c" />
 <br/>
       <b>Linear</b>
