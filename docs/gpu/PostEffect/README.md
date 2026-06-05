@@ -102,90 +102,62 @@
 
 Voxen의 후처리(Post Effect)는 Deferred / Forward 셰이딩이 끝난 **HDR(R16G16B16A16_FLOAT) 이미지**를 입력 받아, 최종 LDR 백버퍼로 변환하기까지의 모든 화면 단위 효과를 처리한다.
 
-대상으로는 다음과 같이 구성된다.
+다음은 후처리 내용들이다.
 
-1. **Fog Filter** — 거리 기반 안개. MSAA 깊이 / 렌더링 순서 / 비용 트레이드오프 세 가지 이유로 **Forward Pass 중간**에 배치 (5.2)
-2. **Water Filter** — 수중 진입 시 파란 틴트(tint). 일반 알파 블렌딩 단일 패스
-3. **Bloom (Down/Up)** — 4단계 다운샘플 + 4단계 업샘플 피라미드
-4. **Combine + Tone Mapping + Gamma Correction** — HDR을 LDR sRGB로 변환
-
-핵심 아이디어:
-
-- HDR 라이팅 결과를 보존하기 위해 모든 중간 버퍼는 `R16G16B16A16_FLOAT`
-- Bloom의 Threshold는 **사용하지 않음** — HDR 값 자체가 임계 역할을 한다 (5.1)
-- Tone Mapping은 7종을 등록해두고 런타임 스위치로 비교 가능, 기본은 `WhitePreservingLumaBasedReinhard`
-- 합성 단계의 Bloom 강도는 **Henyey-Greenstein Phase Function**으로 태양 방향에서 강화된다
+0. **Fog Filter** — 거리에 따른 안개, 일반 알파 블렌딩 단일 패스, MSAA 깊이 / 렌더링 순서 등의 이유로 **Forward Pass 중간**에 배치 (5.2)
+1. **Water Filter** — 수중 진입 시 보여줄 화면 전체의 색 필터. 일반 알파 블렌딩 단일 패스
+2. **Bloom (Down/Up)** — 4단계 다운샘플 + 4단계 업샘플 피라미드
+3. **Combine + Tone Mapping + Gamma Correction** — HDR을 LDR sRGB로 변환
 
 ## 2. 도입 동기
 
-### 2.1 HDR이 필요한 이유
+### 2.1 HDR 도입
 
-라이팅 결과는 `radianceWeight`(최대 2.0)와 specular BRDF의 곱이 자유롭게 1.0을 초과한다.
-렌더타겟이 `[0, 1]` LDR이라면 1.0 초과분이 그대로 잘려나가, 태양 하이라이트와 발광 블록의 밝기 차이가 사라지고 **모든 밝은 영역이 순백색으로 뭉개진다**.
+LDR의 경우 `[0, 1]` 값으로 색의 범위가 매우 좁고 색의 연산 과정에서 많은 디테일이 생략되어 저장된다.
+특히 태양이 구름에 가려질 때 디테일이 떨어지는 문제가 있었다.
+추가로 PBR을 진행하고 FLOAT16 형태의 데이터를 사용하면서 HDR을 하지 않을 이유가 전혀 없었다.
 
-`R16G16B16A16_FLOAT`은 이론적으로 65504까지 저장할 수 있고, 후처리 모든 단계에서 이 정밀도를 유지해야 Bloom·Tone Mapping이 의도대로 동작한다.
+### 2.2 Bloom
 
-### 2.2 Bloom이 필요한 이유
+후처리 과정에서 빠질 수 없다고 판단되어 도입했다.
 
-HDR만 가지고 있어선 “숫자상” 밝을 뿐이고, 화면상으로는 결국 `[0,1]`로 압축되어 표시된다.
-실제 카메라에서 강한 빛은 렌즈 산란으로 주변까지 번지는데, 이를 모사하려면 HDR의 밝은 영역을 **블러해 주변에 더해줘야** 한다.
+Bloom Down -> Up 과정으로 Bloom Buffer를 구성하고 적절히 Combine 했다.
 
-### 2.3 Tone Mapping & Gamma Correction이 필요한 이유
+### 2.3 Tone Mapping & Gamma Correction
 
-- 모니터는 결국 `[0,1]`만 표현 가능 → HDR 값을 자연스럽게 압축할 곡선이 필요
-- 라이팅을 Linear 공간에서 했으므로, 최종 출력은 sRGB로 보정해야 모니터가 의도한 밝기를 보여줌
+당연히 PBR로 인해 sRGB 컬러 공간을 Linear에 맞췄고, 이 결과를 백버퍼에 올바르게 출력하려면 Gamma Correction을 이용한 보정이 필요했다.
 
-### 2.4 Fog / Water Filter
-
-- 거리에 따라 색이 안개에 흡수되는 효과는 깊이를 알아야 가능
-- 수중 진입은 색역(파란빛 + 흐림) 자체를 바꿔야 하므로, Forward 셰이딩과는 분리된 단일 패스로 처리
+추가로 색의 범위가 FLOAT16으로 넓은 상황에서 단순히 Clamp 하는 경우, 많은 색의 디테일이 떨어져 적절한 ToneMapping을 선택하여 백버퍼에 출력했다.
 
 ## 3. 핵심 아이디어
 
-### 3.1 후처리 단계 배치 (App::Render)
+### 3.1 후처리 파이프라인 구성 (App::Render)
 
 ```cpp
-// 4. Forward Render Pass MSAA
-if (m_camera.IsUnderWater()) {
-    RenderFogFilter();      // ← Forward 중간
-    RenderSkybox();
-    RenderCloud();
-    RenderWaterPlane();
-}
-else {
-    RenderMirrorWorld();
-    RenderWaterPlane();
-    RenderFogFilter();      // ← Forward 중간
-    RenderSkybox();
-    RenderCloud();
-}
-
-// 5. Post Effect
+// Deferred Render Pass ...
+// Forward Render Pass ... <- Fog Filter
+// Post Effect
 Graphics::context->ResolveSubresource(basicBuffer, 0, basicMSBuffer, 0, R16G16B16A16_FLOAT);
+
 if (m_camera.IsUnderWater())
     RenderWaterFilter();    // Resolve된 단일샘플 버퍼 위에서 동작
+
 RenderBloom();              // Bloom + Combine + ToneMapping
 ```
 
-FogFilter만 Forward 패스 안쪽으로 끌려 들어가는 이유는 `Texture2DMS<float4, SAMPLE_COUNT>`로 **MSAA 샘플을 직접 읽어야 하기 때문**이다 (5.2).
+### 3.2 물리 기반 Bloom
 
-### 3.2 Bloom 피라미드
+대부분의 내용은 링크에서 참고했다: https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 
-```
-Down (해상도 줄이기)               Up (해상도 복원)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[원본 basic]  ──→  [1/2]  ──→  [1/4]  ──→  [1/8]  ──→  [1/16]
-                                                          │
-[결과 bloom]  ←──  [1/2]  ←──  [1/4]  ←──  [1/8]  ←──────┘
-```
+Bloom Blur 방식: Up/Down Sampling 과정으로 원래의 해상도를 단순히 여러번 Blur하는 것보다 효과적이다.
 
-- 다운: 해상도가 절반씩 줄면서, 저해상도 1텍셀의 블러가 원본 기준의 **넓은 블러**가 된다
-- 업: 다시 두 배로 복원하면서 가중평균으로 부드럽게 확장
-- 결과적으로 **좁은 글로우(고해상도)부터 넓은 글로우(저해상도)까지 동시 누적**된다
+Bloom Threshold?: HDR을 사용하며 FLOAT16을 사용하므로 색의 범위가 넓기에 굳이 Luminance 값을 이용한 Threshold로 필터링하여 색을 걸러 낼 필요가 없어진다.
 
 ### 3.3 Tone Mapping 컬렉션
 
 `CombineBloomPS.hlsl`에는 7종이 등록되어 있고, `toneMappingFunctionIndex` 상수로 런타임 전환한다.
+
+기본 값은 `WhitePreservingLumaBasedReinhard`를 채택했다.
 
 | Index | Name                             | 특징 (직관)                                                            |
 | ----- | -------------------------------- | ---------------------------------------------------------------------- |
@@ -197,114 +169,79 @@ Down (해상도 줄이기)               Up (해상도 복원)
 | 6     | Filmic                           | 영화 카메라풍의 S-Curve. 어두운 부분은 들어올리고 밝은 부분은 부드럽게 |
 | 7     | Uncharted2                       | Naughty Dog Hable 함수. S-Curve + White Point 정규화                   |
 
-### 3.4 Henyey-Greenstein 기반 Bloom 강도
+### 3.4 Bloom 강도를 어떻게 할 것인가?
 
-대기 산란에서 빛이 한 방향으로 얼마나 치우쳐 산란되는지를 묘사하는 함수.
-카메라가 태양을 정면으로 볼수록 강하게, 등질수록 약하게 → Bloom 강도(`bloomStrength`)로 변환하여 **태양을 볼 때 화면이 더 부풀어 보이는** 효과를 만든다.
+henyeyGreensteinPhase 함수 활용
+
+Bloom의 강도를 정적으로 정하는 것보다 낫다 싶어 적용했다.
+실제로는 산란과 관련된 함수이므로 Bloom에 적용하는건 의미론적으로 맞지는 않다고 한다.
+
+카메라가 태양을 정면으로 볼수록 강하게, 등질수록 약하게 Bloom 강도(`bloomStrength`)가 설정된다.
 
 ## 4. 구현 내용
 
-### 4.1 HDR 버퍼 구성 (Graphics.cpp)
+### 4.1 Fog Filter (FogFilterPS.hlsl)
 
-```cpp
-DXGI_FORMAT format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+Depth를 입력으로 받아 Fog를 구현한다. 이 때 원래의 결과물을 입력으로 받지 않고 단순히 BS를 활용하여 Blending 한다.
 
-// basicMSBuffer: Deferred/Forward의 MSAA 렌더 타겟
-// basicBuffer:   Resolve된 단일샘플 HDR 결과
-// bloomBuffer[0..4]: 피라미드. 한 단계마다 가로/세로 1/2
-UINT bloomWidth = APP_WIDTH, bloomHeight = APP_HEIGHT;
-for (int i = 0; i < 5; ++i) {
-    DXUtils::CreateTextureBuffer(bloomBuffer[i], bloomWidth, bloomHeight, false, format, bindFlag);
-    bloomWidth /= 2;
-    bloomHeight /= 2;
-}
+cf. 자세한 내용은 `docs/Fog`
+
+```
+float3 fogColor = getFogColor(lightDir, eyeDir);
+
+float depth = depthTex.Load(input.posProj.xy, sampleIndex).r;
+float3 viewPos = texcoordToViewPos(input.texcoord, depth);
+
+float fogFactor = getFogFactor(viewPos);
+
+return float4(fogColor, fogFactor);
 ```
 
-| 버퍼                      | 해상도      | 포맷               | 용도                      |
-| ------------------------- | ----------- | ------------------ | ------------------------- |
-| `basicMSBuffer`           | 원본 (MSAA) | R16G16B16A16_FLOAT | Forward까지의 셰이딩 결과 |
-| `basicBuffer`             | 원본        | R16G16B16A16_FLOAT | MSAA Resolve된 HDR        |
-| `bloomBuffer[0]`          | 원본        | R16G16B16A16_FLOAT | Bloom 최종 (업샘플 결과)  |
-| `bloomBuffer[1..4]`       | 1/2 ~ 1/16  | R16G16B16A16_FLOAT | 피라미드 중간 단계        |
-| `copyForwardRenderBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | WaterPlane 굴절용 입력 복사본 |
-| `backBuffer`              | 원본        | Swap Chain LDR     | 최종 출력                 |
+### 4.2 Water Filter (WaterFilterPS.hlsl)
 
-### 4.2 Fog Filter (FogFilterPS.hlsl)
+물에 들어갔을 때, 화면 전체에 파란 필터를 알파 블렌딩으로 얹는 매우 단순한 패스다.
 
-Beer–Lambert 법칙 기반의 거리 안개. **MSAA 샘플 단위**로 동작하며, 합성은 **하드웨어 알파 블렌딩**으로 처리한다.
+이 때 원래의 결과물을 입력으로 받지 않고 단순히 BS를 활용하여 Blending 한다.
 
 ```hlsl
-Texture2DMS<float, SAMPLE_COUNT> depthTex : register(t0);
-
-float getFogFactor(float3 pos)
+cbuffer WaterFilterConstantBuffer : register(b0)
 {
-    float dist = length(pos.xyz);
-    float distFactor = saturate((dist - fogDistMin) / (fogDistMax - fogDistMin));
-    float beerLambert = exp(-fogStrength * distFactor);
-    return 1.0 - beerLambert;
+    float3 filterColor;
+    float filterStrength;
 }
 
-float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
-{
-    float3 fogColor = getFogColor(lightDir, eyeDir);
-
-    float depth = depthTex.Load(input.posProj.xy, sampleIndex).r;
-    float3 viewPos = texcoordToViewPos(input.texcoord, depth);
-    float fogFactor = getFogFactor(viewPos);
-
-    // dest는 읽지 않고 fogColor와 fogFactor만 출력 → BS가 lerp 수행
-    return float4(fogColor, fogFactor);
-}
-```
-
-PS는 `dest`(현재 MSAA 컬러)를 **읽지 않는다**. 대신 출력 alpha에 `fogFactor`를 실어 보내고, PSO의 Blend State가:
-
-```
-SrcBlend  = SRC_ALPHA
-DestBlend = INV_SRC_ALPHA
-BlendOp   = ADD
-→ out.rgb = fogColor * fogFactor + dest.rgb * (1 - fogFactor)
-          = lerp(dest.rgb, fogColor, fogFactor)
-```
-
-로 `lerp`를 수행한다. 알파 블렌딩의 정의 자체가 `lerp`이므로 셰이더 내부 `lerp`가 불필요해진다.
-
-```cpp
-void App::RenderFogFilter()
-{
-    Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
-    Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
-    m_postEffect.FogFilter();
-}
-```
-
-- `basicMSRTV`에 그리면서 `basicDepthSRV`(MSAA 깊이)만 SRV로 바인딩 — **RTV 자기참조 회피용 `CopyResource` 불필요**
-- 컬러 입력 텍스처(`renderTex`)와 그 사본 버퍼가 모두 제거되어 메모리 대역폭 절약
-
-수중인지 여부에 따라 `fogDistMin/Max/Strength`가 매 프레임 갱신되며, 수중에서는 적응 시간(`m_waterAdaptationTime`)에 따라 점차 더 짙고 가까이서 안개가 끼도록 보간된다.
-
-### 4.3 Water Filter (WaterFilterPS.hlsl)
-
-수중 진입 시 화면 전체에 파란 틴트를 알파 블렌딩으로 얹는 가장 단순한 패스다.
-
-```hlsl
 float4 main(psInput input) : SV_TARGET
 {
+    //clampedRadianceWeight를 이용해 밤에는 자동으로 어두워지도록 한다.
     float clampedRadianceWeight = clamp(radianceWeight, 0.1, 1.0);
     float blendAlpha = filterStrength;
     return float4(filterColor * clampedRadianceWeight, blendAlpha);
 }
 ```
 
-- `filterColor`는 sRGB → Linear 변환된 파란 계열 색
-- `radianceWeight`로 곱해 **밤에는 자동으로 어두워지도록** 한다 (한낮의 푸른 빛 ≠ 한밤의 푸른 빛)
-- 블렌딩은 `alphaBS` PSO → `lerp(dst, src, src.a)`
+constantData는 CPU에서 duration에 따라 값을 결정했다.
 
-PostEffect 단계의 Resolve가 끝난 `basicBuffer` 위에 그대로 alpha-blend 한다.
+```
+m_waterAdaptationTime += dt;
+m_waterAdaptationTime = std::clamp(m_waterAdaptationTime, 0.0f, m_waterMaxDuration);
 
-### 4.4 Bloom Down (BloomDownPS.hlsl)
+float duration = m_waterAdaptationTime / m_waterMaxDuration;
+
+m_waterFilterConstantData.filterColor.x = 0.075f + 0.075f * duration;
+m_waterFilterConstantData.filterColor.y = 0.125f + 0.125f * duration;
+m_waterFilterConstantData.filterColor.z = 0.48f + 0.48f * duration;
+m_waterFilterConstantData.filterColor =
+	Utils::SRGB2Linear(m_waterFilterConstantData.filterColor);
+
+m_waterFilterConstantData.filterStrength = (0.9f - (0.5f * duration));
+```
+
+### 4.3 Bloom Down (BloomDownPS.hlsl)
 
 Call of Duty의 발표로 알려진 13-tap 가중 다운샘플.
+LearnOpenGL에서의 코멘트: This shader performs downsampling on a texture, as taken from Call Of Duty method, presented at ACM Siggraph 2014
+
+해당 과정은 여러번 반복된다.
 
 ```hlsl
 // a - b - c    j k l m / 4 * 0.5
@@ -320,34 +257,11 @@ color += (d + e + g + h) * 0.25 * 0.125;
 color += (e + f + h + i) * 0.25 * 0.125;
 ```
 
-- 안쪽 사각형 4점은 가장 큰 비중(`0.5/4`), 모서리 블록들은 각 `0.125/4`
-- 중심 `e`는 4개의 모서리 블록 모두에 포함 → **텐트(tent) 분포**가 형성된다
-- 단순 박스 필터보다 **Firefly(밝은 점이 화면 가득 번지는 아티팩트) 억제**에 강하다
-
-#### 4단계 다운샘플 체인
-
-```cpp
-// PostEffect::Bloom — Down
-for (int i = 0; i <= count; ++i) {   // count = 3
-    int div = (int)pow(2, i + 1);
-    UpdateViewport(bloomViewport, 0, 0, APP_WIDTH/div, APP_HEIGHT/div);
-    OMSetRenderTargets(1, bloomRTV[i + 1], nullptr);
-    PSSetShaderResources(0, 1, i == 0 ? basicSRV : bloomSRV[i]);
-}
-```
-
-| 패스   | 입력                  | 출력          | 출력 해상도 |
-| ------ | --------------------- | ------------- | ----------- |
-| Down 0 | `basicSRV` (원본 HDR) | `bloomRTV[1]` | 1/2         |
-| Down 1 | `bloomSRV[1]`         | `bloomRTV[2]` | 1/4         |
-| Down 2 | `bloomSRV[2]`         | `bloomRTV[3]` | 1/8         |
-| Down 3 | `bloomSRV[3]`         | `bloomRTV[4]` | 1/16        |
-
-첫 패스의 입력이 **원본 HDR 그대로**라는 점이 중요하다. 별도의 Brightness Threshold 차감/마스킹 없이 진행한다 (5.1).
-
-### 4.5 Bloom Up (BloomUpPS.hlsl)
+### 4.4 Bloom Up (BloomUpPS.hlsl)
 
 3×3 텐트(1-2-1) 가중 평균.
+
+DownSample 횟수만큼 Up Sample 하여 결과를 저장한다.
 
 ```hlsl
 // a - b - c   →  1  2  1
@@ -360,18 +274,23 @@ color += e * 4.0;                  // 중심 ×4
 color /= 16.0;
 ```
 
-`linearClampSS` 샘플러로 읽기 때문에 하드웨어 바이리니어가 한 번 더 들어가 **소프트웨어 텐트 + 하드웨어 바이리니어**의 이중 평활화가 적용된다. 업스케일에서의 블록 아티팩트를 깔끔하게 막아준다.
+### 4.5 Combine (CombineBloomPS.hlsl)
 
-| 패스 | 입력                 | 출력          | 출력 해상도 |
-| ---- | -------------------- | ------------- | ----------- |
-| Up 0 | `bloomSRV[4]` (1/16) | `bloomRTV[3]` | 1/8         |
-| Up 1 | `bloomSRV[3]` (1/8)  | `bloomRTV[2]` | 1/4         |
-| Up 2 | `bloomSRV[2]` (1/4)  | `bloomRTV[1]` | 1/2         |
-| Up 3 | `bloomSRV[1]` (1/2)  | `bloomRTV[0]` | 원본        |
+Bloom Down/Up 과정으로 생긴 Bloom의 결과물()`bloomTex`)을 입력으로 받아 원래의 결과물(`renderTex`)과 적절히 혼합한다.
 
-### 4.6 Combine + Tone Mapping (CombineBloomPS.hlsl)
+```
+Texture2D renderTex : register(t0);
+Texture2D bloomTex : register(t1);
+```
 
-#### 4.6.1 Henyey-Greenstein Phase
+#### Bloom의 강도: Henyey-Greenstein Phase
+
+Bloom의 강도를 정적으로 정하는 것보다 낫다 싶어 적용했다.
+
+실제로는 산란과 관련된 함수이므로 Bloom에 적용하는건 의미론적으로 맞지는 않다고 한다.
+
+https://omlc.org/classroom/ece532/class3/hg.html
+<img width="569" height="359" alt="Image" src="https://github.com/user-attachments/assets/80f12455-c635-4148-9b1d-c54b8a48d6a0" />
 
 ```hlsl
 float henyeyGreensteinPhase(float3 L, float3 V, float aniso)
@@ -380,46 +299,40 @@ float henyeyGreensteinPhase(float3 L, float3 V, float aniso)
     float g = aniso;
     return (1.0 - g * g) / (4.0 * PI * pow(abs(1.0 + g * g - 2.0 * g * cosT), 1.5));
 }
-```
+...
 
-- 본래 의미: 산란 매질(구름·안개·물·대기)에서 한 광자가 입사 방향 대비 어느 방향으로 산란될 확률을 나타내는 phase function
-- `g`(anisotropy): `+1`에 가까우면 **전방 산란**, `-1`에 가까우면 후방 산란, `0`이면 등방
-- 여기선 `L = lightDir`(태양 → 점), `V = eyeDir`(눈 → 점)을 그대로 넣어 둘이 정렬될수록 큰 값을 얻는다
-- `g = 0.9`로 강한 전방 산란을 설정 → **태양을 정면으로 볼 때 폭발적으로 커짐**
-
-사용처는 Bloom 합성 가중치:
-
-```hlsl
-float scattering   = min(henyeyGreensteinPhase(lightDir, eyeDir, 0.9), 1.0) * 0.3;
+float scattering = clamp(henyeyGreensteinPhase(lightDir, eyeDir, 0.9), 0.0, 1.0) * 0.3;
 float bloomStrength = scattering + (isUnderWater ? 0.125 : 0);
-bloomStrength *= (useBloom ? 1.0 : 0.0);
 
-float3 combineColor = lerp(renderColor, bloomColor, bloomStrength);
 ```
 
-즉, **태양 방향에서의 빛 번짐 + 수중에서 살짝 더 흐릿한 분위기**가 조합된다.
+### 4.6 Exposure
 
-#### 4.6.2 Exposure
+ToneMapping 시 색이 `[0, 1]`로 압축되는데 생각보다 연산의 결과로 얻은 색들이 밝지 않았다.
 
-```hlsl
+그래서 Exposure(`1.5`) 값을 곱해서 색의 끌어올렸다.
+
+```
 float exposure = 1.5;
 combineColor *= exposure;
+
+ToneMapping(combineColor);
 ```
 
-전체 HDR 값을 한 번 1.5배로 올려 더 밝게 만든 뒤, 톤매핑 곡선이 다시 `[0,1]`로 압축한다.
-"노출이 너무 짧다 / 길다" 같은 카메라 노출의 직관과 같은 역할이며, 자동 노출(Auto Exposure)은 적용되어 있지 않다.
+### 4.7 Tone Mapping 7종
 
-#### 4.6.3 Tone Mapping 7종 — 직관적 해설
+ShadowToy를 참고하여 다양한 ToneMapping 함수를 가져와 비교용으로 사용했다.
+https://www.shadertoy.com/view/lslGzl
 
-##### (1) Linear — 단순 Clamp
+#### (1) Linear — 단순 Clamp
 
 ```hlsl
 color = clamp(color, 0.0, 1.0);
 ```
 
-1보다 큰 값은 무조건 1로 잘림. 강한 햇빛, 정반사, 발광 블록의 미묘한 밝기 차이가 **모두 순백색으로 똑같이 보이게** 되어 정밀도를 잃는다.
+- 1보다 큰 값은 무조건 1로 잘림. 강한 햇빛, 정반사, 발광 블록의 미묘한 밝기 차이가 **모두 순백색으로 똑같이 보이게** 되어 정밀도를 잃게 된다.
 
-##### (2) Simple Reinhard — 부드럽게 압축, 그러나 흐릿
+#### (2) Simple Reinhard — 부드럽게 압축, 그러나 흐릿
 
 ```hlsl
 color = color / (1.0 + color);
@@ -429,37 +342,40 @@ color = color / (1.0 + color);
 - 어떤 값이 들어와도 부드럽게 `[0,1]`로 압축된다
 - 단점: `c = 1`이 이미 `0.5`로 깎이기 때문에 **전반적으로 어둡고 채도가 낮은 흐릿한 톤**이 된다
 
-##### (3) Luma-Based Reinhard — 색감을 보존하면서 밝기만 압축
+#### (3) Luma-Based Reinhard — 색감을 보존하면서 밝기 압축
+
+https://en.wikipedia.org/wiki/Luma_(video)
 
 ```hlsl
 float luma          = dot(color, float3(0.2126, 0.7152, 0.0722));
 float toneMappedLuma = luma / (1.0 + luma);
-color *= toneMappedLuma / luma;
+color *= toneMappedLuma / luma; // -> `c / (1.0 + luma)`
 ```
 
-- 가중치 `(0.2126, 0.7152, 0.0722)`는 **Rec.709(sRGB) 표준 휘도 계수** — 사람의 눈이 G에 가장 민감, B에 가장 둔감하다는 사실을 반영
-- 채널마다 따로 압축하지 않고 **luma만 압축한 뒤 비율을 그대로 색에 적용** → 색상(Hue/Saturation)은 거의 안 변한다
-- 효과: Simple Reinhard 대비 **채도가 살아 있는 압축**
+- 휘도(밝기)를 줄이고 채도(색감)를 살리는 톤매핑
+- 밝은 부분의 정도를 가중치로 가지고 압축하는 방식이다.
+- 가중치 `(0.2126, 0.7152, 0.0722)`를 사용한다: 'Rec.709(sRGB) 표준 휘도 계수' 라고 함
+  - G값이 사람이 밝다고 인식하기에 가중치가 높고 압축의 강도가 커지게 된다.
+  - 이로인해 밝은 부분에서 압축되고, 어두운 부분은 살려 채도가 살아난다.
 
-##### (4) White-Preserving Reinhard — 밝은 영역 살리기
+#### (4) White-Preserving Reinhard — 밝은 영역 살리기
 
 ```hlsl
-float white  = 2.25;
+float white  = 2.0;
 float white2 = white * white;
 color = color * (1.0 + color / white2) / (1.0 + color);
 ```
 
 식을 풀어 의미를 보면:
 
-- `c = w` (= 2.25) → 분자 `c · (1 + 1/w) = c + c/w`, 분모 `1 + c`
-  - 계산 시 결과는 **정확히 1.0** — `w` 값이 “흰색 기준점”이 된다
+- `c = w` (= 2.0) 일 때 결과로 얻어지는 값은 `1.0`로 기준점이 된다.
 - `c < w` → 분자가 분모보다 살짝 큰 양의 보정만 들어가, Simple Reinhard보다 **덜 어둡게** 압축됨
 - `c > w` → 결과가 1을 살짝 넘기지만 이후 클램프/감마에서 자연스레 1로 수렴
-  - 즉 “**`w`를 넘는 밝기는 흰색으로 살린다**”
+  - 즉 “**`w`를 넘는 밝기는 흰색으로 살리게 된다.**”
 
-직관적으로: 그냥 Reinhard가 "모든 밝기를 0~1로 우그러뜨려" 흐릿하다면, White-Preserving은 "**`w`까지가 1**" 이라는 기준을 둬서 **밝은 부분이 시원하게 살아남는다**.
+그냥 Reinhard가 "모든 밝기를 0~1로 우그러뜨려" 흐릿하다면, White-Preserving은 "**`w`까지가 1**" 이라는 기준을 둬서 **밝은 부분이 시원하게 살아남는다**.
 
-##### (5) White-Preserving + Luma-Based Reinhard — **현재 기본값**
+#### (5) White-Preserving + Luma-Based Reinhard — **현재 기본값**
 
 ```hlsl
 float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
@@ -469,28 +385,28 @@ color *= toneMappedLuma / luma;
 
 (4)와 (3)의 결합: **흰 기준점을 지키면서, 채도까지 보존**한다. 가장 깨끗한 결과를 내기 때문에 기본값.
 
-##### (6) Filmic (Hable / Jim Hejl)
+#### (6) Filmic + Uncharted2
+
+해당 ToneMapping 함수는 이해보다는 쉐이더 토이에 존재하여 샘플로 남겨두었다.
 
 ```hlsl
+// Filmic
 color = (color * (6.2 * color + 0.5)) / (color * (6.2 * color + 1.7) + 0.06);
-```
+// 이 함수는 출력 자체에 감마(1/2.2)가 내포되어 있어 별도 감마 보정을 거치지 않는다고 함
 
-- 영화 필름의 응답 곡선을 흉내낸 S-Curve
-- 어두운 부분은 약간 들어올리고 밝은 부분은 자연스럽게 둥글게 압축
-- 이 함수는 출력 자체에 감마(1/2.2)가 내포되어 있어 별도 감마 보정을 거치지 않는다
-
-##### (7) Uncharted 2 (Hable Filmic)
-
-```hlsl
+// Uncharted2
 float A=0.15, B=0.50, C=0.10, D=0.20, E=0.02, F=0.30, W=11.2;
 color = ((c*(A*c + C*B) + D*E) / (c*(A*c + B) + D*F)) - E/F;
 float white = same_function(W);
 color /= white;
 ```
 
-Uncharted 2가 사용한 톤매핑. 7개의 상수(A~F, W)가 곡선의 어깨/발의 모양을 결정하며, **흰색 기준점 W = 11.2 HDR 값**까지 살린 뒤 `/white`로 정규화한다. 자유도가 높지만 튜닝이 어렵다.
+### 4.8 Gamma Correction
 
-#### 4.6.4 Gamma Correction
+연산된 컬러를 gamma correction을 이용하여 보정한다.
+
+- Linear 공간에서 활용한 컬러 값을 sRGB 공간으로 올려서 백버퍼에 출력한다.
+- `gamma` 값은 `2.2`로 사용한다.
 
 ```hlsl
 float3 gammaCorrection(float3 color, float gamma)
@@ -500,30 +416,24 @@ float3 gammaCorrection(float3 color, float gamma)
 }
 ```
 
-- Linear 공간에서 라이팅을 마친 색을 **sRGB(모니터)** 공간으로 변환
-- `pow(c, 1/2.2)`는 어두운 영역을 들어올리고 밝은 영역을 살짝 누르는 곡선
-  - 정확히는 모니터의 `pow(x, 2.2)` 응답을 상쇄
-- Filmic을 제외한 모든 톤매핑이 마지막 단계로 이 보정을 호출
-
-#### 4.6.5 합성 흐름
+### 4.9 Combine - ToneMapping(+GammaCorrection) 흐름
 
 ```hlsl
-// 1) Bloom 합성
-float scattering    = min(henyeyGreensteinPhase(lightDir, eyeDir, 0.9), 1.0) * 0.3;
+// 1. Bloom 합성
+float scattering = clamp(henyeyGreensteinPhase(lightDir, eyeDir, 0.8), 0.0, 1.0) * 0.3;
 float bloomStrength = scattering + (isUnderWater ? 0.125 : 0);
-bloomStrength      *= (useBloom ? 1.0 : 0.0);
 float3 combineColor = lerp(renderColor, bloomColor, bloomStrength);
 
-// 2) Exposure
+// 2. Exposure
 combineColor *= 1.5;
 
-// 3) Tone Mapping (switch toneMappingFunctionIndex)
-//    default = whitePreservingLumaBasedReinhard
+// 3. Tone Mapping + Gamma Correction
+// combineColor = whitePreservingLumaBasedReinhardToneMapping(combineColor);
 
 return float4(combineColor, 1.0);
 ```
 
-### 4.7 전체 파이프라인 요약
+### 4.10 전체 파이프라인 요약
 
 ```
 [Deferred + Forward Shading (MSAA)]
@@ -557,21 +467,22 @@ basicMSBuffer ─┐
 
 ## 5. 문제점 & 해결
 
-### 5.1 Bloom Threshold를 두지 않은 이유 (HDR과의 관계)
+### 5.1 Linear ToneMapping
 
-**문제 의식**: 전통적으로 Bloom은 "밝기 임계값 이상만 분리해서 블러" 하는 방식이 표준처럼 알려져 있다. Voxen에서는 Threshold를 두지 **않는다**.
+**문제**
 
-**이유**:
+- 원래는 Linear로 단순히 톤매핑을 진행했었다.
+  - HDR인데 색의 범위가 많지 않았다.
+  - 색 곡선을 전혀 생각치 못하고 단순히 빛의 세기나 Lighting의 정도를 줄이거나 늘리기만 했었다.
 
-- 입력이 이미 HDR(`R16G16B16A16_FLOAT`)이라 1.0을 초과하는 정보가 살아있다. 다운샘플 가중 평균을 거치면 **어두운 영역의 값은 가중평균으로 옅어지고, 매우 밝은 영역은 그 큰 절대값 그대로 살아남는다**.
-- 따라서 별도의 `if (luma > threshold) ...` 마스킹 없이도, **밝기 차이만으로 자연 분리**된다.
-- 합성 시 `lerp(render, bloom, bloomStrength)`에서 `bloomStrength`가 작으면(0.0~0.3) Bloom 기여가 작아, 어두운 영역에 더해지는 미세한 번짐도 시각적으로 거의 보이지 않는다.
+**해결**:
 
-**부작용 / 절충**: 어두운 영역에도 미세하게 블러가 더해진다. 강한 선택적 글로우가 필요한 경우엔 Threshold가 유리하지만, Voxen의 자연 풍경 톤에서는 **부드러운 전체 글로우 쪽이 더 자연스럽다**.
+- PostEffect Chapter를 복습하다, 여러 가지 ToneMapping에 대해서 학습했고 색의 범위를 압축하는 과정이 필수였다.
+- 적절한 톤매핑(`whitePreservingLumaBasedReinhardToneMapping`)을 고를 수 있었고, 결과도 만족한다.
 
 ### 5.2 FogFilter가 PostEffect가 아닌 Forward 패스에 있는 이유
 
-FogFilter는 "depth를 보고 거리를 계산해 색을 섞는" 전형적인 후처리지만, 현재 구조에서는 PostEffect 단계로 옮기지 못하고 Forward 패스 중간에 배치되어 있다. 그 이유를 세 가지로 정리한다.
+FogFilter는 "depth를 보고 거리를 계산해 색을 섞는" 전형적인 후처리지만, 현재 구조에서는 PostEffect 단계로 옮기지 못하고 Forward 패스 중간에 배치되어 있다.
 
 #### (1) 깊이 버퍼가 MSAA DSV로만 존재함
 
@@ -581,125 +492,35 @@ Voxen은 G-Buffer Fill + Forward를 모두 MSAA로 그리고, 깊이 버퍼는 `
 - `ResolveSubresource`는 Depth 포맷에 대해 평균 Resolve를 보장하지 않고, Custom Resolve를 짜더라도 sample 0 / min / max 중 하나를 골라야 함 → **샘플별 깊이 정보 손실**
 - Beer–Lambert는 `exp(-k·d)`로 비선형이라 `exp(-k · avg(d_i)) ≠ avg(exp(-k · d_i))` → 평균 깊이로 fog를 계산하면 가장자리에서 **전경 fog와 배경 fog의 자연스러운 블렌딩이 깨진다**
 
-→ Resolve 전 단계에서 MSAA Depth를 그대로 `Load(pixel, sampleIndex)`로 읽는 것 외에 가장자리 품질을 유지할 길이 없다.
-
 #### (2) 투명 / 반투명 객체와의 렌더링 순서
 
-Forward 단계의 그리기 순서는 객체 종류에 따라 다음과 같이 분리되어 있다.
+만약 FogFilter를 모든 Forward가 끝난 뒤(= PostEffect)로 미루면 Skybox/Cloud까지 안개가 끼게 된다.
 
-```
-[Deferred Shading]
-[Forward Opaque · Semi-Alpha · Instance 등]
-        ↓
-   → FogFilter ← 이 시점에 적용
-        ↓
-[Skybox / Cloud / WaterPlane]
-```
+- 이것은 내가 의도한 바가 아니다.
+- 안개는 지형을 형성하는 Block에 대해서만 적용하고 싶었다.
 
-만약 FogFilter를 모든 Forward가 끝난 뒤(= PostEffect)로 미루면:
+반대로 너무 일찍(예: Deferred 직후) 두면 Forward Pass - WaterPlane에 안개가 맺히지 않는다.
 
-- **Skybox**까지 안개가 끼게 된다 — 하늘은 본래 "무한대 거리"라 fog factor가 최대치로 잡혀 **하늘 전체가 fogColor 단색**으로 덮인다
-- Cloud도 안개에 묻히고, 수면 반사/굴절 색까지 한 톤으로 깔린다
+#### 비용에 대한 트레이드오프
 
-반대로 너무 일찍(예: Deferred 직후) 두면 그 뒤에 그려질 반투명 객체가 안개의 영향을 받지 못해 위화감이 생긴다.
-
-**Opaque/Semi-Alpha 직후 — Sky·Cloud·Water 직전**이라는 특정 슬롯이 정답이며, 이 자리는 PostEffect 패스의 일부가 아니라 **Forward 자체의 순서적 슬롯**이다. 수중일 때는 가시거리 안에 수면 반사가 없어 `Mirror/WaterPlane`을 먼저 처리할 필요가 없으므로 호출 순서가 살짝 달라진다.
-
-```cpp
-// App::Render
-if (m_camera.IsUnderWater()) {
-    RenderFogFilter();      // Opaque 끝난 직후
-    RenderSkybox();
-    RenderCloud();
-    RenderWaterPlane();
-}
-else {
-    RenderMirrorWorld();
-    RenderWaterPlane();
-    RenderFogFilter();      // Mirror/Water까지 끝낸 뒤
-    RenderSkybox();
-    RenderCloud();
-}
-```
-
-#### (3) "Full-Screen MSAA PostEffect" 비용에 대한 트레이드오프
-
-`Texture2DMS` + `SV_SampleIndex` 조합 때문에 PS가 **화면 전체에서 sample-frequency로 실행**된다 (4× 호출). Voxen의 다른 MSAA 전략 — Deferred Shading은 Edge Mask로 가장자리만 4× — 과는 결이 다른 선택이다.
+`Texture2DMS` + `SV_SampleIndex` 조합 때문에 PS가 **화면 전체에서 sample-frequency로 실행**된다 (4× 호출).
 
 그럼에도 허용한 이유:
 
-- **FogPS가 극도로 가볍다**: MS 깊이 텍셀 1회 + matmul + exp 1회 + Blend 처리. Deferred PS(PBR + Shadow + SSAO + 라이트 루프)와 절대 비용 자체가 비교 불가
-- **Edge Mask 회피의 부작용**: 가장자리만 4×로 처리하려면 결과를 단일샘플 RT에 써야 함 → 이후 Sky/Cloud/Water 패스가 **더 이상 MSAA 버퍼에 그릴 수 없게 됨** → 파이프라인 자체 재배치 비용이 더 큼
-- 정리: "가벼운 PS에 한해 Full-Screen MSAA를 허용"하는 예외로 둔다. Deferred Shading은 무거우니 Edge Mask, FogFilter는 가벼우니 Full-Screen — **PS 비용에 따른 차등 적용**
+- **FogPS는 가볍다**: Light나 SSAO에 비해 로직 자체가 가볍다.
+- **구현의 정도가 쉽다**: 간단한 Fog Filter를 효과적으로 하기위해 파이프라인을 복잡히 설정하고 싶지 않았다.
 
 #### 부수적 최적화: CopyResource 제거 + Blend State
 
-초기 구현은 PS 내부에서 `lerp(renderColor, fogColor, fogFactor)`를 계산하고, RTV 자기참조 회피를 위해 `CopyResource(copyForwardRenderBuffer, basicMSBuffer)`로 사본을 떠 입력 SRV로 썼다. 그러나 그 `lerp` 자체가 **표준 알파 블렌딩** `lerp(dest, src, src.a)` 와 동일하므로, 하드웨어 Blend State로 대체했다 (4.2 참고).
+초기 구현은 PS 내부에서 `lerp(renderColor, fogColor, fogFactor)`를 계산하고, RTV 자기참조 회피를 위해 `CopyResource(copyForwardRenderBuffer, basicMSBuffer)`로 사본을 떠 입력 SRV로 썼다.
+생각해보면 단순히 Forward Rendering 과정 중에 진행하므로 Copy 없이 단순히 Blend State를 활용하여 Alpha Blend로 그나마 최적화했다.
 
-| 항목                | 이전                              | 현재                  |
-| ------------------- | --------------------------------- | --------------------- |
-| `CopyResource`      | MS 버퍼 1장 복사                  | **없음**              |
-| 추가 RT/SRV         | `copyForwardRenderBuffer` + SRV   | **없음 (FogFilter 한정)** |
-| PS 입력 SRV         | renderTex (MS) + depthTex (MS)    | **depthTex (MS) 만**  |
-| `lerp` 수행 주체    | 셰이더                            | **하드웨어 Blend**    |
-| MSAA 가장자리 품질  | per-sample 정확                   | **per-sample 정확 (동일)** |
+## 6. 회고
 
-알파 채널은 ADD로 부풀 수 있으나 `CombineBloomPS`가 출력 시점에 `1.0`으로 명시적으로 덮어쓰므로 최종 결과에 영향 없다. WaterFilter도 동일 BS를 그대로 사용 중이라 호환된다.
-
-### 5.3 Bloom Down에서 Firefly 아티팩트
-
-**문제**: HDR 입력에서 1~2픽셀짜리 극단적 하이라이트(예: specular)가 다운샘플마다 주위를 지배해 **한 점이 한 줄의 빛으로 번지는** 현상.
-
-**해결**: 13-tap 가중 텐트 필터.
-
-- 중앙 4점(`j,k,l,m`)에 큰 가중치(`0.5/4` 씩), 외곽 사각형 4개에 작은 가중치(`0.125/4` 씩)
-- 중심 `e`가 외곽 사각형 모두에 포함되어 누적 가중이 가장 크다 → **중심으로 응축**
-- 단순 박스 필터보다 **outlier 영향이 작다**
-
-### 5.4 Bloom Up에서의 계단 아티팩트
-
-**문제**: 저해상도 결과를 단순 바이리니어로 확대하면 1/16 해상도의 텍셀 격자가 무늬처럼 보일 수 있다.
-
-**해결**: 3×3 `[1,2,4,2,1]` 텐트 필터 + `linearClampSS`의 하드웨어 바이리니어. 두 단계의 평활화가 겹치면서 부드러운 글로우가 만들어진다.
-
-### 5.5 Tone Mapping 선택에 따른 톤/채도 변화
-
-**문제**:
-
-- Simple Reinhard는 모든 값을 우그러뜨려 **전반적으로 어둡고 흐리멍덩**
-- Linear는 1.0 초과 영역의 정보가 모두 죽어 **하이라이트가 다 흰색**
-
-**해결 / 절충**:
-
-- 기본값으로 **White-Preserving + Luma-Based Reinhard**를 선택
-  - 흰색 기준점 `w = 2.25`로 밝은 영역을 살리고
-  - luma만 압축하여 채도 손실을 줄임
-- 사용자가 비교해볼 수 있도록 7종을 모두 등록하고 `toneMappingFunctionIndex`로 런타임 스위칭
-
-### 5.6 수중 시각화의 일관성
-
-**문제**: 수중에서는 색감이 파랗고 빛이 더 번지는 느낌이 필요한데, 한 군데에서 다 처리하면 너무 강하거나 부자연스러움.
-
-**해결**: 두 단계 분리.
-
-1. **WaterFilter**: 파란 틴트를 알파블렌딩. 색역 자체를 한 톤 깔아준다.
-2. **CombineBloom**: `isUnderWater`일 때 `bloomStrength`에 `+0.125`를 더해 **수중에서 살짝 더 번지는 분위기**.
-
-또한 수중 진입 시간(`m_waterAdaptationTime`)에 따라 fog와 filter 모두 점진적으로 강해진다 → 잠수 후 천천히 푸르러지는 효과.
-
-## 6. 결과
-
-- HDR 라이팅의 1.0 초과 정보를 끝까지 보존하여, 톤매핑 단계에서 의미 있는 압축이 일어난다
-- 4단계 Bloom 피라미드가 **좁은 글로우 ~ 넓은 글로우**를 동시에 만들고, HG Phase로 **태양 방향에서만 강하게** 부풀어 오른다
-- White-Preserving Luma-Based Reinhard로 채도와 하이라이트가 동시에 살아남는 톤
-- Fog는 MSAA 샘플 단위로 적용되어 가장자리에서도 부드러운 깊이감
-- Water 진입 시 점진적으로 파란 빛 + 안개 + Bloom이 강화되며 수중 분위기가 형성
-
-## 7. 회고
-
-- **자동 노출 부재**: `exposure = 1.5` 고정이라 어두운 실내↔밝은 실외 같은 큰 휘도 변화에서 눈의 적응을 표현하지 못한다. 평균/로그-평균 휘도를 다운샘플로 추정해 EV를 동적으로 조정하면 자연스러워질 것.
-- **Bloom Progressive Upsampling 부재**: 현재 Up 단계가 “저해상도 → 두 배 확대”만 한다. 각 Up 패스에 같은 해상도의 Down 결과를 더해(Add Blend) 누적하면 좀 더 풍부한 글로우가 가능하다.
-- **Tone Mapping 단순화 여지**: 7개 등록은 비교용으로는 좋지만, 최종 포트폴리오 빌드에서는 하나(또는 ACES)로 좁히고 색 그레이딩(LUT 등)으로 마무리하는 편이 자연스럽다.
-- **Threshold 토글**: 풍경/스타일에 따라 Threshold가 더 어울리는 장면이 있어, 런타임 토글 정도는 두는 게 비교에 좋을 듯하다.
-- **MSAA 채택 비용의 잔재**: FogFilter가 Forward 안쪽에 들어간 것은 MSAA Depth가 단일 리소스로만 존재하는 구조의 결과다. 후속으로 TAA 등 비-MSAA AA로 전환한다면 Fog는 자연스럽게 PostEffect 단계로 옮길 수 있고, "Full-Screen MSAA PS"라는 예외도 같이 사라진다.
-- **Volumetric Fog**: 현재는 카메라까지의 직선 거리 기반 단순 fog factor만 사용한다. Ray-march 기반 볼류메트릭으로 확장하면 광선과 태양의 정렬에서 god-ray가 자연스럽게 떨어진다 — HG Phase는 그대로 재활용 가능.
+- Tone Mapping이 결과에 주는 영향이 매우 크다는 것을 알게 해준 챕터였다.
+  - 더 다양한 톤매핑이 존재했고, 그것을 정확히 이해하는데는 시간이 걸리는 것 같다.
+  - Unreal에서는 ACES 톤매핑을 사용한다고 한다.
+- Exposure값(`1.5`)을 하드하게 정했는데, 밝은 곳이나 어두운 곳에 대해 구분할 수 있다면 활용하여 사용하면 될 것 같다.
+- 여전히, Forward Rendering Pass 중간에 Fog가 섞여 MSAA FullScreen 후처리라는게 마음에 걸린다.
+- Fog를 단순히 Depth를 이용한 거리 안개말고 Ray-Marching을 이용한 Volumetric Fog도 가능하다고 한다.
+- 현재 태양이 다른 물체로 가려져도 태양 방향을 바라보기만 하면 Bloom의 강도가 커지는 문제가 있는데, shadowMap을 활용해야하나 싶다.

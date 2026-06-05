@@ -193,9 +193,23 @@ LOD 전환 거리(260)부터 안개가 시작되어 최대 렌더 거리(320)에
            서서히 짙어짐 (90블록 시야)
 ```
 
+## 5. 문제 및 트레이드오프
+
+### 문제: MSAA FullScreen Post Effect 필터
+
+- 해당 FogFilter는 Forward Rendering Pass 중간에서 진행된다.
+- 그로인해 MSAA DSV를 사용하고 그 결과 MSAA FullScreen에서 진행하게 된다.
+
+### 트레이드오프
+
+- Forward Rendering 중간에서 하지 않고 후처리 Pass에서 fog를 렌더링하면 투명 물체에 대해 옳지 않은 결과가 나타났다.
+- 반투명 물체의 순서를 바꿀 수 없었다.
+- MSAA를 진행하지 않으면, 하늘-블록 경계에서 어색한 결과가 나타날 수 있다. (하늘-가까운물체가 맺힌 픽셀)
+- 비용이 어쩔 수 없고, 중간에 있는게 마음에 들지 않지만, 불가피하다고 판단하여 현재 파이프라인처럼 Forward 중간에서 Fog를 렌더하기로 했다.
+
 duration은 `m_waterAdaptationTime / m_waterMaxDuration`으로 0→1 범위를 갖는다. 입수 시 0에서 시작하여 2.5초에 걸쳐 1.0에 도달하며, 수면 위로 나오면 즉시 0으로 리셋된다.
 
-## 5. 회고
+## 6. 회고
 
 - DepthBuffer와 Render결과에 BlendState를 이용한 간단한 Fog
 - Beer-Lambert를 활용한 Fog로 결과적으로는 만족한다.
