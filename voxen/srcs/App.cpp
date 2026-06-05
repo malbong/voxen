@@ -724,7 +724,7 @@ void App::RenderMirrorWorld()
 		{
 			// mirror constant buffer: mirror plane view matrix
 			Graphics::context->VSSetConstantBuffers(
-				8, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
+				9, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
 			Graphics::SetPipelineStates(Graphics::cloudMirrorPSO);
 			m_cloud.Render();
 		}
@@ -751,7 +751,7 @@ void App::RenderMirrorWorld()
 	}
 
 	// 원래의 글로벌로 두기
-	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
+	Graphics::context->VSSetConstantBuffers(9, 1, m_camera.m_constantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
