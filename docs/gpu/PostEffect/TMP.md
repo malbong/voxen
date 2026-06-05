@@ -104,7 +104,7 @@ Voxen의 후처리(Post Effect)는 Deferred / Forward 셰이딩이 끝난 **HDR(
 
 대상으로는 다음과 같이 구성된다.
 
-1. **Fog Filter** — 거리 기반 안개. MSAA 깊이 / 렌더링 순서 / 비용 트레이드오프 세 가지 이유로 **Forward Pass 중간**에 배치 (5.2)
+1. **Fog Filter** — 거리 기반 안개. `Texture2DMS` 접근이 필요하여 **Forward Pass 중간**에 배치
 2. **Water Filter** — 수중 진입 시 파란 틴트(tint). 일반 알파 블렌딩 단일 패스
 3. **Bloom (Down/Up)** — 4단계 다운샘플 + 4단계 업샘플 피라미드
 4. **Combine + Tone Mapping + Gamma Correction** — HDR을 LDR sRGB로 변환
@@ -226,15 +226,16 @@ for (int i = 0; i < 5; ++i) {
 | `basicBuffer`             | 원본        | R16G16B16A16_FLOAT | MSAA Resolve된 HDR        |
 | `bloomBuffer[0]`          | 원본        | R16G16B16A16_FLOAT | Bloom 최종 (업샘플 결과)  |
 | `bloomBuffer[1..4]`       | 1/2 ~ 1/16  | R16G16B16A16_FLOAT | 피라미드 중간 단계        |
-| `copyForwardRenderBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | WaterPlane 굴절용 입력 복사본 |
+| `copyForwardRenderBuffer` | 원본 (MSAA) | R16G16B16A16_FLOAT | FogFilter용 입력 복사본   |
 | `backBuffer`              | 원본        | Swap Chain LDR     | 최종 출력                 |
 
 ### 4.2 Fog Filter (FogFilterPS.hlsl)
 
-Beer–Lambert 법칙 기반의 거리 안개. **MSAA 샘플 단위**로 동작하며, 합성은 **하드웨어 알파 블렌딩**으로 처리한다.
+Beer–Lambert 법칙 기반의 거리 안개. **MSAA 샘플 단위**로 동작한다.
 
 ```hlsl
-Texture2DMS<float, SAMPLE_COUNT> depthTex : register(t0);
+Texture2DMS<float4, SAMPLE_COUNT> renderTex : register(t0);
+Texture2DMS<float,  SAMPLE_COUNT> depthTex  : register(t1);
 
 float getFogFactor(float3 pos)
 {
@@ -246,40 +247,29 @@ float getFogFactor(float3 pos)
 
 float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
 {
-    float3 fogColor = getFogColor(lightDir, eyeDir);
+    float3 fogColor    = getFogColor(lightDir, eyeDir);
+    float3 renderColor = renderTex.Load(input.posProj.xy, sampleIndex).rgb;
 
-    float depth = depthTex.Load(input.posProj.xy, sampleIndex).r;
+    float depth   = depthTex.Load(input.posProj.xy, sampleIndex).r;
     float3 viewPos = texcoordToViewPos(input.texcoord, depth);
-    float fogFactor = getFogFactor(viewPos);
 
-    // dest는 읽지 않고 fogColor와 fogFactor만 출력 → BS가 lerp 수행
-    return float4(fogColor, fogFactor);
+    float fogFactor  = getFogFactor(viewPos);
+    float3 blendColor = lerp(renderColor, fogColor, fogFactor);
+    return float4(blendColor, 1.0);
 }
 ```
 
-PS는 `dest`(현재 MSAA 컬러)를 **읽지 않는다**. 대신 출력 alpha에 `fogFactor`를 실어 보내고, PSO의 Blend State가:
-
-```
-SrcBlend  = SRC_ALPHA
-DestBlend = INV_SRC_ALPHA
-BlendOp   = ADD
-→ out.rgb = fogColor * fogFactor + dest.rgb * (1 - fogFactor)
-          = lerp(dest.rgb, fogColor, fogFactor)
-```
-
-로 `lerp`를 수행한다. 알파 블렌딩의 정의 자체가 `lerp`이므로 셰이더 내부 `lerp`가 불필요해진다.
+호출 측에서는 RTV 자기 참조를 피하기 위해 `CopyResource`로 **현재 MSAA 결과의 사본**을 만들고, 그 사본을 SRV로 바인딩한 뒤 원본 MSAA RTV로 다시 그린다.
 
 ```cpp
 void App::RenderFogFilter()
 {
+    Graphics::context->CopyResource(Graphics::copyForwardRenderBuffer.Get(),
+                                    Graphics::basicMSBuffer.Get());
     Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
-    Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
     m_postEffect.FogFilter();
 }
 ```
-
-- `basicMSRTV`에 그리면서 `basicDepthSRV`(MSAA 깊이)만 SRV로 바인딩 — **RTV 자기참조 회피용 `CopyResource` 불필요**
-- 컬러 입력 텍스처(`renderTex`)와 그 사본 버퍼가 모두 제거되어 메모리 대역폭 절약
 
 수중인지 여부에 따라 `fogDistMin/Max/Strength`가 매 프레임 갱신되며, 수중에서는 적응 시간(`m_waterAdaptationTime`)에 따라 점차 더 짙고 가까이서 안개가 끼도록 보간된다.
 
@@ -528,8 +518,8 @@ return float4(combineColor, 1.0);
 ```
 [Deferred + Forward Shading (MSAA)]
 basicMSBuffer ─┐
-               ├──→ FogFilter (depthTex MSAA 샘플 단위, 알파 블렌딩으로 합성)
-               │      └─ depth만 입력 SRV로 바인딩 → 자기참조 없음 (CopyResource 불필요)
+               ├──→ FogFilter (Texture2DMS, 샘플 단위)
+               │      └─ CopyResource → copyForwardRenderBuffer 를 입력으로 자기 참조 회피
                ▼
 [Skybox / Cloud / WaterPlane] 그려서 basicMSBuffer 완성
                │
@@ -571,80 +561,24 @@ basicMSBuffer ─┐
 
 ### 5.2 FogFilter가 PostEffect가 아닌 Forward 패스에 있는 이유
 
-FogFilter는 "depth를 보고 거리를 계산해 색을 섞는" 전형적인 후처리지만, 현재 구조에서는 PostEffect 단계로 옮기지 못하고 Forward 패스 중간에 배치되어 있다. 그 이유를 세 가지로 정리한다.
+**문제**: FogFilter는 “depth를 보고 거리를 계산해 색을 섞는” 전형적인 후처리지만, MSAA를 쓰는 한 Resolve된 결과 위에서 적용하면 안 된다.
 
-#### (1) 깊이 버퍼가 MSAA DSV로만 존재함
+**원인**:
 
-Voxen은 G-Buffer Fill + Forward를 모두 MSAA로 그리고, 깊이 버퍼는 `Texture2DMS<float, SAMPLE_COUNT>` 한 장으로만 유지된다. **Resolve된 단일샘플 깊이 SRV가 존재하지 않는다**.
+- Forward 결과는 `basicMSBuffer`로 **MSAA 텍스처**, 깊이 또한 MSAA 깊이 버퍼
+- Resolve 후의 단일샘플 컬러에 안개를 입히면, **샘플마다 다른 깊이가 평균된 결과**에 대해 안개를 계산하게 되어 픽셀 가장자리의 안개 강도가 부정확해진다
 
-- PostEffect 단계로 옮기려면 별도의 **Depth Resolve PSO**를 새로 작성해야 함
-- `ResolveSubresource`는 Depth 포맷에 대해 평균 Resolve를 보장하지 않고, Custom Resolve를 짜더라도 sample 0 / min / max 중 하나를 골라야 함 → **샘플별 깊이 정보 손실**
-- Beer–Lambert는 `exp(-k·d)`로 비선형이라 `exp(-k · avg(d_i)) ≠ avg(exp(-k · d_i))` → 평균 깊이로 fog를 계산하면 가장자리에서 **전경 fog와 배경 fog의 자연스러운 블렌딩이 깨진다**
-
-→ Resolve 전 단계에서 MSAA Depth를 그대로 `Load(pixel, sampleIndex)`로 읽는 것 외에 가장자리 품질을 유지할 길이 없다.
-
-#### (2) 투명 / 반투명 객체와의 렌더링 순서
-
-Forward 단계의 그리기 순서는 객체 종류에 따라 다음과 같이 분리되어 있다.
-
-```
-[Deferred Shading]
-[Forward Opaque · Semi-Alpha · Instance 등]
-        ↓
-   → FogFilter ← 이 시점에 적용
-        ↓
-[Skybox / Cloud / WaterPlane]
-```
-
-만약 FogFilter를 모든 Forward가 끝난 뒤(= PostEffect)로 미루면:
-
-- **Skybox**까지 안개가 끼게 된다 — 하늘은 본래 "무한대 거리"라 fog factor가 최대치로 잡혀 **하늘 전체가 fogColor 단색**으로 덮인다
-- Cloud도 안개에 묻히고, 수면 반사/굴절 색까지 한 톤으로 깔린다
-
-반대로 너무 일찍(예: Deferred 직후) 두면 그 뒤에 그려질 반투명 객체가 안개의 영향을 받지 못해 위화감이 생긴다.
-
-**Opaque/Semi-Alpha 직후 — Sky·Cloud·Water 직전**이라는 특정 슬롯이 정답이며, 이 자리는 PostEffect 패스의 일부가 아니라 **Forward 자체의 순서적 슬롯**이다. 수중일 때는 가시거리 안에 수면 반사가 없어 `Mirror/WaterPlane`을 먼저 처리할 필요가 없으므로 호출 순서가 살짝 달라진다.
+**해결**: `Texture2DMS<float4, SAMPLE_COUNT>`로 MSAA 컬러/깊이를 **샘플 단위로 직접 읽고**, `SV_SampleIndex` PS로 샘플별로 안개를 적용한다.
+이를 위해 PostEffect 단계가 아닌 Forward 패스 중간에 호출되어야 한다.
 
 ```cpp
-// App::Render
-if (m_camera.IsUnderWater()) {
-    RenderFogFilter();      // Opaque 끝난 직후
-    RenderSkybox();
-    RenderCloud();
-    RenderWaterPlane();
-}
-else {
-    RenderMirrorWorld();
-    RenderWaterPlane();
-    RenderFogFilter();      // Mirror/Water까지 끝낸 뒤
-    RenderSkybox();
-    RenderCloud();
-}
+// App::Render — Forward 중간
+RenderFogFilter();   // ← Texture2DMS 접근. Resolve 전이어야 함
+RenderSkybox();
+RenderCloud();
 ```
 
-#### (3) "Full-Screen MSAA PostEffect" 비용에 대한 트레이드오프
-
-`Texture2DMS` + `SV_SampleIndex` 조합 때문에 PS가 **화면 전체에서 sample-frequency로 실행**된다 (4× 호출). Voxen의 다른 MSAA 전략 — Deferred Shading은 Edge Mask로 가장자리만 4× — 과는 결이 다른 선택이다.
-
-그럼에도 허용한 이유:
-
-- **FogPS가 극도로 가볍다**: MS 깊이 텍셀 1회 + matmul + exp 1회 + Blend 처리. Deferred PS(PBR + Shadow + SSAO + 라이트 루프)와 절대 비용 자체가 비교 불가
-- **Edge Mask 회피의 부작용**: 가장자리만 4×로 처리하려면 결과를 단일샘플 RT에 써야 함 → 이후 Sky/Cloud/Water 패스가 **더 이상 MSAA 버퍼에 그릴 수 없게 됨** → 파이프라인 자체 재배치 비용이 더 큼
-- 정리: "가벼운 PS에 한해 Full-Screen MSAA를 허용"하는 예외로 둔다. Deferred Shading은 무거우니 Edge Mask, FogFilter는 가벼우니 Full-Screen — **PS 비용에 따른 차등 적용**
-
-#### 부수적 최적화: CopyResource 제거 + Blend State
-
-초기 구현은 PS 내부에서 `lerp(renderColor, fogColor, fogFactor)`를 계산하고, RTV 자기참조 회피를 위해 `CopyResource(copyForwardRenderBuffer, basicMSBuffer)`로 사본을 떠 입력 SRV로 썼다. 그러나 그 `lerp` 자체가 **표준 알파 블렌딩** `lerp(dest, src, src.a)` 와 동일하므로, 하드웨어 Blend State로 대체했다 (4.2 참고).
-
-| 항목                | 이전                              | 현재                  |
-| ------------------- | --------------------------------- | --------------------- |
-| `CopyResource`      | MS 버퍼 1장 복사                  | **없음**              |
-| 추가 RT/SRV         | `copyForwardRenderBuffer` + SRV   | **없음 (FogFilter 한정)** |
-| PS 입력 SRV         | renderTex (MS) + depthTex (MS)    | **depthTex (MS) 만**  |
-| `lerp` 수행 주체    | 셰이더                            | **하드웨어 Blend**    |
-| MSAA 가장자리 품질  | per-sample 정확                   | **per-sample 정확 (동일)** |
-
-알파 채널은 ADD로 부풀 수 있으나 `CombineBloomPS`가 출력 시점에 `1.0`으로 명시적으로 덮어쓰므로 최종 결과에 영향 없다. WaterFilter도 동일 BS를 그대로 사용 중이라 호환된다.
+또한 RTV 자기참조(자기 자신을 읽으면서 쓰기)를 피하기 위해 `CopyResource(copyForwardRenderBuffer, basicMSBuffer)`로 사본을 떠서 입력으로 쓴다.
 
 ### 5.3 Bloom Down에서 Firefly 아티팩트
 
@@ -701,5 +635,4 @@ else {
 - **Bloom Progressive Upsampling 부재**: 현재 Up 단계가 “저해상도 → 두 배 확대”만 한다. 각 Up 패스에 같은 해상도의 Down 결과를 더해(Add Blend) 누적하면 좀 더 풍부한 글로우가 가능하다.
 - **Tone Mapping 단순화 여지**: 7개 등록은 비교용으로는 좋지만, 최종 포트폴리오 빌드에서는 하나(또는 ACES)로 좁히고 색 그레이딩(LUT 등)으로 마무리하는 편이 자연스럽다.
 - **Threshold 토글**: 풍경/스타일에 따라 Threshold가 더 어울리는 장면이 있어, 런타임 토글 정도는 두는 게 비교에 좋을 듯하다.
-- **MSAA 채택 비용의 잔재**: FogFilter가 Forward 안쪽에 들어간 것은 MSAA Depth가 단일 리소스로만 존재하는 구조의 결과다. 후속으로 TAA 등 비-MSAA AA로 전환한다면 Fog는 자연스럽게 PostEffect 단계로 옮길 수 있고, "Full-Screen MSAA PS"라는 예외도 같이 사라진다.
-- **Volumetric Fog**: 현재는 카메라까지의 직선 거리 기반 단순 fog factor만 사용한다. Ray-march 기반 볼류메트릭으로 확장하면 광선과 태양의 정렬에서 god-ray가 자연스럽게 떨어진다 — HG Phase는 그대로 재활용 가능.
+- **Fog와 PostEffect 일관성**: 현재 Fog만 Forward 안쪽에 들어가 있다. MSAA를 후처리 전 단계에서 미리 Resolve하거나, 모든 후처리를 MSAA 안에서 끝내는 방향으로 통일해두면 파이프라인이 더 깔끔해질 것이다.

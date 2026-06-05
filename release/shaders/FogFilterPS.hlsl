@@ -1,7 +1,6 @@
 #include "Common.hlsli"
 
-Texture2DMS<float4, SAMPLE_COUNT> renderTex : register(t0);
-Texture2DMS<float, SAMPLE_COUNT> depthTex : register(t1);
+Texture2DMS<float, SAMPLE_COUNT> depthTex : register(t0);
 
 cbuffer FogConstantBuffer : register(b0)
 {
@@ -57,14 +56,11 @@ float getFogFactor(float3 pos)
 float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
 {
     float3 fogColor = getFogColor(lightDir, eyeDir);
-    float3 renderColor = renderTex.Load(input.posProj.xy, sampleIndex).rgb;
     
     float depth = depthTex.Load(input.posProj.xy, sampleIndex).r;
     float3 viewPos = texcoordToViewPos(input.texcoord, depth);
     
     float fogFactor = getFogFactor(viewPos);
     
-    float3 blendColor = lerp(renderColor, fogColor, fogFactor);
-    
-    return float4(blendColor, 1.0);
+    return float4(fogColor, fogFactor);
 }
