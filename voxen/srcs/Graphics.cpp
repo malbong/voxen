@@ -1722,6 +1722,7 @@ void Graphics::InitGraphicsPSO()
 
 	// fogFilterPSO
 	fogFilterPSO = samplingPSO;
+	fogFilterPSO.blendState = alphaBS;
 	fogFilterPSO.pixelShader = fogFilterPS;
 
 	// instancePSO

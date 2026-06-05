@@ -823,10 +823,9 @@ void App::RenderWorldMap()
 
 void App::RenderFogFilter() 
 { 
-	Graphics::context->CopyResource(
-		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
-
 	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
 
 	m_postEffect.FogFilter();
 }

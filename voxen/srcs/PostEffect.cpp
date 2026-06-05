@@ -193,11 +193,6 @@ void PostEffect::CombineFromBloom(
 
 void PostEffect::FogFilter()
 {
-	std::vector<ID3D11ShaderResourceView*> ppSRVs;
-	ppSRVs.push_back(Graphics::copyForwardSRV.Get());
-	ppSRVs.push_back(Graphics::basicDepthSRV.Get());
-	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-
 	Graphics::context->PSSetConstantBuffers(0, 1, m_fogFilterConstantBuffer.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::fogFilterPSO);
