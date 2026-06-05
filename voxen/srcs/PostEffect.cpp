@@ -40,7 +40,7 @@ void PostEffect::Update(float dt, bool isUnderWater)
 {
 	if (isUnderWater) {
 		m_waterAdaptationTime += dt;
-		m_waterAdaptationTime = min(m_waterMaxDuration, m_waterAdaptationTime);
+		m_waterAdaptationTime = std::clamp(m_waterAdaptationTime, 0.0f, m_waterMaxDuration);
 
 		float duration = m_waterAdaptationTime / m_waterMaxDuration;
 

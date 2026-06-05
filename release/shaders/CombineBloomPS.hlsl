@@ -113,7 +113,7 @@ float4 main(psInput input) : SV_TARGET
     float3 renderColor = renderTex.Sample(pointClampSS, input.texcoord).rgb;
     float3 bloomColor = bloomTex.Sample(pointClampSS, input.texcoord).rgb;
     
-    float scattering = min(henyeyGreensteinPhase(lightDir, eyeDir, 0.9), 1.0) * 0.3;
+    float scattering = clamp(henyeyGreensteinPhase(lightDir, eyeDir, 0.8), 0.0, 1.0) * 0.3;
     float bloomStrength = scattering + (isUnderWater ? 0.125 : 0);
     bloomStrength *= (useBloom ? 1.0 : 0.0);
     
