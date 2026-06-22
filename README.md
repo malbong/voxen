@@ -98,30 +98,34 @@ ChunkManager::Update()
 
 <img width="1743" height="986" alt="Image" src="https://github.com/user-attachments/assets/0b31d302-43f1-4f75-8214-69b3a426585b" />
 
-| 패스                 | 시간    | 비율  | 결과물 기여                 |
-| -------------------- | ------- | ----- | --------------------------- |
-| Fill G-Buffer        | 3.58 ms | 38.6% | 모든 지오메트리 정보(RTV-5) |
-| Planar Mirror World  | 1.60 ms | 17.3% | 물 표면의 반사              |
-| Water Plane          | 1.03 ms | 11.2% | 물 합성, 굴절, 수중 필터    |
-| Cascade Shadow Map   | 0.99 ms | 10.7% | 지형/나무의 그림자          |
-| SSAO                 | 0.99 ms | 10.7% | 간접 음영                   |
-| Deferred Shading     | 0.59 ms | 6.3%  | PBR 라이팅                  |
-| Post Effects         | 0.15 ms | 1.6%  | Bloom, Tone mapping         |
-| Mask MSAA Edge       | 0.18 ms | 1.9%  | Edge 판단                   |
-| 기타 (Sky/Cloud/Fog) | 0.12 ms | 1.2%  |                             |
+| 패스                | 시간 (ms) | 비율  |
+| ------------------- | --------- | ----- |
+| Fill G-Buffer       | 4.73      | 40.1% |
+| Planar Mirror World | 2.27      | 19.2% |
+| Cascade Shadow Map  | 1.78      | 15.1% |
+| SSAO                | 1.05      | 8.9%  |
+| Water Plane         | 0.88      | 7.5%  |
+| Deferred Shading    | 0.54      | 4.6%  |
+| Mask MSAA Edge      | 0.22      | 1.8%  |
+| Post Effects        | 0.15      | 1.2%  |
+| Fog Filter          | 0.10      | 0.8%  |
+| Convert To MSAA     | 0.03      | 0.3%  |
+| Cloud               | 0.02      | 0.1%  |
+| Skybox              | 0.02      | 0.1%  |
+| ImGUI               | 0.01      | 0.1%  |
 
-### Fill G-Buffer (38.6%)
+### Fill G-Buffer (40.1%)
 
 - 5개의 렌더 타겟
 - Binary Greedy Meshing로 vertex 수 최소화
 - Frustum Culling으로 불필요한 DrawCall 제거
 
-### Planar Mirror World + Water Plane (28.5%)
+### Planar Mirror World + Water Plane (26.7%)
 
 - Water 표면을 그리기 위한 비용이 큼
 - SSR을 사용하지 않고 반사 물체를 그대로 렌더링하여 비용이 큼
 
-### SSAO / Shading (17.0%)
+### SSAO / Shading (16.4%)
 
 - Mask MSAA Edge를 통한 2Pass 분리
 - 엣지 픽셀에 대해서만 따로 4x 샘플링 연산하여 비용 절감 (프레임 전반에 대해서는 미비한 효과)
