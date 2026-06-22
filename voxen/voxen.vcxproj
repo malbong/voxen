@@ -397,6 +397,7 @@ xcopy "$(ProjectDir)shaders" "%OUT_DIR%\shaders\" /e /y /i</Command>
     <ClInclude Include="headers\PatchData.h" />
     <ClInclude Include="headers\Pos.h" />
     <ClInclude Include="headers\PostEffect.h" />
+    <ClInclude Include="headers\ScopedRenderEvent.h" />
     <ClInclude Include="headers\SimpleQuadRenderer.h" />
     <ClInclude Include="headers\Skybox.h" />
     <ClInclude Include="headers\SSAO.h" />

@@ -3,6 +3,7 @@
 #include "DXUtils.h"
 #include "Terrain.h"
 #include "SimpleQuadRenderer.h"
+#include "ScopedRenderEvent.h"
 
 #include <iostream>
 #include <imgui.h>
@@ -294,8 +295,11 @@ void App::Run()
 			Update(ImGui::GetIO().DeltaTime);
 			Render();
 
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ·»´õ¸µ
-
+			{
+				SCOPED_RENDER_EVENT("ImGUI");
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ·»´õ¸µ
+			}
+			
 			Graphics::swapChain->Present(1, 0);
 		}
 	}
@@ -511,6 +515,8 @@ void App::Render()
 
 	// 5. Post Effect
 	{
+		SCOPED_RENDER_EVENT("Post Effects");
+
 		Graphics::context->ResolveSubresource(Graphics::basicBuffer.Get(), 0,
 			Graphics::basicMSBuffer.Get(), 0, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
@@ -567,6 +573,8 @@ void App::Render()
 
 void App::FillGBuffer()
 {
+	SCOPED_RENDER_EVENT("Fill G-Buffer");
+
 	float clearColor[4] = { 0.0f, 0.0f, 0.0f, -1.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::normalEdgeRTV.Get(), clearColor);
 	Graphics::context->ClearRenderTargetView(Graphics::positionRTV.Get(), clearColor);
@@ -599,6 +607,8 @@ void App::FillGBuffer()
 
 void App::MaskMSAAEdge()
 {
+	SCOPED_RENDER_EVENT("Mask MSAA Edge");
+
 	Graphics::context->ClearDepthStencilView(
 		Graphics::deferredDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -615,6 +625,8 @@ void App::MaskMSAAEdge()
 
 void App::RenderSSAO()
 {
+	SCOPED_RENDER_EVENT("SSAO");
+
 	// SSAO
 	{
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -643,6 +655,8 @@ void App::RenderSSAO()
 
 void App::ShadingBasic()
 {
+	SCOPED_RENDER_EVENT("Deferred Shading");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicRTV.GetAddressOf(), Graphics::deferredDSV.Get());
 
@@ -664,6 +678,8 @@ void App::ShadingBasic()
 
 void App::ConvertToMSAA()
 {
+	SCOPED_RENDER_EVENT("Convert To MSAA");
+
 	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
 
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::basicSRV.GetAddressOf());
@@ -674,6 +690,8 @@ void App::ConvertToMSAA()
 
 void App::RenderSkybox()
 {
+	SCOPED_RENDER_EVENT("Skybox");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -683,6 +701,8 @@ void App::RenderSkybox()
 
 void App::RenderCloud()
 {
+	SCOPED_RENDER_EVENT("Cloud");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -692,6 +712,8 @@ void App::RenderCloud()
 
 void App::RenderMirrorWorld()
 {
+	SCOPED_RENDER_EVENT("Planar Mirror World");
+
 	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewport);
 
 	const FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -757,6 +779,8 @@ void App::RenderMirrorWorld()
 
 void App::RenderWaterPlane()
 {
+	SCOPED_RENDER_EVENT("Water Plane");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -779,6 +803,8 @@ void App::RenderWaterPlane()
 
 void App::RenderShadowMap()
 {
+	SCOPED_RENDER_EVENT("Cascade Shadow Map");
+
 	UnsetGlobalLightingSRVs();
 
 	Graphics::context->RSSetViewports(1, &Graphics::shadowViewports);
@@ -808,6 +834,8 @@ void App::RenderShadowMap()
 
 void App::RenderPickingBlock() 
 { 
+	SCOPED_RENDER_EVENT("Picking Block");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -823,6 +851,8 @@ void App::RenderWorldMap()
 
 void App::RenderFogFilter() 
 { 
+	SCOPED_RENDER_EVENT("Fog Filter");
+
 	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
 
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());

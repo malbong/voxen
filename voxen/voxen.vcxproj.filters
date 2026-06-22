@@ -90,6 +90,9 @@
     <ClInclude Include="headers\SSAO.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\ScopedRenderEvent.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
