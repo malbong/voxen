@@ -846,7 +846,7 @@ void App::RenderBloom()
 void App::RenderFrustumCullingViewer() 
 {
 	Graphics::context->VSSetConstantBuffers(
-		8, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
+		9, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewport);
 
 	float clearColor[4] = { 0.5f, 0.5f, 0.5f, 0.0f };
@@ -886,7 +886,7 @@ void App::RenderFrustumCullingViewer()
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 
-	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
+	Graphics::context->VSSetConstantBuffers(9, 1, m_camera.m_constantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
