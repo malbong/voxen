@@ -1,12 +1,15 @@
 # 프로젝트 결과
 
+<img width="720" height="406" alt="Image" src="https://github.com/user-attachments/assets/ce15170f-e977-43e8-8329-aba829ecec3f" />
+
+---
+
 <a href="https://www.youtube.com/watch?v=iwqEGNPLg8c" target="_blank">
 ▶️ Click to watch on YouTube
 <img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/f6a5388f-af15-49f5-92f2-c425b04b84fc" />
 
 <img width="1911" height="1074" alt="Image" src="https://github.com/user-attachments/assets/632a2bec-fc12-4d73-b7d0-017d89baf698" />
 </a>
-<img width="720" height="406" alt="Image" src="https://github.com/user-attachments/assets/ce15170f-e977-43e8-8329-aba829ecec3f" />
 
 <br />
 
