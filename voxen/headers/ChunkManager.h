@@ -38,7 +38,6 @@ public:
 	void RenderLowLodChunk(Chunk* chunk);
 	void RenderTransparencyChunk(Chunk* chunk);
 	void RenderInstance();
-
 	void RenderBasic(Vector3 cameraPos);
 	void RenderMirrorWorld();
 	void RenderTransparency();

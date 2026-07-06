@@ -57,30 +57,18 @@ float2 getVoxelTexcoord(float3 pos, uint face)
 
 float3 getNormal(uint face)
 {
-    if (face == LEFT)
+        // 6방향 법선 룩업 테이블
+    static const float3 normals[6] =
     {
-        return float3(-1.0, 0.0, 0.0);
-    }
-    else if (face == RIGHT)
-    {
-        return float3(1.0, 0.0, 0.0);
-    }
-    else if (face == BOTTOM)
-    {
-        return float3(0.0, -1.0, 0.0);
-    }
-    else if (face == TOP)
-    {
-        return float3(0.0, 1.0, 0.0);
-    }
-    else if (face == NEAR)
-    {
-        return float3(0.0, 0.0, -1.0);
-    }
-    else // FAR
-    {
-        return float3(0.0, 0.0, 1.0);
-    }
+        float3(-1, 0, 0), // LEFT (0)
+        float3(1, 0, 0), // RIGHT (1)
+        float3(0, -1, 0), // BOTTOM (2)
+        float3(0, 1, 0), // TOP (3)
+        float3(0, 0, -1), // NEAR (4)
+        float3(0, 0, 1) // FAR (5)
+    };
+
+    return normals[face];
 }
 
 vsOutput main(vsInput input)
