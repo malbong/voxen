@@ -401,8 +401,8 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 
 ### 프로젝트 초기에 진행했던 단순한 벤치마크 (노이즈 거의 없음, 블록타입 같음, 싱글쓰레드 환경, 인텔내장GPU)
 
-<img width="900" height="500" alt="Image" src="https://github.com/user-attachments/assets/1693cb6f-1330-4cfb-bc2e-0a639a52fdd5" />
-<img width="1280" height="79" alt="Image" src="https://github.com/user-attachments/assets/95e61b96-5e16-4bb0-86ed-195737b9d584" />
+<img width="500" height="300" alt="Image" src="https://github.com/user-attachments/assets/1693cb6f-1330-4cfb-bc2e-0a639a52fdd5" />
+<img width="800" height="79" alt="Image" src="https://github.com/user-attachments/assets/95e61b96-5e16-4bb0-86ed-195737b9d584" />
 
 #### Greedy Meshing 전 (인접한 블록면만 제거한 경우)
 
@@ -412,8 +412,8 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 
 ---
 
-<img width="900" height="500" alt="Image" src="https://github.com/user-attachments/assets/f5d39f4d-4d50-4c04-9ba6-5f5d7ac3ef84" />
-<img width="1280" height="77" alt="Image" src="https://github.com/user-attachments/assets/2ea81d07-accb-47bd-9a01-e80ab6c9567e" />
+<img width="500" height="300" alt="Image" src="https://github.com/user-attachments/assets/f5d39f4d-4d50-4c04-9ba6-5f5d7ac3ef84" />
+<img width="800" height="77" alt="Image" src="https://github.com/user-attachments/assets/2ea81d07-accb-47bd-9a01-e80ab6c9567e" />
 
 #### Greedy Meshing 후
 
