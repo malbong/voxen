@@ -161,6 +161,7 @@ climateTexcoord += float2(texelSize * 0.5, texelSize * 0.5);
 4. **Half-texel Offset**
    `climateTexcoord += float2(texelSize * 0.5, texelSize * 0.5)`.
    Point Sampling에서 텍셀 중심을 정확히 찍기 위한 보정이다. 이 오프셋이 없으면, 정확히 텍셀 경계에 놓인 좌표가 인접 텍셀을 샘플링할 수 있다.
+   cf. TextureBuffer2D의 가로-세로 길이가 짝수임에 행하는 연산이다. ex. 4x4 배열에서 카메라의 위치는 (2, 2)다
 
 #### ColorMap 참조와 최종 색상 적용
 
