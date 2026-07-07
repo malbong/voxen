@@ -404,16 +404,18 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 <img width="900" height="500" alt="Image" src="https://github.com/user-attachments/assets/1693cb6f-1330-4cfb-bc2e-0a639a52fdd5" />
 <img width="1280" height="79" alt="Image" src="https://github.com/user-attachments/assets/95e61b96-5e16-4bb0-86ed-195737b9d584" />
 
-Greedy Meshing 전 (인접한 블록면만 제거한 경우)
+#### Greedy Meshing 전 (인접한 블록면만 제거한 경우)
 
 - 평균 로딩 속도: 1280ms
 - 사용 메모리: 1600MB
 - 평균 프레임: 15~ FPS
 
+---
+
 <img width="900" height="500" alt="Image" src="https://github.com/user-attachments/assets/f5d39f4d-4d50-4c04-9ba6-5f5d7ac3ef84" />
 <img width="1280" height="77" alt="Image" src="https://github.com/user-attachments/assets/2ea81d07-accb-47bd-9a01-e80ab6c9567e" />
 
-Greedy Meshing 후
+#### Greedy Meshing 후
 
 - 평균 평균 약 530ms
 - 사용 메모리: 400MB
