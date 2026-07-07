@@ -81,6 +81,7 @@ namespace Graphics {
 	extern ComPtr<ID3D11RasterizerState> solidRS;
 	extern ComPtr<ID3D11RasterizerState> wireRS;
 	extern ComPtr<ID3D11RasterizerState> noneCullRS;
+	extern ComPtr<ID3D11RasterizerState> noneCullWireRS;
 	extern ComPtr<ID3D11RasterizerState> mirrorRS;
 	extern ComPtr<ID3D11RasterizerState> shadowRS;
 	extern ComPtr<ID3D11RasterizerState> noneCullDepthBiasRS;
@@ -276,7 +277,9 @@ namespace Graphics {
 	extern GraphicsPSO basicPSO;
 	extern GraphicsPSO basicMirrorPSO;
 	extern GraphicsPSO basicAlbedoPSO;
+	extern GraphicsPSO basicWirePSO;
 	extern GraphicsPSO semiAlphaPSO;
+	extern GraphicsPSO semiAlphaWirePSO;
 	extern GraphicsPSO skyboxPSO;
 	extern GraphicsPSO skyboxMirrorPSO;
 	extern GraphicsPSO cloudPSO;
@@ -290,8 +293,10 @@ namespace Graphics {
 	extern GraphicsPSO fogFilterPSO;
 	extern GraphicsPSO instancePSO;
 	extern GraphicsPSO instanceMirrorPSO;
+	extern GraphicsPSO instanceWirePSO;
 	extern GraphicsPSO mirrorMaskingPSO;
 	extern GraphicsPSO waterPlanePSO;
+	extern GraphicsPSO waterPlaneWirePSO;
 	extern GraphicsPSO waterFilterPSO;
 	extern GraphicsPSO basicDepthPSO;
 	extern GraphicsPSO instanceDepthPSO;

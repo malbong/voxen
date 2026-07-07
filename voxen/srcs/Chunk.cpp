@@ -638,7 +638,9 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 	std::unordered_map<BLOCK_TYPE, bool> tpTypeMap;
 	std::unordered_map<BLOCK_TYPE, bool> saTypeMap;
 
-	// 2. cull face column bit
+	// 2. 
+	// make cull face column bit: tp, sa
+	// make column bit: ll, op
 	// 0: x axis & left->right side (- => + : dir +)
 	// 1: x axis & right->left side (+ => - : dir -)
 	// 2: y axis & bottom->top side (- => + : dir +)
@@ -656,7 +658,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 				if (Block::IsTransparency(type)) {
 					tpTypeMap[type] = true;
 
-					// 타입이 같거나 불투명 블록이면 메쉬를 생성하지 않음
+					// 주변이 타입이 다르고, 불투명 물체가 아닌 경우 페이스 존재
 					if (x - 1 >= 0 && type != m_blocks[x - 1][y][z].GetType() &&
 						!Block::IsOpaque(m_blocks[x - 1][y][z].GetType())) {
 						memory->tpCullColBit[Utils::GetIndexFrom3D(0, y, z, CHUNK_SIZE_P)] |=
@@ -692,6 +694,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 				}
 				else if (Block::IsSemiAlpha(type)) {
 					saTypeMap[type] = true;
+
 					// - -> + : 불투명이 아니면 페이스 존재 -> 같은 타입을 고려하지 않음
 					if (x + 1 < CHUNK_SIZE_P && !Block::IsOpaque(m_blocks[x + 1][y][z].GetType())) {
 						memory->saCullColBit[Utils::GetIndexFrom3D(1, y, z, CHUNK_SIZE_P)] |=
@@ -725,7 +728,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 					memory->llColBit[Utils::GetIndexFrom3D(1, z, x, CHUNK_SIZE_P)] |= (1ULL << y);
 					memory->llColBit[Utils::GetIndexFrom3D(2, y, x, CHUNK_SIZE_P)] |= (1ULL << z);
 				}
-				else {
+				else { // opaque
 					opTypeMap[type] = true;
 					memory->opColBit[Utils::GetIndexFrom3D(0, y, z, CHUNK_SIZE_P)] |= (1ULL << x);
 					memory->opColBit[Utils::GetIndexFrom3D(1, z, x, CHUNK_SIZE_P)] |= (1ULL << y);
@@ -741,7 +744,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 	}
 
 
-	// 3. lowlod & opaque face culling
+	// 3. face cull: lowlod & opaque 
 	for (int axis = 0; axis < 3; ++axis) {
 		for (int h = 1; h < CHUNK_SIZE_P - 1; ++h) {
 			for (int w = 1; w < CHUNK_SIZE_P - 1; ++w) {
@@ -825,6 +828,7 @@ void Chunk::MakeFaceSliceColumnBit(uint64_t cullColBit[Chunk::CHUNK_SIZE_P2 * 6]
 				colbit = colbit & ~(1ULL << CHUNK_SIZE); // 32bit: CHUNK_SIZE
 
 				while (colbit) {
+					// bitPos가 바라보는 방향의 Slice 면임
 					int bitPos = Utils::TrailingZeros(colbit); // 1110001000 -> trailing zero : 3
 					colbit = colbit & (colbit - 1ULL);		   // 1110000000
 
@@ -862,6 +866,7 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 		for (int s = 0; s < CHUNK_SIZE; ++s) {
 			for (int i = 0; i < CHUNK_SIZE; ++i) {
 				uint64_t faceBit = faceColBit[Utils::GetIndexFrom3D(face, s, i, CHUNK_SIZE)];
+
 				int step = 0;
 				while (step < CHUNK_SIZE) {						   // 111100011100
 					step += Utils::TrailingZeros(faceBit >> step); // 1111000111|00| -> 2

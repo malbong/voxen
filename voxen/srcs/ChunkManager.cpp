@@ -185,26 +185,27 @@ void ChunkManager::RenderInstance()
 	}
 }
 
-void ChunkManager::RenderBasic(Vector3 cameraPos)
+void ChunkManager::RenderBasic(Vector3 cameraPos, bool useWireFrame)
 {
 	for (auto& c : m_renderChunkList) {
 		Vector3 chunkOffset = c->GetOffsetPosition();
 		Vector3 chunkCenterPosition = chunkOffset + Vector3(Chunk::CHUNK_SIZE * 0.5);
 		Vector3 diffPosition = chunkCenterPosition - cameraPos;
 
-		Graphics::SetPipelineStates(Graphics::basicPSO);
+		Graphics::SetPipelineStates(useWireFrame ? Graphics::basicWirePSO : Graphics::basicPSO);
 		if (diffPosition.Length() > (float)Camera::LOD_RENDER_DISTANCE) {
 			RenderLowLodChunk(c);
 		}
 		else {
 			RenderOpaqueChunk(c);
 
-			Graphics::SetPipelineStates(Graphics::semiAlphaPSO);
+			Graphics::SetPipelineStates(
+				useWireFrame ? Graphics::semiAlphaWirePSO : Graphics::semiAlphaPSO);
 			RenderSemiAlphaChunk(c);
 		}
 	}
 
-	Graphics::SetPipelineStates(Graphics::instancePSO);
+	Graphics::SetPipelineStates(useWireFrame ? Graphics::instanceWirePSO : Graphics::instancePSO);
 	RenderInstance();
 }
 

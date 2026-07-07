@@ -79,6 +79,7 @@ namespace Graphics {
 	ComPtr<ID3D11RasterizerState> solidRS;
 	ComPtr<ID3D11RasterizerState> wireRS;
 	ComPtr<ID3D11RasterizerState> noneCullRS;
+	ComPtr<ID3D11RasterizerState> noneCullWireRS;
 	ComPtr<ID3D11RasterizerState> mirrorRS;
 	ComPtr<ID3D11RasterizerState> shadowRS;
 	ComPtr<ID3D11RasterizerState> noneCullDepthBiasRS;
@@ -275,7 +276,9 @@ namespace Graphics {
 	GraphicsPSO basicPSO;
 	GraphicsPSO basicMirrorPSO;
 	GraphicsPSO basicAlbedoPSO;
+	GraphicsPSO basicWirePSO;
 	GraphicsPSO semiAlphaPSO;
+	GraphicsPSO semiAlphaWirePSO;
 	GraphicsPSO skyboxPSO;
 	GraphicsPSO skyboxMirrorPSO;
 	GraphicsPSO cloudPSO;
@@ -289,8 +292,10 @@ namespace Graphics {
 	GraphicsPSO fogFilterPSO;
 	GraphicsPSO instancePSO;
 	GraphicsPSO instanceMirrorPSO;
+	GraphicsPSO instanceWirePSO;
 	GraphicsPSO mirrorMaskingPSO;
 	GraphicsPSO waterPlanePSO;
+	GraphicsPSO waterPlaneWirePSO;
 	GraphicsPSO waterFilterPSO;
 	GraphicsPSO basicDepthPSO;
 	GraphicsPSO instanceDepthPSO;
@@ -1373,6 +1378,15 @@ bool Graphics::InitRasterizerStates()
 		return false;
 	}
 
+	// noneCullWireRS
+	D3D11_RASTERIZER_DESC noneCullWireRSDesc = noneCullRSDesc;
+	noneCullWireRSDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_WIREFRAME;
+	ret = Graphics::device->CreateRasterizerState(&noneCullWireRSDesc, noneCullWireRS.GetAddressOf());
+	if (FAILED(ret)) {
+		std::cout << "failed create noneCull Wire RS" << std::endl;
+		return false;
+	}
+
 	// mirrorRS
 	D3D11_RASTERIZER_DESC mirrorRSDesc = solidRSDesc;
 	mirrorRSDesc.FrontCounterClockwise = true;
@@ -1663,11 +1677,19 @@ void Graphics::InitGraphicsPSO()
 	basicAlbedoPSO = basicPSO;
 	basicAlbedoPSO.pixelShader = basicAlbedoPS;
 
+	// basicWirePSO
+	basicWirePSO = basicPSO;
+	basicWirePSO.rasterizerState = wireRS;
+
 	// semiAlphaPSO
 	semiAlphaPSO = basicPSO;
 	semiAlphaPSO.rasterizerState = noneCullRS;
 	semiAlphaPSO.vertexShader = basicAlphaClipVS;
 	semiAlphaPSO.pixelShader = basicAlphaClipPS;
+
+	// semiAlphaWirePSO
+	semiAlphaWirePSO = semiAlphaPSO;
+	semiAlphaWirePSO.rasterizerState = noneCullWireRS;
 
 	// skyboxPSO
 	skyboxPSO = basicPSO;
@@ -1738,6 +1760,10 @@ void Graphics::InitGraphicsPSO()
 	instanceMirrorPSO.depthStencilState = mirrorDrawMaskedDSS;
 	instanceMirrorPSO.stencilRef = 1;
 
+	// instanceWirePSO
+	instanceWirePSO = instancePSO;
+	instanceWirePSO.rasterizerState = noneCullWireRS;
+
 	// mirrorMaskingPSO
 	mirrorMaskingPSO = basicPSO;
 	mirrorMaskingPSO.pixelShader = mirrorMaskingPS;
@@ -1748,6 +1774,10 @@ void Graphics::InitGraphicsPSO()
 	waterPlanePSO = basicPSO;
 	waterPlanePSO.rasterizerState = noneCullRS;
 	waterPlanePSO.pixelShader = waterPlanePS;
+
+	// waterPlaneWirePSO
+	waterPlaneWirePSO = waterPlanePSO;
+	waterPlaneWirePSO.rasterizerState = noneCullWireRS;
 
 	// waterFilterPSO
 	waterFilterPSO = samplingPSO;

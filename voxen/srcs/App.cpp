@@ -344,6 +344,7 @@ void App::ImGuiFrame()
 	ImGui::Text("===========================================");
 	ImGui::Text("F1: Go to Materials For Lighting");
 	ImGui::Text("F2: Camera Speed");
+	ImGui::Text("F3: Render WireFrame");
 	ImGui::Text("");
 	
 	float worldX = m_camera.GetPosition().x;
@@ -602,7 +603,8 @@ void App::FillGBuffer()
 	ppSRVs.push_back(Graphics::climateMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
 
-	ChunkManager::GetInstance()->RenderBasic(m_camera.GetPosition());
+	bool useWireFrame = m_keyToggled[0x72];
+	ChunkManager::GetInstance()->RenderBasic(m_camera.GetPosition(), useWireFrame);
 }
 
 void App::MaskMSAAEdge()
@@ -797,7 +799,8 @@ void App::RenderWaterPlane()
 	ppSRVs.push_back(Graphics::waterStillNormalAtlasMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
 
-	Graphics::SetPipelineStates(Graphics::waterPlanePSO);
+	bool useWireFrame = m_keyToggled[0x72];
+	Graphics::SetPipelineStates(useWireFrame ? Graphics::waterPlaneWirePSO : Graphics::waterPlanePSO);
 	ChunkManager::GetInstance()->RenderTransparency();
 }
 
