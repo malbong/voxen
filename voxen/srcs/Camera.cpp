@@ -9,7 +9,7 @@ Camera::Camera()
 	: m_projFovAngleY(70.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(30.0f), m_isUnderWater(false),
-	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
+	  m_isOnConstantDirtyFlag(false), m_mouseSensitiveX(0.0005f),
 	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
 {
 }
@@ -183,7 +183,8 @@ void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt
 
 		Vector3 newChunkPos = Utils::CalcOffsetPos(m_eyePos, Chunk::CHUNK_SIZE);
 		if (newChunkPos != m_chunkPos) {
-			m_isOnChunkDirtyFlag = true;
+			ChunkManager::GetInstance()->OnChunkUpdateDirtyFlag();
+
 			m_chunkPos = newChunkPos;
 		}
 	}

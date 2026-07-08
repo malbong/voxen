@@ -29,20 +29,15 @@ void ChunkManager::operator=(const ChunkManager& rhs) {}
 
 bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 {
+	m_isOnChunkUpdateDirtyFlag = false;
+
 	uint32_t maxThreads = min(6u, std::thread::hardware_concurrency());
 	uint32_t usableThreads = (maxThreads > 1) ? maxThreads - 1 : 1;
 	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 3u);
 	m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u);
 
-	for (unsigned int i = 0; i < m_initThreadCount + m_patchThreadCount; ++i) {
-		m_chunkLoadMemoryPool.push_back(new ChunkLoadMemory());
-	}
-
-	for (int i = 0; i < CHUNK_POOL_SIZE; ++i) {
-		Chunk* chunk = new Chunk(i);
-		chunk->Clear();
-		m_chunkPool.push_back(chunk);
-	}
+	InitChunkLoadMemoryPool();
+	InitChunkPool();
 
 	m_lowLodVertexBuffers.resize(CHUNK_POOL_SIZE, nullptr);
 	m_lowLodIndexBuffers.resize(CHUNK_POOL_SIZE, nullptr);
@@ -75,18 +70,15 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 void ChunkManager::Update(
 	float dt, Camera& camera, const Light& light, bool mouseLeftDown, bool mouseRightDown)
 {
-	if (camera.m_isOnChunkDirtyFlag) {
+	if (m_isOnChunkUpdateDirtyFlag) {
 		UpdateChunkList(camera.GetChunkPosition());
-		camera.m_isOnChunkDirtyFlag = false;
+
+		m_isOnChunkUpdateDirtyFlag = false;
 	}
 
 	if (camera.HasPickingObject()) {
-		if (mouseLeftDown) {
-			RemoveBlockPatchAt(camera.GetPickingObjectPosition());
-		}
-		if (mouseRightDown) {
-			AddBlockPatchAt(camera.GetPickingObjectPosition(), camera.GetPickingObjectFace());
-		}
+		UpdatePickingBlock(camera.GetPickingObjectPosition(), camera.GetPickingObjectFace(),
+			mouseLeftDown, mouseRightDown);
 	}
 
 	UpdateLoadChunkList(camera);
@@ -244,6 +236,13 @@ void ChunkManager::RenderBasicAlbedo()
 void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 {
 	PosHashMap<bool> renderableChunkMap;
+
+	/*
+	* m_loadChunkList 관리
+	* - WorldPosition x,y,z를 Key값으로 사용
+	* - m_chunkMap에 없는 경우: Load될 청크로 판단하고 m_loadChunkList에 추가
+	* - m_chunkMap에 있는 경우: render 가능한 청크로 판단하고 renderableChunkMap에 추가 -> unload 판단
+	*/
 	for (int i = 0; i < MAX_HEIGHT_CHUNK_COUNT; ++i) {
 		for (int j = 0; j < CHUNK_COUNT; ++j) {
 			for (int k = 0; k < CHUNK_COUNT; ++k) {
@@ -251,35 +250,49 @@ void ChunkManager::UpdateChunkList(Vector3 cameraChunkPos)
 				int x = (int)cameraChunkPos.x + Chunk::CHUNK_SIZE * (j - CHUNK_COUNT / 2);
 				int z = (int)cameraChunkPos.z + Chunk::CHUNK_SIZE * (k - CHUNK_COUNT / 2);
 
-				if (m_chunkMap.find(PosInt3(x, y, z)) ==
-					m_chunkMap.end()) { // found chunk to be loaded
+				PosInt3 worldPos(x, y, z);
+				if (m_chunkMap.find(worldPos) == m_chunkMap.end()) { // found chunk to be loaded
 					Chunk* chunk = GetChunkFromPool();
-					if (chunk) {
-						chunk->SetOffsetPosition(Vector3((float)x, (float)y, (float)z));
+					if (!chunk)
+						continue;
 
-						m_chunkMap[PosInt3(x, y, z)] = chunk;
-						m_loadChunkList.push_back(chunk);
-					}
+					chunk->SetOffsetPosition(Vector3((float)x, (float)y, (float)z));
+
+					m_chunkMap[worldPos] = chunk;
+
+					m_loadChunkList.push_back(chunk);
 				}
-				else
-					renderableChunkMap[PosInt3(x, y, z)] = true;
+				else {
+					renderableChunkMap[worldPos] = true;
+				}
 			}
 		}
 	}
 
-	for (auto& p : m_chunkMap) { // { 1, 2, 3 } -> { 1, 2 } : 3 unload
-		if (renderableChunkMap.find(p.first) == renderableChunkMap.end() &&
-			m_chunkMap[p.first]->IsLoaded()) {
-			m_unloadChunkList.push_back(p.second);
+	/*
+	* m_unloadChunkList 관리
+	* - m_chunkMap을 순회하여 랜더링 가능한 청크맵에 존재하는지 검사
+	* - 로드가 되어있는데, 렌더링 가능한 곳이 아니면 m_unloadChunkList 언로드 리스트에 추가함
+	*/
+	for (auto& p : m_chunkMap) {
+		const PosInt3& pos = p.first;
+		Chunk* chunk = p.second;
+
+		if (chunk->IsLoaded() && renderableChunkMap.find(pos) == renderableChunkMap.end()) {
+			m_unloadChunkList.push_back(chunk);
 		}
 	}
 }
 
 void ChunkManager::UpdateLoadChunkList(Camera& camera)
 {
-	std::sort(m_loadChunkList.begin(), m_loadChunkList.end(), [&camera](Chunk* a, Chunk* b) {
-		Vector3 aDiff = (a->GetOffsetPosition() - camera.GetPosition());
-		Vector3 bDiff = (b->GetOffsetPosition() - camera.GetPosition());
+	/*
+	* loadChunkList: 카메라 거리순 로드 정렬
+	*/
+	Vector3 cameraPos = camera.GetPosition();
+	std::sort(m_loadChunkList.begin(), m_loadChunkList.end(), [&cameraPos](Chunk* a, Chunk* b) {
+		Vector3 aDiff = a->GetOffsetPosition() - cameraPos;
+		Vector3 bDiff = b->GetOffsetPosition() - cameraPos;
 
 		float aDiffLengthXZ = Vector2(aDiff.x, aDiff.z).Length();
 		float bDiffLengthXZ = Vector2(bDiff.x, bDiff.z).Length();
@@ -290,98 +303,99 @@ void ChunkManager::UpdateLoadChunkList(Camera& camera)
 		return aDiffLengthXZ > bDiffLengthXZ;
 	});
 
+	/*
+	* 
+	*/
 	while (!m_loadChunkList.empty() && m_initFutures.size() < m_initThreadCount) {
 		Chunk* chunk = m_loadChunkList.back();
 		m_loadChunkList.pop_back();
 
-		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
-		m_chunkLoadMemoryPool.pop_back();
+		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 
 		m_initFutures.push_back(std::make_pair(
 			chunk, std::async(std::launch::async, &Chunk::Initialize, chunk, chunkLoadMemory)));
 	}
 
 	for (auto it = m_initFutures.begin(); it != m_initFutures.end();) {
-		if (it->second.wait_for(std::chrono::microseconds(0)) == std::future_status::ready) {
-			Chunk* chunk = it->first;
-			ChunkLoadMemory* chunkLoadMemory = it->second.get();
-
-			// Dependency Map 구성
-			PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
-			for (const auto& [target, patchDataSet] : chunkLoadMemory->chunkPatchDataMap) {
-
-				bool patchFlag = false;
-				for (const auto& patchData : patchDataSet) {
-					m_patchDependencyMap[current][target].insert(patchData);
-
-					if (m_chunkMap.find(target) == m_chunkMap.end())
-						continue;
-
-					if (!m_chunkMap[target]->IsLoaded())
-						continue;
-
-					// current로 인해 target을 패치한 정보가 없다면 패치할 것
-					if (m_patchedChunkSet.find(target) == m_patchedChunkSet.end() ||
-						m_patchedChunkSet[target].find(current) ==
-							m_patchedChunkSet[target].end()) {
-
-						m_patchChunkMap[target].insert(patchData);
-
-						patchFlag = true;
-					}
-				}
-
-				m_lookupDependencySet[target].insert(current);
-
-				// patch를 진행한 target인 경우, patched set에 기록해두고, 수정한 정보에 대한 처리
-				if (patchFlag) {
-					m_patchedChunkSet[target].insert(current);
-
-					if (m_cameraPatchChunkMap.find(target) != m_cameraPatchChunkMap.end()) {
-						for (const auto& patchData : m_cameraPatchChunkMap[target]) {
-							m_patchChunkMap[target].insert(patchData);
-						}
-					}
-				}
-			}
-
-			// 월드: 본인 청크에 대한 패치정보가 담긴 Dependency Map 확인 후 있으면 List에 넣음
-			if (m_lookupDependencySet.find(current) != m_lookupDependencySet.end()) {
-				for (const auto& source : m_lookupDependencySet[current]) {
-					if (m_patchDependencyMap.find(source) != m_patchDependencyMap.end() &&
-						m_patchDependencyMap[source].find(current) !=
-							m_patchDependencyMap[source].end()) {
-						for (const auto& patchData : m_patchDependencyMap[source][current]) {
-							m_patchChunkMap[current].insert(patchData);
-							m_patchedChunkSet[current].insert(source);
-						}
-					}
-				}
-			}
-
-			// 액션: 플레이어에 의해서 수정된 정보를 담음
-			if (m_cameraPatchChunkMap.find(current) != m_cameraPatchChunkMap.end()) {
-				for (const auto& patchData : m_cameraPatchChunkMap[current]) {
-					m_patchChunkMap[current].insert(patchData);
-				}
-			}
-
-			// update vertex and index count value for multi threading
-			chunk->UpdateCpuBufferCount();
-
-			UpdateChunkBuffer(chunk);
-
-			chunk->SetUpdateRequired(true);
-			chunk->SetLoad(true);
-
-			chunkLoadMemory->Clear();
-			m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
-
-			it = m_initFutures.erase(it);
-		}
-		else {
+		if (it->second.wait_for(std::chrono::microseconds(0)) != std::future_status::ready) {
 			++it;
+			continue;
 		}
+
+		Chunk* chunk = it->first;
+		ChunkLoadMemory* chunkLoadMemory = it->second.get();
+
+		// Dependency Map 구성
+		PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
+		for (const auto& [target, patchDataSet] : chunkLoadMemory->chunkPatchDataMap) {
+
+			bool patchFlag = false;
+			for (const auto& patchData : patchDataSet) {
+				m_patchDependencyMap[current][target].insert(patchData);
+
+				if (m_chunkMap.find(target) == m_chunkMap.end())
+					continue;
+
+				if (!m_chunkMap[target]->IsLoaded())
+					continue;
+
+				// current로 인해 target을 패치한 정보가 없다면 패치할 것
+				if (m_patchedChunkSet.find(target) == m_patchedChunkSet.end() ||
+					m_patchedChunkSet[target].find(current) ==
+						m_patchedChunkSet[target].end()) {
+
+					m_patchChunkMap[target].insert(patchData);
+
+					patchFlag = true;
+				}
+			}
+
+			m_lookupDependencySet[target].insert(current);
+
+			// patch를 진행한 target인 경우, patched set에 기록해두고, 수정한 정보에 대한 처리
+			if (patchFlag) {
+				m_patchedChunkSet[target].insert(current);
+
+				if (m_cameraPatchChunkMap.find(target) != m_cameraPatchChunkMap.end()) {
+					for (const auto& patchData : m_cameraPatchChunkMap[target]) {
+						m_patchChunkMap[target].insert(patchData);
+					}
+				}
+			}
+		}
+
+		// 월드: 본인 청크에 대한 패치정보가 담긴 Dependency Map 확인 후 있으면 List에 넣음
+		if (m_lookupDependencySet.find(current) != m_lookupDependencySet.end()) {
+			for (const auto& source : m_lookupDependencySet[current]) {
+				if (m_patchDependencyMap.find(source) != m_patchDependencyMap.end() &&
+					m_patchDependencyMap[source].find(current) !=
+						m_patchDependencyMap[source].end()) {
+					for (const auto& patchData : m_patchDependencyMap[source][current]) {
+						m_patchChunkMap[current].insert(patchData);
+						m_patchedChunkSet[current].insert(source);
+					}
+				}
+			}
+		}
+
+		// 액션: 플레이어에 의해서 수정된 정보를 담음
+		if (m_cameraPatchChunkMap.find(current) != m_cameraPatchChunkMap.end()) {
+			for (const auto& patchData : m_cameraPatchChunkMap[current]) {
+				m_patchChunkMap[current].insert(patchData);
+			}
+		}
+
+		// update vertex and index count value for multi threading
+		chunk->UpdateCpuBufferCount();
+
+		UpdateChunkBuffer(chunk);
+
+		chunk->SetUpdateRequired(true);
+		chunk->SetLoad(true);
+
+		ReleaseChunkLoadMemoryToPool(chunkLoadMemory);
+
+		it = m_initFutures.erase(it);
 	}
 }
 
@@ -418,8 +432,6 @@ void ChunkManager::UpdateUnloadChunkList()
 
 		if (m_patchedChunkSet.find(chunkPos) != m_patchedChunkSet.end())
 			m_patchedChunkSet.erase(chunkPos);
-
-		chunk->Clear();
 
 		ReleaseChunkToPool(chunk);
 	}
@@ -469,9 +481,8 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 		}
 
 		const PatchDataHashSet& chunkPatchDataSet = m_patchChunkMap[chunkPos];
-
-		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
-		m_chunkLoadMemoryPool.pop_back();
+		
+		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 
 		m_patchFutures.push_back(
 			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
@@ -494,8 +505,7 @@ void ChunkManager::UpdatePatchChunkMap(Camera& camera)
 
 			chunk->SetIsPatching(false);
 
-			chunkLoadMemory->Clear();
-			m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
+			ReleaseChunkLoadMemoryToPool(chunkLoadMemory);
 
 			it = m_patchFutures.erase(it);
 		}
@@ -512,29 +522,109 @@ void ChunkManager::UpdateRenderChunkList(Camera& camera, const Light& light)
 	m_renderShadowChunkList.clear();
 
 	for (auto& p : m_chunkMap) {
-		if (!p.second->IsLoaded())
+		Chunk* chunk = p.second;
+
+		if (!chunk->IsLoaded())
 			continue;
 
-		if (p.second->IsEmpty()) {
+		if (chunk->IsEmpty()) {
 			continue;
 		}
 
-		Vector3 chunkPos = p.second->GetPosition();
+		Vector3 chunkPos = chunk->GetPosition();
+
 		if (FrustumCulling(chunkPos, camera, light, false, false)) {
-			m_renderChunkList.push_back(p.second);
+			m_renderChunkList.push_back(chunk);
 		}
 
 		for (int i = 0; i < Light::CASCADE_LEVEL; ++i) {
 			if (FrustumCulling(chunkPos, camera, light, false, true, i)) {
-				m_renderShadowChunkList.push_back(p.second);
+				m_renderShadowChunkList.push_back(chunk);
 				break;
 			}
 		}
 
 		Vector3 mirrorChunkPos = Vector3::Transform(chunkPos, camera.GetMirrorPlaneMatrix());
 		if (FrustumCulling(mirrorChunkPos, camera, light, true, false)) {
-			m_renderMirrorChunkList.push_back(p.second);
+			m_renderMirrorChunkList.push_back(chunk);
 		}
+	}
+}
+
+void ChunkManager::UpdateInstanceInfoList(Camera& camera)
+{
+	// clear all info
+	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i)
+		m_instanceInfoList[i].clear();
+
+	// check instance in chunk managerList
+	for (auto& c : m_renderChunkList) {
+		// check stable
+		if (c->IsUpdateRequired())
+			continue;
+
+		// check distance
+		Vector3 chunkPosition = c->GetPosition();
+		Vector3 chunkCenterPosition = chunkPosition + Vector3(Chunk::CHUNK_SIZE * 0.5);
+		Vector3 diffPosition = chunkCenterPosition - camera.GetPosition();
+		if (diffPosition.Length() > (float)Camera::LOD_RENDER_DISTANCE)
+			continue;
+
+		// set info
+		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
+		for (auto& p : instanceMap) {
+			const PosInt3& localPos = p.first;
+			const Instance& instance = p.second;
+
+			Vector3 worldPosition = c->GetOffsetPosition() + Utils::PosInt3ToVector(localPos);
+
+			if (instance.GetFaceFlag() > 0) {
+				AddInstanceInfoBySplitFace(worldPosition, instance);
+			}
+			else {
+				AddInstanceInfo(worldPosition, instance);
+			}
+		}
+	}
+
+	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i) {
+		DXUtils::ResizeBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i],
+			(UINT)D3D11_BIND_VERTEX_BUFFER, m_instanceInfoList[i].size() + 1024);
+		DXUtils::UpdateBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i]);
+	}
+}
+
+void ChunkManager::UpdateChunkConstant(float dt)
+{
+	for (auto& p : m_chunkMap) {
+		Chunk* chunk = p.second;
+
+		if (!chunk->IsLoaded())
+			continue;
+
+		if (!chunk->IsUpdateRequired())
+			continue;
+
+		chunk->Update(dt);
+
+		ChunkConstantData tempConstantData;
+		tempConstantData.world = chunk->GetConstantData().world.Transpose();
+
+		if (m_constantBuffers[chunk->GetID()]) {
+			DXUtils::UpdateConstantBuffer(m_constantBuffers[chunk->GetID()], tempConstantData);
+		}
+	}
+}
+
+void ChunkManager::UpdatePickingBlock(
+	Vector3 pickingPosition, DIR pickingFace, bool useRemove, bool useAdd)
+{
+	if (useRemove) {
+		RemoveBlockPatchAt(pickingPosition);
+	}
+
+	if (useAdd) {
+		AddBlockPatchAt(pickingPosition, pickingFace);
 	}
 }
 
@@ -564,89 +654,29 @@ void ChunkManager::AddInstanceInfo(Vector3 worldPosition, const Instance& instan
 void ChunkManager::AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance)
 {
 	uint8_t faceFlag = instance.GetFaceFlag();
-	Instance splitedInstance = instance;
 
 	if (faceFlag & (1 << VINE_DIR::V_LEFT)) {
+		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(270.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
 	if (faceFlag & (1 << VINE_DIR::V_RIGHT)) {
+		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(90.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
 	if (faceFlag & (1 << VINE_DIR::V_FRONT)) {
+		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(180.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
 	if (faceFlag & (1 << VINE_DIR::V_BACK)) {
+		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(0.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
-	}
-}
-
-void ChunkManager::UpdateInstanceInfoList(Camera& camera)
-{
-	// clear all info
-	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i)
-		m_instanceInfoList[i].clear();
-
-	// check instance in chunk managerList
-	for (auto& c : m_renderChunkList) {
-		if (c->IsUpdateRequired())
-			continue;
-
-		// check distance
-		Vector3 chunkPosition = c->GetPosition();
-		Vector3 chunkCenterPosition = chunkPosition + Vector3(Chunk::CHUNK_SIZE * 0.5);
-		Vector3 diffPosition = chunkCenterPosition - camera.GetPosition();
-		if (diffPosition.Length() > (float)Camera::LOD_RENDER_DISTANCE)
-			continue;
-
-		// set info
-		const PosHashMap<Instance>& instanceMap = c->GetInstanceMap();
-		for (auto& p : instanceMap) {
-			const PosInt3& localPos = p.first;
-			Vector3 worldPosition = c->GetOffsetPosition() + Utils::PosInt3ToVector(localPos);
-
-			const Instance& instance = p.second;
-
-			if (instance.GetFaceFlag() > 0) {
-				AddInstanceInfoBySplitFace(worldPosition, instance);
-			}
-			else {
-				AddInstanceInfo(worldPosition, instance);
-			}
-		}
-	}
-
-	for (int i = 0; i < INSTANCE_SHAPE::INSTANCE_SHAPE_COUNT; ++i) {
-		DXUtils::ResizeBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i],
-			(UINT)D3D11_BIND_VERTEX_BUFFER, m_instanceInfoList[i].size() + 1024);
-		DXUtils::UpdateBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i]);
-	}
-}
-
-void ChunkManager::UpdateChunkConstant(float dt)
-{
-	for (auto& p : m_chunkMap) {
-		if (p.second->IsLoaded() && p.second->IsUpdateRequired()) {
-			p.second->Update(dt);
-
-			ChunkConstantData tempConstantData;
-			tempConstantData.world = p.second->GetConstantData().world.Transpose();
-
-			if (m_constantBuffers[p.second->GetID()]) {
-				DXUtils::UpdateConstantBuffer(
-					m_constantBuffers[p.second->GetID()], tempConstantData);
-			}
-
-			if (p.second->GetPosition().y == p.second->GetOffsetPosition().y) {
-				p.second->SetUpdateRequired(false);
-			}
-		}
 	}
 }
 
@@ -773,17 +803,62 @@ void ChunkManager::UpdateChunkBuffer(Chunk* chunk)
 	}
 }
 
+void ChunkManager::InitChunkPool()
+{
+	m_chunkPool.reserve(CHUNK_POOL_SIZE);
+
+	for (int id = 0; id < CHUNK_POOL_SIZE; ++id) {
+		Chunk* chunk = new Chunk(id);
+		chunk->Clear();
+
+		m_chunkPool.push_back(chunk);
+	}
+}
+
 Chunk* ChunkManager::GetChunkFromPool()
 {
 	if (!m_chunkPool.empty()) {
 		Chunk* chunk = m_chunkPool.back();
 		m_chunkPool.pop_back();
+
 		return chunk;
 	}
+
 	return nullptr;
 }
 
-void ChunkManager::ReleaseChunkToPool(Chunk* chunk) { m_chunkPool.push_back(chunk); }
+void ChunkManager::ReleaseChunkToPool(Chunk* chunk) 
+{ 
+	chunk->Clear();
+
+	m_chunkPool.push_back(chunk); 
+}
+
+void ChunkManager::InitChunkLoadMemoryPool()
+{
+	for (unsigned int i = 0; i < m_initThreadCount + m_patchThreadCount; ++i) {
+		m_chunkLoadMemoryPool.push_back(new ChunkLoadMemory());
+	}
+}
+
+ChunkLoadMemory* ChunkManager::GetChunkLoadMemoryFromPool()
+{ 
+	if (!m_chunkLoadMemoryPool.empty()) {
+		ChunkLoadMemory* chunkLoadMemory = m_chunkLoadMemoryPool.back();
+		m_chunkLoadMemoryPool.pop_back();
+
+		return chunkLoadMemory;
+	}
+
+	return nullptr;
+}
+
+void ChunkManager::ReleaseChunkLoadMemoryToPool(ChunkLoadMemory* chunkLoadMemory)
+{
+	chunkLoadMemory->Clear();
+
+	m_chunkLoadMemoryPool.push_back(chunkLoadMemory);
+}
 
 bool ChunkManager::MakeInstanceVertexBuffer()
 {

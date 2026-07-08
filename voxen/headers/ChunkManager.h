@@ -63,6 +63,7 @@ public:
 	void PropagatePatchByEdgeBlock(
 		Vector3 localPosition, Vector3 chunkOffsetPos, BLOCK_TYPE blockType);
 	
+	inline void OnChunkUpdateDirtyFlag() { m_isOnChunkUpdateDirtyFlag = true; }
 
 private:
 
@@ -78,6 +79,7 @@ private:
 	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
+	void UpdatePickingBlock(Vector3 pickingPosition, DIR pickingFace, bool useRemove, bool useAdd);
 
 	void AddInstanceInfo(Vector3 worldPosition, const Instance& instance);
 	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
@@ -87,11 +89,18 @@ private:
 
 	void UpdateChunkBuffer(Chunk* chunk);
 	
+	void InitChunkPool();
 	Chunk* GetChunkFromPool();
 	void ReleaseChunkToPool(Chunk* chunk);
 
+	void InitChunkLoadMemoryPool();
+	ChunkLoadMemory* GetChunkLoadMemoryFromPool();
+	void ReleaseChunkLoadMemoryToPool(ChunkLoadMemory* chunkLoadMemory);
+
 	bool MakeInstanceVertexBuffer();
 	bool MakeInstanceInfoBuffer();
+
+	bool m_isOnChunkUpdateDirtyFlag;
 
 	std::vector<Chunk*> m_chunkPool;
 	PosHashMap<Chunk*> m_chunkMap;

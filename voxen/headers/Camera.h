@@ -40,9 +40,6 @@ public:
 
 	inline float GetNearZ() const { return m_nearZ; }
 	inline float GetFarZ() const { return m_farZ; }
-	
-	bool m_isOnConstantDirtyFlag;
-	bool m_isOnChunkDirtyFlag;
 
 	ComPtr<ID3D11Buffer> m_constantBuffer;
 	ComPtr<ID3D11Buffer> m_mirrorConstantBuffer;
@@ -61,6 +58,8 @@ private:
 	void CheckUnderWater();
 
 	void DDAPickingBlock();
+
+	bool m_isOnConstantDirtyFlag;
 
 	float m_projFovAngleY;
 	float m_nearZ;

@@ -108,9 +108,13 @@ void Chunk::Update(float dt)
 {
 	if (m_isUpdateRequired) {
 		m_position.y += 50.0f * dt;
+
 		if (m_position.y > m_offsetPosition.y) {
 			m_position.y = m_offsetPosition.y;
+			
+			m_isUpdateRequired = false;
 		}
+
 		m_constantData.world = Matrix::CreateTranslation(m_position);
 	}
 }
