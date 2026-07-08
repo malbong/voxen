@@ -65,7 +65,6 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 
 ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory)
 {
-	m_isPatching = true;
 	m_onPatchDirtyFlag = false;
 
 	for (const PatchData& patchData : patchDataSet) {

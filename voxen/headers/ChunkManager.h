@@ -80,7 +80,7 @@ private:
 	void PatchChunks(Camera& camera);
 	void SyncPatchedChunks();
 
-	void UpdatePatchChunkMap(Chunk* chunk, ChunkLoadMemory* chunkLoadMemory);
+	void UpdatePatchChunkMap(Chunk* chunk, const PosHashMap<PatchDataHashSet>& chunkPatchDataMap);
 	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
@@ -92,7 +92,7 @@ private:
 	bool FrustumCulling(
 		Vector3 position, const Camera& camera, const Light& light, bool useMirror, bool useShadow, int index = 0);
 
-	void UpdateChunkBuffer(Chunk* chunk);
+	void UpdateChunkGPUBuffer(Chunk* chunk);
 	
 	void InitChunkPool();
 	Chunk* GetChunkFromPool();
@@ -105,7 +105,7 @@ private:
 	bool MakeInstanceVertexBuffer();
 	bool MakeInstanceInfoBuffer();
 
-	void SortLoadChunkPosListByCameraDistance(Vector3 cameraPos);
+	void SortPosListByCameraDistance(Vector3 cameraPos, std::vector<PosInt3>& posList);
 
 	bool m_isOnChunkUpdateDirtyFlag;
 
@@ -117,6 +117,7 @@ private:
 	PosHashMap<PosHashSet> m_patchedChunkSet;
 	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
 	PosHashMap<PatchDataHashSet> m_patchChunkMap;
+	std::vector<PosInt3> m_patchChunkPosList;
 
 	PosHashMap<bool> m_renderablePosMap;
 	PosHashMap<bool> m_waitLoadChunkPosMap;
