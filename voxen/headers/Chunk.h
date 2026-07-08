@@ -52,7 +52,11 @@ public:
 	inline void SetUpdateRequired(bool isRequired) { m_isUpdateRequired = isRequired; }
 	inline bool IsUpdateRequired() const { return m_isUpdateRequired; }
 
-	inline bool OnPatchDirtyFlag() { return m_onPatchDirtyFlag; }
+	inline void SetOnPatchDirtyFlag(bool onPatchDirtyFlag)
+	{
+		m_onPatchDirtyFlag = onPatchDirtyFlag;
+	}
+	inline bool OnPatchDirtyFlag() const { return m_onPatchDirtyFlag; }
 
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
 	inline void SetOffsetPosition(Vector3 offsetPosition) { m_offsetPosition = offsetPosition; }

@@ -72,10 +72,15 @@ private:
 	ChunkManager(const ChunkManager& other);
 	void operator=(const ChunkManager& rhs);
 
-	void UpdateChunkList(Vector3 cameraChunkPos);
-	void UpdateLoadChunkList(Camera& camera);
-	void UpdateUnloadChunkList();
-	void UpdatePatchChunkMap(Camera& camera);
+	void UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos);
+
+	void LoadChunks(Camera& camera);
+	void SyncLoadedChunks();
+	void UnloadChunks();
+	void PatchChunks(Camera& camera);
+	void SyncPatchedChunks();
+
+	void UpdatePatchChunkMap(Chunk* chunk, ChunkLoadMemory* chunkLoadMemory);
 	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
@@ -100,6 +105,8 @@ private:
 	bool MakeInstanceVertexBuffer();
 	bool MakeInstanceInfoBuffer();
 
+	void SortLoadChunkPosListByCameraDistance(Vector3 cameraPos);
+
 	bool m_isOnChunkUpdateDirtyFlag;
 
 	std::vector<Chunk*> m_chunkPool;
@@ -111,7 +118,10 @@ private:
 	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
 	PosHashMap<PatchDataHashSet> m_patchChunkMap;
 
-	std::vector<Chunk*> m_loadChunkList;
+	PosHashMap<bool> m_renderablePosMap;
+	PosHashMap<bool> m_waitLoadChunkPosMap;
+	std::vector<PosInt3> m_loadChunkPosList;
+
 	std::vector<Chunk*> m_unloadChunkList;
 	std::vector<Chunk*> m_renderChunkList;
 	std::vector<Chunk*> m_renderMirrorChunkList;
