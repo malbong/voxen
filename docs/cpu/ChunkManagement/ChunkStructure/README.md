@@ -2,344 +2,190 @@
 
 ## 1. 개요
 
-Voxen의 월드는 Block, Chunk, ChunkManager 세 계층으로 구성된다. Block은 월드를 이루는 최소 단위이고, Chunk는 32x32x32개의 Block을 묶은 공간 단위이며, ChunkManager는 모든 Chunk를 Object Pool 기반으로 관리하는 싱글턴이다.
+Chunk는 Voxen 월드를 이루는 32×32×32 블록 크기의 공간 단위이다. 자체적으로 지형/바이옴/블록 타입/나무/인스턴스를 결정하고, 이를 기반으로 렌더링에 사용할 CPU 메시 데이터(버텍스/인덱스)까지 스스로 생성한다.
 
-이 문서는 각 계층이 데이터를 어떻게 보유하고 참조하는지, 구조 중심으로 정리한다.
+Chunk는 자기 자신의 CPU 데이터만 소유하며, GPU 리소스(D3D11 Buffer)와 라이프사이클(로드/언로드/패치 스케줄링)은 상위 관리자인 [ChunkManager](../ChunkManager/README.md)가 담당한다. 이 문서는 Chunk가 어떤 데이터를 가지고 있고, 그 데이터가 초기화되는 순서, 그리고 왜 CPU 메시 데이터를 4종으로 분리했는지에 집중한다.
 
-## 2. Block - 최소 단위
+## 2. Chunk가 보유하는 데이터
 
-### 2.1 데이터 구조
-
-```cpp
-class Block {
-    BLOCK_TYPE m_type;  // uint8_t (1바이트)
-};
-```
-
-Block은 `BLOCK_TYPE` 열거형 하나만 저장한다. 현재 약 40종의 블록 타입이 정의되어 있으며, 크게 3가지 렌더링 분류로 나뉜다.
-
-| 분류         | 예시                          | 특성                    |
-| ------------ | ----------------------------- | ----------------------- |
-| Opaque       | Grass, Stone, Dirt, Log 등    | 불투명, 뒷면 컬링 가능  |
-| Transparency | Water, Air                    | 투명, 별도 패스 렌더링  |
-| SemiAlpha    | Oak Leaf, Spruce Leaf 등      | 반투명, 알파 테스트 적용 |
-
-### 2.2 블록 속성 테이블 (BlockTypeInfoSet)
-
-각 블록 타입의 텍스처 인덱스와 렌더링 분류는 `BlockTypeInfoSet`에서 관리한다.
+### 2.1 블록 배열 - m_blocks
 
 ```cpp
-class BlockTypeInfo {
-    uint8_t m_texTopIndex;     // Top 면 텍스처
-    uint8_t m_texSideIndex;    // Side 면 텍스처
-    uint8_t m_texBottomIndex;  // Bottom 면 텍스처
-    bool m_isTransparency;
-    bool m_isOpaque;
-    bool m_isSemiAlpha;
-};
+Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];
+// CHUNK_SIZE   = 32
+// CHUNK_SIZE_P = 34   (32 + 좌우 패딩 1칸씩)
 ```
 
-블록 타입에 따라 면마다 다른 텍스처를 가질 수 있다. 예를 들어 `BLOCK_GRASS`는 Top=잔디, Side=잔디+흙, Bottom=흙 텍스처를 사용한다.
+실제 데이터는 32³이지만 배열 크기는 34³이다. 상하좌우전후 각 1칸씩의 **패딩**이 존재하며, 인접 청크의 경계 블록 정보를 이 패딩에 미리 채워두면 Face Culling 로직이 청크 경계 분기 없이 균일하게 동작한다. Block 하나는 `BLOCK_TYPE(uint8_t)` 한 필드만 저장한다.
 
-## 3. Instance - 비블록 오브젝트
+블록 접근 시에는 항상 `m_blocks[x+1][y+1][z+1]`로 오프셋을 적용한다.
 
-Block으로 표현하기 어려운 풀, 꽃, 덩굴 같은 오브젝트는 Instance로 처리한다. Block이 정육면체 메시라면, Instance는 Cross(X자), Fence(ㅁ자), Square(벽면), Floor(바닥면) 등의 경량 메시를 사용한다.
+### 2.2 인스턴스 맵 - m_instanceMap
 
 ```cpp
-class Instance {
-    INSTANCE_TYPE m_type;              // 인스턴스 종류
-    TEXTURE_INDEX m_texIndex;          // 텍스처 인덱스
-    float m_yawRotation;               // Y축 회전 (0~360)
-    Vector2 m_offsetNoisePositionXZ;   // XZ 위치 노이즈 오프셋
-    uint8_t m_faceFlag;                // 덩굴용 면 플래그
-};
+PosHashMap<Instance> m_instanceMap;   // PosInt3(x,y,z) -> Instance
 ```
 
-Instance는 Block처럼 3D 배열에 저장되지 않고, 청크 내 `PosHashMap<Instance>`에 좌표 키로 저장된다. 인스턴스가 없는 위치에는 엔트리 자체가 존재하지 않아 메모리를 절약한다.
+풀, 꽃, 덩굴처럼 정육면체 메시로 표현하기 어려운 오브젝트는 별도 `Instance` 자료구조로 관리한다. Block처럼 3D 배열로 두면 대부분의 슬롯이 비어 낭비가 크므로, 좌표를 키로 하는 해시맵에 **희소 저장**한다.
 
-## 4. Chunk - 32x32x32 블록 공간
+Instance는 형상 타입(Cross/Fence/Square/Floor), 텍스처 인덱스, Y축 회전, 위치 오프셋 노이즈, 면 플래그(덩굴용)를 담는다.
 
-### 4.1 Block 저장 방식
+### 2.3 CPU 메시 데이터 - 4종 분리
 
 ```cpp
-class Chunk {
-    static const int CHUNK_SIZE   = 32;
-    static const int CHUNK_SIZE_P = 34;  // CHUNK_SIZE + 2 (패딩 포함)
-
-    Block m_blocks[CHUNK_SIZE_P][CHUNK_SIZE_P][CHUNK_SIZE_P];  // 34x34x34
-    PosHashMap<Instance> m_instanceMap;
-};
+std::vector<VoxelVertex> m_lowLodVertices;        // + 인덱스
+std::vector<VoxelVertex> m_opaqueVertices;        // + 인덱스
+std::vector<VoxelVertex> m_transparencyVertices;  // + 인덱스
+std::vector<VoxelVertex> m_semiAlphaVertices;     // + 인덱스
 ```
 
-실제 블록 데이터는 `32x32x32 = 32,768개`이지만, 배열 크기는 `34x34x34 = 39,304개`이다. 상하좌우전후로 1칸씩 패딩이 추가되어 있다.
+블록 배열을 Binary Greedy Meshing으로 변환한 결과가 이곳에 저장된다. 4종으로 분리한 이유는 [§4](#4-cpu-메시-데이터를-4종으로-분리한-이유)에서 다룬다.
 
-```
-     인덱스:  0   1   2   3  ...  32  33
-             ┌───┬───┬───┬───────┬───┬───┐
-             │ P │   │   │  ...  │   │ P │
-             └───┴───┴───┴───────┴───┴───┘
-              패딩  ◄── 실제 데이터 (32칸) ──►  패딩
-```
+`VoxelVertex`는 위치, 법선, 텍스처 인덱스, AO 등을 `uint32_t` 하나에 비트 패킹하여 메모리를 절약한다.
 
-블록 `(x, y, z)`에 접근할 때는 항상 `m_blocks[x+1][y+1][z+1]`로 오프셋을 적용한다.
-
-### 4.2 패딩이 필요한 이유
-
-Binary Greedy Meshing에서 면 컬링(Face Culling)을 수행할 때, 각 블록의 6방향 이웃을 검사한다. 청크 경계에 위치한 블록은 인접 청크의 블록 정보가 필요한데, 패딩에 그 정보를 미리 저장해두면 경계 분기 없이 동일한 로직으로 처리할 수 있다.
-
-```
-  인접 청크 A          현재 청크           인접 청크 B
-  ┌────────┐    ┌─────────────────┐    ┌────────┐
-  │   ...  │31  │P│ 0  1 ... 31 │P│  0│  ...   │
-  └────────┘    └─────────────────┘    └────────┘
-                 ▲                  ▲
-                 │                  │
-          A의 경계 블록을      B의 경계 블록을
-          패딩[0]에 복사       패딩[33]에 복사
-```
-
-패딩 데이터는 Chunk 초기화 시 직접 계산한다. `InitBasicBlockType()`에서 `CHUNK_SIZE_P(34)` 범위를 순회하므로, 패딩 영역의 블록 타입도 동일한 노이즈 기반으로 결정된다. 이후 인접 청크의 나무가 경계를 넘는 경우에는 Patch 시스템을 통해 패딩 블록이 갱신된다.
-
-### 4.3 메시 데이터
-
-Chunk는 블록 배열을 Binary Greedy Meshing으로 변환하여 4종류의 버텍스/인덱스 데이터를 생성한다.
+### 2.4 상태 플래그와 좌표
 
 ```cpp
-// 4종류의 메시 버퍼 (CPU 측)
-std::vector<VoxelVertex> m_lowLodVertices;        // 원거리 LOD용
-std::vector<VoxelVertex> m_opaqueVertices;        // 불투명 블록
-std::vector<VoxelVertex> m_transparencyVertices;  // 투명 블록 (물)
-std::vector<VoxelVertex> m_semiAlphaVertices;     // 반투명 블록 (잎)
-// 각각에 대응하는 인덱스 벡터도 존재
+UINT    m_id;                  // Object Pool 슬롯 ID (GPU 버퍼 인덱스 겸용)
+Vector3 m_offsetPosition;      // 논리적 월드 좌표 (32의 배수)
+Vector3 m_position;            // 렌더링용 좌표 (등장 애니메이션 진행 위치)
+
+bool    m_isLoaded;            // Initialize 완료 여부
+bool    m_isPatching;          // 패치 진행 중 여부
+bool    m_isUpdateRequired;    // 등장 애니메이션 진행 중
+bool    m_onPatchDirtyFlag;    // 패치로 블록이 실제로 바뀌었는가 (메시 재생성 필요)
+
+ChunkConstantData m_constantData;   // world 변환 행렬 (GPU 상수 버퍼로 업로드될 데이터)
 ```
 
-`VoxelVertex`는 위치, 법선, 텍스처 인덱스, AO 등을 `uint32_t` 하나에 비트 패킹하여 저장한다.
+`m_id`는 ChunkManager의 Object Pool에서 청크가 생성될 때 부여되며, 언로드/재활용 사이에도 **불변**이다. 이 ID가 그대로 ChunkManager의 GPU 버퍼 배열 인덱스로 쓰인다([§5](#5-gpu-버퍼는-왜-chunk가-아니라-chunkmanager가-소유하는가) 참조).
 
-```cpp
-struct VoxelVertex {
-    uint32_t data;  // 비트 패킹: 위치(15bit) + 법선(3bit) + 텍스처(8bit) + AO(2bit) + ...
-};
-```
+## 3. Initialize - 청크 데이터 초기화 순서
 
-### 4.4 청크 식별 및 좌표
-
-```cpp
-UINT m_id;                  // Object Pool 내 고유 ID (GPU 버퍼 인덱싱에 사용)
-Vector3 m_offsetPosition;   // 청크의 월드 시작 좌표 (32의 배수)
-Vector3 m_position;         // 실제 렌더링 위치 (등장 애니메이션에 사용)
-```
-
-`m_offsetPosition`은 청크의 논리적 위치이고, `m_position`은 렌더링 시 사용되는 위치다. 청크가 새로 로드될 때 `m_position.y`를 아래에서 시작하여 `m_offsetPosition.y`까지 올려보내는 등장 애니메이션을 적용한다.
-
-### 4.5 Chunk 전체 구조 요약
+`Chunk::Initialize()`는 워커 스레드에서 호출되어 청크 하나의 모든 CPU 데이터를 완성한다. 6개 단계를 **순차적으로** 수행하며, 각 단계는 앞 단계의 결과를 입력으로 사용한다.
 
 ```
-Chunk
-├── m_id                      Pool 내 고유 ID
-├── m_offsetPosition          월드 시작 좌표
-├── m_position                렌더링 위치
+Chunk::Initialize(offsetPosition, memory)
 │
-├── m_blocks[34][34][34]      블록 3D 배열 (패딩 포함)
-│   └── Block
-│       └── m_type (uint8_t)  블록 타입
+├─ [1] InitTerrainNoises          -> noise 배열 (7종) 채움
+├─ [2] InitBiomeMapAndCount       -> biomeMap2D + biomeCount 채움
+├─ [3] InitBasicBlockType         -> m_blocks 전체 초기 배정
+├─ [4] InitTreePlace              -> 나무 배치 + 크로스 청크 패치 데이터 생성
+├─ [5] InitInstancePlace          -> m_instanceMap 채움 (+ 크로스 청크 패치)
+├─ [6] InitWorldVerticesData      -> CPU 메시 4종 생성
 │
-├── m_instanceMap             인스턴스 해시맵
-│   └── PosInt3 → Instance
-│       ├── m_type            인스턴스 종류
-│       ├── m_texIndex        텍스처 인덱스
-│       ├── m_yawRotation     Y축 회전
-│       ├── m_offsetNoiseXZ   위치 노이즈
-│       └── m_faceFlag        덩굴 면 플래그
-│
-├── 메시 데이터 (CPU)
-│   ├── m_lowLodVertices / Indices
-│   ├── m_opaqueVertices / Indices
-│   ├── m_transparencyVertices / Indices
-│   └── m_semiAlphaVertices / Indices
-│
-├── 상태 플래그
-│   ├── m_isLoaded            로드 완료 여부
-│   ├── m_isPatching          패치 진행 중 여부
-│   ├── m_isUpdateRequired    등장 애니메이션 진행 중
-│   └── m_onPatchDirtyFlag    패치 후 메시 재생성 필요
-│
-└── m_constantData            GPU 상수 버퍼 데이터
-    └── world (Matrix)        월드 변환 행렬
+└─ m_position / m_constantData.world 세팅 (등장 애니메이션 시작 위치)
 ```
 
-## 5. ChunkManager - 청크 전체 관리
+`memory`는 `ChunkLoadMemory*`로, 각 단계가 공유하는 대용량 임시 버퍼(노이즈 배열, 컬럼 비트 배열 등)를 담는 컨테이너이다. 스레드마다 하나씩 풀에서 대여하는 구조이며, 라이프사이클 관리는 [ChunkManager §3.2](../ChunkManager/README.md)에서 다룬다.
 
-### 5.1 핵심 상수
+### 3.1 각 단계 요약
+
+| # | 단계                    | 하는 일                                                                       | 상세 문서                                                                                                                     |
+| - | ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1 | InitTerrainNoises       | 패딩 포함 34×34 격자에서 7종 노이즈 샘플링. 이후 단계 전체의 입력이 된다.     | [Terrain](../../WorldGeneration/Terrain/README.md)                                                                            |
+| 2 | InitBiomeMapAndCount    | 32×32 격자의 바이옴 타입 결정, 바이옴별 타일 카운트 집계.                     | [Biome](../../WorldGeneration/Biome/README.md)                                                                                |
+| 3 | InitBasicBlockType      | 패딩 포함 34³ 전 지점의 초기 블록 타입 결정 후 `m_blocks`에 기록.             | [BlockType](../../WorldGeneration/BlockType/README.md)                                                                        |
+| 4 | InitTreePlace           | 시드 기반 랜덤으로 나무 배치. 청크 경계를 넘는 블록은 `PatchData`로 위임.     | [Tree](../../WorldGeneration/Tree/README.md)                                                                                  |
+| 5 | InitInstancePlace       | 풀·꽃 배치. 청크 외부로 벗어나는 위치는 마찬가지로 `PatchData`로 위임.        | -                                                                                                                              |
+| 6 | InitWorldVerticesData   | `m_blocks`를 Binary Greedy Meshing으로 4종 CPU 메시 데이터로 변환.            | [BinaryBlockInfo](../../MeshOptimization/BinaryBlockInfo/README.md), [BinaryGreedyMeshing](../../MeshOptimization/BinaryGreedyMeshing/README.md) |
+
+각 단계의 알고리즘 세부 사항은 개별 문서에 위임하고, 여기서는 **"청크 초기화가 어떤 데이터를 어떤 순서로 채우는가"**만 다룬다.
+
+### 3.2 크로스 청크 데이터의 위탁
+
+InitTreePlace/InitInstancePlace 단계에서 청크 경계를 넘는 블록·인스턴스가 발생하면, 자기 자신의 `m_blocks`에 기록하지 못한다. 이 경우 해당 데이터를 `ChunkLoadMemory::loadPatchResult`에 (대상 청크 위치, `PatchData`) 형태로 저장하고, Initialize 반환 후 ChunkManager가 수집하여 대상 청크의 패치 큐로 전달한다.
+
+이 위탁 흐름은 [Patch 문서](../ChunkPatch/README.md)에서 다룬다.
+
+## 4. CPU 메시 데이터를 4종으로 분리한 이유
+
+Chunk는 하나의 블록 배열에서 4개의 독립된 메시(LowLod / Opaque / Transparency / SemiAlpha)를 생성한다. 이는 렌더 파이프라인이 각 카테고리를 **서로 다른 패스**에서 처리해야 하기 때문이다.
+
+| 메시           | 대상 블록           | 렌더 패스                          | 왜 별도인가                                                                                              |
+| -------------- | ------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **LowLod**     | Opaque + SemiAlpha  | 원거리 LOD 패스                    | 먼 청크는 잎/나무 등 반투명 처리를 생략해 불투명으로 통합 렌더. 드로우 콜과 오버드로우를 크게 줄인다.    |
+| **Opaque**     | 불투명 블록         | G-Buffer 채우기 (Deferred Shading) | 표준 지연 렌더. 깊이 테스트만 있으면 되고, 알파 관련 로직이 없어 셰이더가 가장 단순하고 빠르다.          |
+| **SemiAlpha**  | 잎, 유리 등         | G-Buffer 채우기 (Alpha Test)       | 완전 투명도 완전 불투명도 아닌 픽셀. Deferred에 넣되 알파 테스트로 조기 discard.                          |
+| **Transparency** | 물 등             | Forward 투명 패스 (Alpha Blend)    | Deferred는 알파 블렌드가 곤란하므로 Forward로 뺀다. 반사·굴절·투과 색 등 water shader만의 처리가 필요.  |
+
+같은 청크에서 나온 메시더라도 사용하는 셰이더/블렌드 상태/렌더 타깃이 다르기 때문에, 하나의 큰 버퍼에 섞어 두면 매 드로우 콜마다 상태 전환 비용이 발생한다. **CPU 단계에서 미리 4종으로 분리해 두면 GPU 업로드 이후에는 카테고리별로 한 번씩만 바인딩하고 그리면 된다.**
+
+또한 Face Culling 규칙도 카테고리마다 다르다.
+- Opaque/LowLod: 인접 블록이 동일 카테고리이면 컬링 (양방향)
+- Transparency: 인접 블록이 자신과 다른 투명·반투명 블록일 때만 그림
+- SemiAlpha: 방향별로 규칙이 갈리는 하이브리드 (컬링 조건이 축 방향에 따라 다름)
+
+컬링 규칙이 다르다는 것은 초기 컬럼 비트 배열부터 분리해야 한다는 의미이고, 이 자체가 4종 분리를 강제하는 요인이다.
+
+## 5. GPU 버퍼는 왜 Chunk가 아니라 ChunkManager가 소유하는가
+
+Chunk는 CPU 메시 데이터(`std::vector<VoxelVertex>`, `std::vector<uint32_t>`)만 소유한다. GPU에 올라가는 `ID3D11Buffer`는 **모두 ChunkManager**가 보유한다.
 
 ```cpp
-static const int MAX_RENDER_DISTANCE = 320;       // Camera: 블록 단위 최대 렌더 거리
-static const int CHUNK_SIZE = 32;                  // Chunk: 한 변의 블록 수
-
-// ChunkManager에서 계산
-static const int CHUNK_COUNT   = 2 * (320 / 32) + 1 = 21;   // XZ축 청크 수
-static const int CHUNK_COUNT_P = 21 + 2 = 23;                // 패딩 포함
-static const int MAX_HEIGHT_CHUNK_COUNT   = 8;                // Y축 청크 수 (256 / 32)
-static const int MAX_HEIGHT_CHUNK_COUNT_P = 8 + 2 = 10;      // 패딩 포함
-static const int CHUNK_POOL_SIZE = 23 * 23 * 10 = 5,290;     // Object Pool 크기
-```
-
-카메라를 중심으로 XZ 21x21, Y 8단의 격자에 청크를 배치한다. Pool 크기에 패딩을 포함하는 이유는, 카메라 이동 시 새 범위의 청크를 로드하면서 동시에 이전 범위의 청크를 해제하는 전환 기간에 양쪽 모두 메모리가 필요하기 때문이다.
-
-### 5.2 Object Pool
-
-```cpp
-std::vector<Chunk*> m_chunkPool;  // 미사용 청크 스택
-```
-
-시작 시 `CHUNK_POOL_SIZE(5,290)`개의 Chunk를 미리 할당하여 풀에 넣어둔다. 새 청크가 필요하면 `GetChunkFromPool()`로 꺼내고, 더 이상 필요 없으면 `ReleaseChunkToPool()`로 반환한다. 런타임에 `new/delete`가 발생하지 않는다.
-
-```
-GetChunkFromPool()       ReleaseChunkToPool()
-       │                         ▲
-       ▼                         │
-┌──────────────────────────────────────┐
-│  m_chunkPool (vector, stack처럼 사용) │
-│  [Chunk*] [Chunk*] [Chunk*] ...      │
-└──────────────────────────────────────┘
-```
-
-### 5.3 청크 조회 맵 (chunkMap)
-
-```cpp
-PosHashMap<Chunk*> m_chunkMap;  // 위치 → 청크 포인터
-```
-
-`PosInt3(x, y, z)` 좌표를 키로 청크를 O(1)에 조회하는 해시맵이다. 월드의 모든 활성 청크(로딩 중 + 로드 완료)가 등록되어 있다.
-
-- 카메라가 청크 경계를 넘으면 `UpdateChunkList()`에서 새 범위를 순회하고, `m_chunkMap`에 없는 위치는 Pool에서 꺼내 등록한다.
-- 기존 범위에 있었지만 새 범위에 포함되지 않는 청크는 Unload 리스트로 이동 후 맵에서 제거된다.
-
-### 5.4 GPU 버퍼 관리
-
-ChunkManager는 모든 청크의 GPU 버퍼를 중앙에서 관리한다. 각 버퍼 배열은 `CHUNK_POOL_SIZE` 크기로, 청크의 `m_id`를 인덱스로 사용한다.
-
-```cpp
-// 청크 ID로 인덱싱되는 GPU 버퍼 배열
+// ChunkManager
 std::vector<ComPtr<ID3D11Buffer>> m_opaqueVertexBuffers;       // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_opaqueIndexBuffers;        // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_transparencyVertexBuffers; // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_transparencyIndexBuffers;  // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_semiAlphaVertexBuffers;    // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_semiAlphaIndexBuffers;     // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_lowLodVertexBuffers;       // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_lowLodIndexBuffers;        // [CHUNK_POOL_SIZE]
-std::vector<ComPtr<ID3D11Buffer>> m_constantBuffers;           // [CHUNK_POOL_SIZE]
+std::vector<ComPtr<ID3D11Buffer>> m_opaqueIndexBuffers;
+std::vector<ComPtr<ID3D11Buffer>> m_transparencyVertexBuffers;
+// ... (4종 각각 + constant + instance)
 ```
 
-청크가 Pool에서 나올 때 이미 `m_id`가 고정되어 있으므로, 같은 ID 슬롯의 버퍼를 재활용한다. 이전 데이터보다 큰 버퍼가 필요하면 `DXUtils::ResizeBuffer()`로 재생성하고, 크기가 충분하면 `DXUtils::UpdateBuffer()`로 덮어쓴다.
+각 배열은 `CHUNK_POOL_SIZE` 크기로 사전 할당되고, Chunk의 `m_id`가 그대로 인덱스로 쓰인다. 청크가 풀에서 재활용되면 같은 슬롯의 GPU 버퍼도 재사용된다 (필요 시 `ResizeBuffer`, 아니면 `UpdateBuffer`로 덮어쓰기).
 
-### 5.5 인스턴스 버퍼 관리
+### 왜 Chunk에 두지 않았는가
 
-인스턴스는 블록과 다른 렌더링 경로를 사용한다. 4종류의 인스턴스 형상(Cross, Fence, Square, Floor)별로 공유 메시 버퍼와 인스턴스 정보 버퍼를 관리한다.
+원래 자연스러운 설계는 "각 Chunk가 자기 GPU 버퍼를 들고 있는" 것이다. 실제로 프로젝트 초기에는 그랬다. 이후 다음 흐름을 거쳐 지금 구조가 되었다.
+
+1. **Instance 렌더링 도입**: 풀·꽃 등은 청크마다 그리는 게 아니라 형상 타입(Cross/Fence/Square/Floor)별로 인스턴스 정보를 모아 `DrawIndexedInstanced`로 한 번에 그린다. 즉 인스턴스 GPU 버퍼는 **청크의 소유물이 아니라 렌더 시스템의 공유 자원**이 되어야 했고, 자연스럽게 ChunkManager로 들어갔다.
+2. **통일성 문제**: 이제 GPU 버퍼가 Instance는 Manager, Block은 Chunk에 있는 이원 구조가 되어버렸다. 리사이즈/업로드 코드가 두 위치로 갈라지고, DX11 디바이스/컨텍스트 접근 경로도 어긋났다.
+3. **결정**: 통일성을 위해 Block 관련 GPU 버퍼도 ChunkManager로 이동. 그 결과 **Chunk는 CPU 데이터만 다루는 순수한 데이터 홀더**가 되었고, GPU 리소스 라이프사이클은 매니저 한 곳에서 관리된다.
+
+### 얻은 이점
+
+- **DX11 Immediate Context 단일 스레드 제약과의 호환**: 워커 스레드는 Chunk의 CPU 데이터만 채우고, GPU 업로드는 매니저가 메인 스레드에서 수행한다. Chunk 자체가 D3D 리소스를 직접 다루지 않으므로 스레드 경계가 명확해진다.
+- **풀 인덱스 기반 리소스 재사용**: `m_id`가 곧 GPU 버퍼 인덱스라, 청크가 언로드-재로드 되어도 같은 슬롯을 그대로 재사용한다. 매 재로드마다 D3D11 리소스를 새로 만들지 않아도 된다.
+- **인스턴스와 블록의 코드 경로 통일**: `DXUtils::ResizeBuffer`/`UpdateBuffer` 같은 헬퍼가 두 카테고리에 동일하게 쓰인다.
+
+## 6. Chunk::Update - 등장 애니메이션
+
+`Chunk::Update`가 하는 일은 매우 좁다: **새로 로드된 청크가 아래에서 위로 솟아오르는 애니메이션**이다.
 
 ```cpp
-// 형상별 공유 메시 (게임 내내 불변)
-std::vector<ComPtr<ID3D11Buffer>> m_instanceVertexBuffers;  // [4] Cross/Fence/Square/Floor
-std::vector<ComPtr<ID3D11Buffer>> m_instanceIndexBuffers;   // [4]
-
-// 매 프레임 갱신되는 인스턴스 정보
-std::vector<ComPtr<ID3D11Buffer>> m_instanceInfoBuffers;    // [4]
-std::vector<std::vector<InstanceInfoVertex>> m_instanceInfoList;  // [4]
+void Chunk::Update(float dt)
+{
+    if (m_isUpdateRequired) {
+        m_position.y += 50.0f * dt;
+        if (m_position.y > m_offsetPosition.y) {
+            m_position.y = m_offsetPosition.y;
+            m_isUpdateRequired = false;
+        }
+        m_constantData.world = Matrix::CreateTranslation(m_position);
+    }
+}
 ```
 
-매 프레임 렌더링 대상 청크의 인스턴스를 수집하여 `m_instanceInfoList`를 구성하고, `DrawIndexedInstanced()`로 한 번에 렌더링한다.
+- Initialize 종료 시 `m_position.y`는 `-2 * CHUNK_SIZE`로 세팅된다 (청크 두 개 아래에서 시작).
+- 매 프레임 `m_position.y`가 `m_offsetPosition.y`까지 상승하고, 도달하면 애니메이션 상태(`m_isUpdateRequired`)를 해제한다.
+- 갱신된 world 행렬은 `m_constantData`에 반영되며, 다음 프레임 ChunkManager가 GPU 상수 버퍼로 업로드한다.
 
-### 5.6 청크 목록 관리
+블록 데이터의 변경(패치)은 별도 경로(`Chunk::Patch`, 워커 스레드)에서 다뤄지므로 여기서는 관여하지 않는다.
 
-ChunkManager는 청크의 상태와 용도에 따라 여러 리스트를 운용한다.
+## 7. Clear - 풀 반환 준비
 
-```
-m_chunkPool                전체 청크 Object Pool (미사용 청크)
-m_chunkMap                 활성 청크 해시맵 (위치 → 청크)
-│
-├── m_loadChunkList        로딩 대기 청크 리스트
-├── m_unloadChunkList      해제 대기 청크 리스트
-│
-├── m_renderChunkList      이번 프레임 렌더링 대상 (Frustum Culling 통과)
-├── m_renderMirrorChunkList  반사 렌더링 대상
-└── m_renderShadowChunkList  그림자 렌더링 대상
-```
-
-### 5.7 멀티스레드 구조
-
-```cpp
-uint32_t m_initThreadCount;   // 초기화 워커 수 (1~3)
-uint32_t m_patchThreadCount;  // 패치 워커 수 (1~2)
-
-std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_initFutures;
-std::vector<std::pair<Chunk*, std::future<ChunkLoadMemory*>>> m_patchFutures;
-
-std::vector<ChunkLoadMemory*> m_chunkLoadMemoryPool;  // 스레드별 작업 메모리
-```
-
-워커 스레드는 `std::async`로 디스패치되며, `ChunkLoadMemory`를 풀에서 빌려 사용한다. `ChunkLoadMemory`에는 노이즈 배열, 바이옴 맵, 컬럼 비트 배열 등 초기화/패치 과정에서 필요한 임시 데이터가 담겨 있으며, 작업 완료 후 Clear하여 풀에 반환된다.
-
-스레드 수는 하드웨어에 따라 자동 결정된다.
-
-```cpp
-uint32_t maxThreads = min(6, hardware_concurrency());
-uint32_t usableThreads = max(maxThreads - 1, 1);  // 메인 스레드 1개 예약
-m_initThreadCount  = clamp(usableThreads - 1, 1, 3);
-m_patchThreadCount = clamp(usableThreads - initThreadCount, 1, 2);
-```
-
-### 5.8 ChunkManager 전체 구조 요약
+청크가 언로드되어 Object Pool로 반환되기 직전에 호출된다. 다음 슬롯 재사용을 위해 상태를 초기화한다.
 
 ```
-ChunkManager (Singleton)
-│
-├── Object Pool
-│   └── m_chunkPool [5,290개 Chunk*]
-│
-├── 활성 청크 관리
-│   ├── m_chunkMap            PosInt3 → Chunk*
-│   ├── m_loadChunkList       로딩 대기 목록
-│   ├── m_unloadChunkList     해제 대기 목록
-│   └── m_renderChunkList     렌더링 대상 목록 (+ Mirror, Shadow)
-│
-├── 패치 의존성 시스템
-│   ├── m_patchDependencyMap  source → target → PatchDataSet
-│   ├── m_lookupDependencySet target → {sources}  (역방향 조회)
-│   ├── m_patchedChunkSet     target → {적용완료 sources}
-│   ├── m_patchChunkMap       패치 대기 큐
-│   └── m_cameraPatchChunkMap 플레이어 패치 영구 저장
-│
-├── GPU 버퍼 (청크 ID로 인덱싱)
-│   ├── Vertex/Index Buffers × 4종 (LowLod, Opaque, Transparency, SemiAlpha)
-│   ├── Constant Buffers     월드 변환 행렬
-│   └── Instance Buffers     형상별 공유 메시 + 인스턴스 정보
-│
-└── 멀티스레드
-    ├── m_initFutures         초기화 워커 (1~3)
-    ├── m_patchFutures        패치 워커 (1~2)
-    └── m_chunkLoadMemoryPool 워커용 작업 메모리 풀
+m_isLoaded / m_isPatching / m_isUpdateRequired / m_onPatchDirtyFlag = false
+m_instanceMap.clear()
+CPU 버텍스/인덱스 4종 clear
+UpdateCpuBufferCount()   // 카운트도 0으로 스냅샷
 ```
 
-## 6. 전체 계층 관계
+`m_id`와 `m_blocks` 배열은 그대로 남는다. `m_blocks`는 다음 Initialize에서 `CHUNK_SIZE_P³` 전 지점이 덮어써지므로 별도 초기화가 필요 없다. GPU 버퍼는 ChunkManager가 소유하므로 여기서 손대지 않는다.
 
-```
-ChunkManager
-│
-├── m_chunkPool ──────────── Chunk[0] ──┬── m_blocks[34][34][34] ── Block (m_type)
-│                            Chunk[1]   └── m_instanceMap ── PosInt3 → Instance
-│                            Chunk[2]
-│                             ...
-│                            Chunk[5289]
-│
-├── m_chunkMap ── PosInt3(x,y,z) → Chunk* ──── (위와 동일한 Chunk 참조)
-│
-└── GPU Buffers ── [chunkID] → Vertex/Index/Constant Buffer
-```
+## 8. 회고
 
-Pool의 Chunk는 `m_id`로 고유 식별되며, `m_chunkMap`을 통해 월드 좌표로도 참조된다. GPU 버퍼는 `m_id`로 인덱싱되어, 같은 Chunk 객체가 다른 위치에 재활용될 때 동일한 버퍼 슬롯을 재사용한다.
-
-## 7. 회고
-
-- Block이 `BLOCK_TYPE(uint8_t)` 하나만 저장하는 구조는 메모리 효율적이지만, 블록에 추가 상태(조명 레벨, 손상도 등)를 부여하려면 구조 변경이 필요하다. 비트 패킹을 확장하거나 별도 데이터 레이어를 두는 방식을 고려해볼 수 있다.
-- Instance를 HashMap으로 관리하는 것은 희소 데이터에 적합하지만, 인스턴스가 밀집된 바이옴(숲, 늪 등)에서는 해시 충돌로 인한 오버헤드가 발생할 수 있다. 청크별 인스턴스 수에 상한(`MAX_INSTANCE_BUFFER_SIZE`)을 두어 이를 제어하고 있다.
-- Object Pool이 고정 크기인 점은 런타임 할당을 방지하지만, 렌더 거리를 동적으로 변경하기 어렵게 만든다. Pool 크기를 렌더 거리에 연동하여 재할당하는 구조로 개선할 수 있다.
+- **Block이 `BLOCK_TYPE(uint8_t)` 한 필드**라 메모리는 매우 절약되지만, 조명 레벨·손상도 같은 추가 상태를 도입하려면 자료구조 변경이 강제된다. 비트 패킹 확장 또는 별도 병렬 배열이 자연스러운 다음 단계다.
+- **`m_instanceMap`이 `unordered_map` 기반**이라 밀집 바이옴(숲, 늪)에서 해시 오버헤드가 나타날 여지가 있다. 현재는 `MAX_INSTANCE_BUFFER_SIZE(8MB)` 제한으로 상한을 두고 있다.
+- **패치 시 메시 4종을 전체 재생성**하는 것은 구현이 단순하지만 블록 하나 변경에 32³ 범위의 Greedy Meshing을 다시 수행한다는 뜻이다. 변경된 블록 주변만 부분 재생성하는 방식이 명확한 개선 방향이다.
+- **등장 애니메이션 상수(50 units/s, `-2 * CHUNK_SIZE` 시작)** 가 하드코딩되어 있어 튜닝이 곤란하다. 프레임 스파이크가 눈에 띌 정도로 로드가 몰릴 때 시각적 완충 역할을 하는 만큼, 프레임률/로드 상황에 반응하는 동적 스케줄로 개선할 수 있다.
