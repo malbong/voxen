@@ -356,48 +356,6 @@ void App::ImGuiFrame()
 	ImGui::Render(); // 렌더링할 것들 기록 끝
 }
 
-void App::UpdateRenderStatesConstantBuffer()
-{
-	bool renderConstantBufferDirtyFlag = false;
-
-	if ((bool)m_renderStatesConstantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
-		m_renderStatesConstantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.useSSAO == m_keyToggled['I']) {
-		m_renderStatesConstantData.useSSAO = (uint32_t)!m_keyToggled['I'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.useCascadeColor != m_keyToggled['X']) {
-		m_renderStatesConstantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.useCascadeBlend == m_keyToggled['Z']) {
-		m_renderStatesConstantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.useMapBasedCascade == m_keyToggled['B']) {
-		m_renderStatesConstantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.useBloom == m_keyToggled['Y']) {
-		m_renderStatesConstantData.useBloom = (uint32_t)!m_keyToggled['Y'];
-		renderConstantBufferDirtyFlag = true;
-	}
-	if ((bool)m_renderStatesConstantData.toggleTonemappingFunctions != m_keyToggled['T']) {
-		m_renderStatesConstantData.toggleTonemappingFunctions = m_keyToggled['T'];
-		m_renderStatesConstantData.toneMappingFunctionIndex++;
-		m_renderStatesConstantData.toneMappingFunctionIndex %= 8;
-		
-		renderConstantBufferDirtyFlag = true;
-	}
-
-	if (renderConstantBufferDirtyFlag) {
-		DXUtils::UpdateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData);
-		renderConstantBufferDirtyFlag = false;
-	}
-}
-
 void App::Update(float dt)
 {
 	UpdateRenderStatesConstantBuffer();
@@ -408,11 +366,12 @@ void App::Update(float dt)
 	if (m_keyToggled['L'])
 		m_date.Update(dt);
 
-	m_camera.Update(dt, m_keyToggled, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY);
+	m_camera.Update(dt, m_keyToggled, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY, m_mouseLeftDown,
+		m_mouseRightDown);
 
 	m_postEffect.Update(dt, m_camera.IsUnderWater());
 
-	ChunkManager::GetInstance()->Update(dt, m_camera, m_light, m_mouseLeftDown, m_mouseRightDown);
+	ChunkManager::GetInstance()->Update(dt, m_camera, m_light);
 
 	m_worldMap.Update(m_camera.GetPosition());
 
@@ -426,44 +385,6 @@ void App::Update(float dt)
 	m_mouseDeltaY = 0;
 	m_mouseLeftDown = false;
 	m_mouseRightDown = false;
-}
-
-void App::SetGlobalConstantBuffer()
-{
-	std::vector<ID3D11Buffer*> ppConstantBuffers;
-	ppConstantBuffers.push_back(m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_renderStatesConstantBuffer.Get());
-	ppConstantBuffers.push_back(m_camera.m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_skybox.m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_light.m_lightConstantBuffer.Get());
-	ppConstantBuffers.push_back(m_light.m_shadowConstantBuffer.Get());
-	ppConstantBuffers.push_back(m_date.m_constantBuffer.Get());
-
-	Graphics::context->VSSetConstantBuffers(
-		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
-	Graphics::context->PSSetConstantBuffers(
-		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
-}
-
-void App::SetGlobalLightingSRVs()
-{
-	Graphics::context->OMSetRenderTargets(0, nullptr, nullptr);
-
-	std::vector<ID3D11ShaderResourceView*> ppLightSRVs;
-	ppLightSRVs.push_back(Graphics::brdfSRV.Get());
-	ppLightSRVs.push_back(Graphics::sunSRV.Get());
-	ppLightSRVs.push_back(Graphics::moonSRV.Get());
-	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
-	Graphics::context->PSSetShaderResources(
-		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)ppLightSRVs.size(), ppLightSRVs.data());
-}
-
-void App::UnsetGlobalLightingSRVs()
-{
-	std::vector<ID3D11ShaderResourceView*> nullSRVs(GLOBAL_LIGHTING_SRVS_COUNT, nullptr);
-
-	Graphics::context->PSSetShaderResources(
-		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)nullSRVs.size(), nullSRVs.data());
 }
 
 void App::Render()
@@ -1009,5 +930,85 @@ void App::UnlockCursor()
 		ShowCursor(true);
 
 		m_isActive = false;
+	}
+}
+
+void App::SetGlobalConstantBuffer()
+{
+	std::vector<ID3D11Buffer*> ppConstantBuffers;
+	ppConstantBuffers.push_back(m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_renderStatesConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_camera.m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_skybox.m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_light.m_lightConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_light.m_shadowConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_date.m_constantBuffer.Get());
+
+	Graphics::context->VSSetConstantBuffers(
+		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
+	Graphics::context->PSSetConstantBuffers(
+		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
+}
+
+void App::SetGlobalLightingSRVs()
+{
+	Graphics::context->OMSetRenderTargets(0, nullptr, nullptr);
+
+	std::vector<ID3D11ShaderResourceView*> ppLightSRVs;
+	ppLightSRVs.push_back(Graphics::brdfSRV.Get());
+	ppLightSRVs.push_back(Graphics::sunSRV.Get());
+	ppLightSRVs.push_back(Graphics::moonSRV.Get());
+	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)ppLightSRVs.size(), ppLightSRVs.data());
+}
+
+void App::UnsetGlobalLightingSRVs()
+{
+	std::vector<ID3D11ShaderResourceView*> nullSRVs(GLOBAL_LIGHTING_SRVS_COUNT, nullptr);
+
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)nullSRVs.size(), nullSRVs.data());
+}
+
+void App::UpdateRenderStatesConstantBuffer()
+{
+	bool renderConstantBufferDirtyFlag = false;
+
+	if ((bool)m_renderStatesConstantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
+		m_renderStatesConstantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useSSAO == m_keyToggled['I']) {
+		m_renderStatesConstantData.useSSAO = (uint32_t)!m_keyToggled['I'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useCascadeColor != m_keyToggled['X']) {
+		m_renderStatesConstantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useCascadeBlend == m_keyToggled['Z']) {
+		m_renderStatesConstantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useMapBasedCascade == m_keyToggled['B']) {
+		m_renderStatesConstantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useBloom == m_keyToggled['Y']) {
+		m_renderStatesConstantData.useBloom = (uint32_t)!m_keyToggled['Y'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.toggleTonemappingFunctions != m_keyToggled['T']) {
+		m_renderStatesConstantData.toggleTonemappingFunctions = m_keyToggled['T'];
+		m_renderStatesConstantData.toneMappingFunctionIndex++;
+		m_renderStatesConstantData.toneMappingFunctionIndex %= 8;
+
+		renderConstantBufferDirtyFlag = true;
+	}
+
+	if (renderConstantBufferDirtyFlag) {
+		DXUtils::UpdateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData);
+		renderConstantBufferDirtyFlag = false;
 	}
 }

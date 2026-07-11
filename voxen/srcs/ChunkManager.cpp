@@ -35,7 +35,7 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 	uint32_t usableThreads = (maxThreads > 1) ? maxThreads - 1 : 1;
 	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 3u);
 	m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u);
-	
+
 	InitChunkLoadMemoryPool();
 	InitChunkPool();
 
@@ -65,33 +65,6 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 	UpdateLoadUnLoadChunkList(cameraChunkPos);
 
 	return true;
-}
-
-void ChunkManager::Update(
-	float dt, Camera& camera, const Light& light, bool mouseLeftDown, bool mouseRightDown)
-{
-	if (m_isOnChunkUpdateDirtyFlag) {
-		UpdateLoadUnLoadChunkList(camera.GetChunkPosition());
-
-		m_isOnChunkUpdateDirtyFlag = false;
-	}
-
-	if (camera.HasPickingObject()) {
-		UpdatePickingBlock(camera.GetPickingObjectPosition(), camera.GetPickingObjectFace(),
-			mouseLeftDown, mouseRightDown);
-	}
-
-	LoadChunks(camera);
-	SyncLoadedChunks();
-
-	UnloadChunks();
-
-	PatchChunks(camera);
-	SyncPatchedChunks();
-
-	UpdateRenderChunkList(camera, light);
-	UpdateInstanceInfoList(camera);
-	UpdateChunkConstant(dt);
 }
 
 void ChunkManager::RenderOpaqueChunk(Chunk* chunk)
@@ -238,6 +211,31 @@ void ChunkManager::RenderBasicAlbedo()
 	}
 }
 
+void ChunkManager::Update(float dt, Camera& camera, const Light& light)
+{
+	if (m_isOnChunkUpdateDirtyFlag) {
+		/*
+		 * 카메라가 청크 범위를 벗어나 트리거되면 실행되는 함수
+		 * 로드청크와 언로드 청크를 구분함
+		 */
+		UpdateLoadUnLoadChunkList(camera.GetChunkPosition());
+
+		m_isOnChunkUpdateDirtyFlag = false;
+	}
+
+	LoadChunks(camera);
+	SyncLoadedChunks();
+
+	UnloadChunks();
+
+	PatchChunks(camera);
+	SyncPatchedChunks();
+
+	UpdateRenderChunkList(camera, light);
+	UpdateInstanceInfoList(camera);
+	UpdateChunkConstant(dt);
+}
+
 void ChunkManager::UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos)
 {
 	m_renderablePosMap.clear();
@@ -257,7 +255,7 @@ void ChunkManager::UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos)
 	m_waitLoadChunkPosMap.clear();
 	for (auto& p : m_renderablePosMap) {
 		const PosInt3& pos = p.first;
-		
+
 		if (m_chunkMap.find(pos) != m_chunkMap.end())
 			continue;
 
@@ -292,15 +290,15 @@ void ChunkManager::LoadChunks(Camera& camera)
 		if (chunk == nullptr) {
 			return;
 		}
-		
+
 		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 		if (chunkLoadMemory == nullptr) {
 			ReleaseChunkToPool(chunk);
 			return;
 		}
-		
+
 		chunk->SetOffsetPosition(Utils::PosInt3ToVector(pos));
-		
+
 		m_initFutures.push_back(std::make_pair(
 			chunk, std::async(std::launch::async, &Chunk::Initialize, chunk, chunkLoadMemory)));
 
@@ -322,11 +320,12 @@ void ChunkManager::SyncLoadedChunks()
 		ChunkLoadMemory* chunkLoadMemory = it->second.get();
 		it = m_initFutures.erase(it);
 
-		PosHashMap<PatchDataHashSet> chunkPatchDataMap(std::move(chunkLoadMemory->chunkPatchDataMap));
+		PosHashMap<PatchDataHashSet> chunkPatchDataMap(
+			std::move(chunkLoadMemory->chunkPatchDataMap));
 		ReleaseChunkLoadMemoryToPool(chunkLoadMemory);
 
 		const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
-		
+
 		if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
 			m_unloadChunkList.push_back(chunk);
 			continue;
@@ -339,7 +338,7 @@ void ChunkManager::SyncLoadedChunks()
 		UpdateChunkGPUBuffer(chunk);
 
 		UpdatePatchChunkMap(chunk, chunkPatchDataMap);
-		
+
 		m_chunkMap[pos] = chunk;
 	}
 }
@@ -389,13 +388,13 @@ void ChunkManager::PatchChunks(Camera& camera)
 {
 	if (m_patchFutures.size() == m_patchThreadCount)
 		return;
-	
+
 	m_patchChunkPosList.clear();
 	for (auto& p : m_patchChunkMap) {
 		m_patchChunkPosList.push_back(p.first);
 	}
 	SortPosListByCameraDistance(camera.GetPosition(), m_patchChunkPosList);
-	
+
 	// update patch chunk map, run patch thread
 	for (auto& chunkPos : m_patchChunkPosList) {
 
@@ -404,7 +403,7 @@ void ChunkManager::PatchChunks(Camera& camera)
 
 		if (m_chunkMap.find(chunkPos) == m_chunkMap.end())
 			continue;
-		
+
 		Chunk* chunk = m_chunkMap[chunkPos];
 		if (!chunk->IsLoaded())
 			continue;
@@ -631,18 +630,6 @@ void ChunkManager::UpdateChunkConstant(float dt)
 		if (m_constantBuffers[chunk->GetID()]) {
 			DXUtils::UpdateConstantBuffer(m_constantBuffers[chunk->GetID()], tempConstantData);
 		}
-	}
-}
-
-void ChunkManager::UpdatePickingBlock(
-	Vector3 pickingPosition, DIR pickingFace, bool useRemove, bool useAdd)
-{
-	if (useRemove) {
-		RemoveBlockPatchAt(pickingPosition);
-	}
-
-	if (useAdd) {
-		AddBlockPatchAt(pickingPosition, pickingFace);
 	}
 }
 
@@ -959,21 +946,6 @@ bool ChunkManager::MakeInstanceInfoBuffer()
 	return true;
 }
 
-bool ChunkManager::HasObjectAt(Vector3 position)
-{
-	const Instance* pickingInstance = ChunkManager::GetInstance()->GetInstanceByPosition(position);
-	if (pickingInstance) {
-		return true;
-	}
-
-	const Block* pickingBlock = ChunkManager::GetInstance()->GetBlockByPosition(position);
-	if (pickingBlock && !Block::IsTransparency(pickingBlock->GetType())) {
-		return true;
-	}
-
-	return false;
-}
-
 const Chunk* ChunkManager::GetChunkByPosition(Vector3 position)
 {
 	Vector3 chunkPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
@@ -1011,15 +983,31 @@ const Instance* ChunkManager::GetInstanceByPosition(Vector3 position)
 	return nullptr;
 }
 
-void ChunkManager::RemoveBlockPatchAt(Vector3 position)
+bool ChunkManager::HasObjectAt(Vector3 pickingBlockPos)
 {
-	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(position, Chunk::CHUNK_SIZE);
+	const Instance* pickingInstance = GetInstanceByPosition(pickingBlockPos);
+	if (pickingInstance) {
+		return true;
+	}
+
+	const Block* pickingBlock = GetBlockByPosition(pickingBlockPos);
+	if (pickingBlock && !Block::IsTransparency(pickingBlock->GetType())) {
+		return true;
+	}
+
+	return false;
+}
+
+void ChunkManager::RemoveBlockPatchAt(Vector3 pickingBlockPos)
+{
+	Vector3 chunkOffsetPos = Utils::CalcOffsetPos(pickingBlockPos, Chunk::CHUNK_SIZE);
 	PosInt3 chunkOffsetPosInt3 = Utils::VectorToPosInt3(chunkOffsetPos);
 
-	Vector3 blockLocalPos = position - chunkOffsetPos;
+	Vector3 blockLocalPos = pickingBlockPos - chunkOffsetPos;
 
-	BLOCK_TYPE blockType =
-		position.y <= Terrain::WATER_HEIGHT_LEVEL ? BLOCK_TYPE::BLOCK_WATER : BLOCK_TYPE::BLOCK_AIR;
+	BLOCK_TYPE blockType = pickingBlockPos.y <= Terrain::WATER_HEIGHT_LEVEL
+							   ? BLOCK_TYPE::BLOCK_WATER
+							   : BLOCK_TYPE::BLOCK_AIR;
 
 	PatchData patchData =
 		MakePatchData(blockLocalPos, blockType, Instance(), Chunk::CHUNK_SIZE, false);
@@ -1114,8 +1102,8 @@ void ChunkManager::GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosi
 
 		int newX = xEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
 
-		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-			newX, y, z, Block(blockType), Instance(), Chunk::CHUNK_SIZE, false);
+		PatchData patchData =
+			MakePatchData(newX, y, z, Block(blockType), Instance(), Chunk::CHUNK_SIZE, false);
 
 		outEdgePatchEntry[outEdgePatchEntryCount++] =
 			std::make_pair(patchChunkOffsetPosInt3, patchData);
@@ -1130,8 +1118,8 @@ void ChunkManager::GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosi
 
 		int newY = yEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
 
-		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-			x, newY, z, blockType, Instance(), Chunk::CHUNK_SIZE, false);
+		PatchData patchData =
+			MakePatchData(x, newY, z, blockType, Instance(), Chunk::CHUNK_SIZE, false);
 
 		outEdgePatchEntry[outEdgePatchEntryCount++] =
 			std::make_pair(patchChunkOffsetPosInt3, patchData);
@@ -1146,8 +1134,8 @@ void ChunkManager::GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosi
 
 		int newZ = zEdgeDir == -1 ? Chunk::CHUNK_SIZE : -1;
 
-		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-			x, y, newZ, blockType, Instance(), Chunk::CHUNK_SIZE, false);
+		PatchData patchData =
+			MakePatchData(x, y, newZ, blockType, Instance(), Chunk::CHUNK_SIZE, false);
 
 		outEdgePatchEntry[outEdgePatchEntryCount++] =
 			std::make_pair(patchChunkOffsetPosInt3, patchData);

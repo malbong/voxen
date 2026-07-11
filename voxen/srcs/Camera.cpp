@@ -9,8 +9,8 @@ Camera::Camera()
 	: m_projFovAngleY(70.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
 	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(300.0f), m_isUnderWater(false),
-	  m_isOnConstantDirtyFlag(false), m_mouseSensitiveX(0.0005f),
-	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
+	  m_isOnConstantDirtyFlag(false), m_mouseSensitiveX(0.0005f), m_mouseSensitiveY(0.001f),
+	  m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
 {
 }
 
@@ -60,10 +60,13 @@ bool Camera::Initialize(Vector3 pos)
 
 		Quaternion qPitch = Quaternion(
 			Vector3(1.0f, 0.0f, 0.0f) * sinf(XM_PIDIV2 * 0.25f), cosf(XM_PIDIV2 * 0.25f));
-		m_cullingViewerForward = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(qPitch));
-		m_cullingViewerUp = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(qPitch));
+		m_cullingViewerForward =
+			Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(qPitch));
+		m_cullingViewerUp =
+			Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(qPitch));
 
-		m_constantData.view = XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view =
+			XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
 		m_constantData.view = m_constantData.view.Transpose();
 
 		if (!DXUtils::CreateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData)) {
@@ -105,7 +108,8 @@ bool Camera::Initialize(Vector3 pos)
 	return true;
 }
 
-void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY)
+void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX,
+	LONG mouseDeltaY, bool mouseLeftDown, bool mouseRightDown)
 {
 	UpdatePosition(keyToggled, keyPressed, dt);
 	UpdateViewDirection(keyPressed, dt);
@@ -133,7 +137,8 @@ void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG m
 
 		// culling viewer debug camera
 		m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
-		m_constantData.view = XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view =
+			XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
 		m_constantData.view = m_constantData.view.Transpose();
 		DXUtils::UpdateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData);
 
@@ -141,6 +146,18 @@ void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG m
 		DXUtils::UpdateConstantBuffer(m_pickingObjectConstantBuffer, m_pickingObjectConstantData);
 
 		m_isOnConstantDirtyFlag = false;
+	}
+
+	if (m_hasPickingObject) {
+
+		if (mouseLeftDown) {
+			ChunkManager::GetInstance()->RemoveBlockPatchAt(m_pickingObjectPosition);
+		}
+
+		if (mouseRightDown) {
+			ChunkManager::GetInstance()->AddBlockPatchAt(m_pickingObjectPosition, m_pickingObjectFace);
+		}
+
 	}
 }
 
@@ -210,8 +227,8 @@ void Camera::UpdateBasis()
 	m_up = Vector3::Transform(basisY, Matrix::CreateFromQuaternion(qPitch));
 }
 
-void Camera::UpdateViewDirection(bool keyPressed[256], float dt) 
-{ 
+void Camera::UpdateViewDirection(bool keyPressed[256], float dt)
+{
 	if (keyPressed[VK_LEFT] || keyPressed[VK_RIGHT]) {
 		m_isOnConstantDirtyFlag = true;
 
@@ -221,7 +238,7 @@ void Camera::UpdateViewDirection(bool keyPressed[256], float dt)
 
 		UpdateBasis();
 	}
-	
+
 	if (keyPressed[VK_UP] || keyPressed[VK_DOWN]) {
 		m_isOnConstantDirtyFlag = true;
 
@@ -334,14 +351,14 @@ void Camera::DDAPickingBlock()
 				Matrix::CreateTranslation(m_pickingObjectPosition).Transpose();
 
 			m_isOnConstantDirtyFlag = true;
-			
+
 			break;
 		}
 	}
 }
 
-void Camera::RenderPickingBlock() 
-{ 
+void Camera::RenderPickingBlock()
+{
 	Graphics::SetPipelineStates(Graphics::pickingBlockPSO);
 
 	UINT stride = sizeof(PickingObjectVertex);

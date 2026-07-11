@@ -18,7 +18,8 @@ public:
 	~Camera();
 
 	bool Initialize(Vector3 pos);
-	void Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY);
+	void Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX,
+		LONG mouseDeltaY, bool mouseLeftDown, bool mouseRightDown);
 	void RenderPickingBlock();
 	void RenderViewFrustum();
 

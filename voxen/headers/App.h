@@ -42,13 +42,6 @@ private:
 	bool InitGUI();
 	bool InitScene();
 
-	void SetGlobalConstantBuffer();
-
-	void SetGlobalLightingSRVs();
-	void UnsetGlobalLightingSRVs();
-
-	void UpdateRenderStatesConstantBuffer();
-
 	void ImGuiFrame();
 	void Update(float dt);
 	void Render();
@@ -82,6 +75,11 @@ private:
 
 	void LockCursor();
 	void UnlockCursor();
+
+	void SetGlobalConstantBuffer();
+	void SetGlobalLightingSRVs();
+	void UnsetGlobalLightingSRVs();
+	void UpdateRenderStatesConstantBuffer();
 
 	HWND m_hwnd;
 

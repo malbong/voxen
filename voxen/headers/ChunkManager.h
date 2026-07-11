@@ -31,7 +31,7 @@ public:
 	static ChunkManager* GetInstance();
 
 	bool Initialize(Vector3 cameraChunkPos);
-	void Update(float dt, Camera& camera, const Light& light, bool mouseLeftDown, bool mouseRightDown);
+	void Update(float dt, Camera& camera, const Light& light);
 
 	void RenderOpaqueChunk(Chunk* chunk);
 	void RenderSemiAlphaChunk(Chunk* chunk);
@@ -48,9 +48,9 @@ public:
 	const Block* GetBlockByPosition(Vector3 position);
 	const Instance* GetInstanceByPosition(Vector3 position);
 
-	bool HasObjectAt(Vector3 position);
-	void RemoveBlockPatchAt(Vector3 position);
-	void AddBlockPatchAt(Vector3 position, DIR face);
+	bool HasObjectAt(Vector3 pickingBlockPos);
+	void RemoveBlockPatchAt(Vector3 pickingBlockPos);
+	void AddBlockPatchAt(Vector3 pickingBlockPos, DIR pickingBlockFace);
 
 	PatchData MakePatchData(
 		int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap);
@@ -84,7 +84,6 @@ private:
 	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
-	void UpdatePickingBlock(Vector3 pickingPosition, DIR pickingFace, bool useRemove, bool useAdd);
 
 	void AddInstanceInfo(Vector3 worldPosition, const Instance& instance);
 	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
