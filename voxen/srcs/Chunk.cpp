@@ -17,7 +17,7 @@ Chunk::Chunk(UINT id)
 
 Chunk::~Chunk() { Clear(); }
 
-ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
+ChunkLoadMemory* Chunk::Initialize(PosInt3 offsetPosition, ChunkLoadMemory* memory)
 {
 	////////////////////////////////////
 	// check start time
@@ -25,6 +25,8 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 	static long long count = 0;
 	auto start_time = std::chrono::steady_clock::now();
 	////////////////////////////////////
+
+	m_offsetPosition = Utils::PosInt3ToVector(offsetPosition);
 
 	// initialize noises for terrain
 	InitTerrainNoises(memory);
@@ -65,6 +67,8 @@ ChunkLoadMemory* Chunk::Initialize(ChunkLoadMemory* memory)
 
 ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory)
 {
+	m_isPatching = true;
+
 	m_onPatchDirtyFlag = false;
 
 	for (const PatchData& patchData : patchDataSet) {
@@ -333,7 +337,7 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, Chunk
 		Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
 		PosInt3 blockOwnerOffsetPosInt3 = Utils::VectorToPosInt3(blockOwnerOffsetPos);
 
-		memory->chunkPatchDataMap[blockOwnerOffsetPosInt3].insert(patchData);
+		memory->loadPatchResult[blockOwnerOffsetPosInt3].insert(patchData);
 	}
 
 	// Propagation patch for greedy mesh
@@ -357,7 +361,7 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, Chunk
 			PatchData& patchData = outEdgePatchEntry[i].second;
 
 			if (patchChunkPosInt3 != myOffsetPosInt3) {
-				memory->chunkPatchDataMap[patchChunkPosInt3].insert(patchData);
+				memory->loadPatchResult[patchChunkPosInt3].insert(patchData);
 			}
 		}
 	}
@@ -384,7 +388,7 @@ void Chunk::SetTreeVines(
 		Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
 		PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
 
-		memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
+		memory->loadPatchResult[instanceOwnerOffsetPosInt3].insert(patchData);
 	}
 }
 
@@ -628,7 +632,7 @@ void Chunk::SetBiomeInstance(
 			Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
 			PosInt3 instanceOwnerOffsetPosInt3 = Utils::VectorToPosInt3(instanceOwnerOffsetPos);
 
-			memory->chunkPatchDataMap[instanceOwnerOffsetPosInt3].insert(patchData);
+			memory->loadPatchResult[instanceOwnerOffsetPosInt3].insert(patchData);
 		}
 	}
 }

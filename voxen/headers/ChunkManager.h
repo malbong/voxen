@@ -17,7 +17,7 @@ using namespace DirectX::SimpleMath;
 class ChunkManager {
 
 public:
-	static const int CHUNK_COUNT = 2 * (Camera::MAX_RENDER_DISTANCE / Chunk::CHUNK_SIZE) + 1;
+	static const int CHUNK_COUNT = 5; // 2 * (Camera::MAX_RENDER_DISTANCE / Chunk::CHUNK_SIZE) + 1;
 	static const int MAX_HEIGHT = 256;
 	static const int MAX_HEIGHT_CHUNK_COUNT = 8;
 	static const int CHUNK_COUNT_P = CHUNK_COUNT + 2;
@@ -80,7 +80,7 @@ private:
 	void PatchChunks(Camera& camera);
 	void SyncPatchedChunks();
 
-	void UpdatePatchChunkMap(Chunk* chunk, const PosHashMap<PatchDataHashSet>& chunkPatchDataMap);
+	void UpdatePatchChunkMap(Chunk* chunk, const PosHashMap<PatchDataHashSet>& loadPatchResult);
 	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
@@ -114,13 +114,13 @@ private:
 	PosHashMap<PosHashMap<PatchDataHashSet>> m_patchDependencyMap;
 	PosHashMap<PosHashSet> m_lookupDependencySet;
 	PosHashMap<PosHashSet> m_patchedChunkSet;
+	PosHashMap<PatchDataHashSet> m_waitPatchChunkMap;
 	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
-	PosHashMap<PatchDataHashSet> m_patchChunkMap;
-	std::vector<PosInt3> m_patchChunkPosList;
+	std::vector<PosInt3> m_waitPatchChunkPosList;
 
 	PosHashMap<bool> m_renderablePosMap;
 	PosHashMap<bool> m_waitLoadChunkPosMap;
-	std::vector<PosInt3> m_loadChunkPosList;
+	std::vector<PosInt3> m_waitLoadChunkPosList;
 
 	std::vector<Chunk*> m_unloadChunkList;
 	std::vector<Chunk*> m_renderChunkList;

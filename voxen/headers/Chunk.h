@@ -35,7 +35,7 @@ public:
 	Chunk(UINT id);
 	~Chunk();
 
-	ChunkLoadMemory* Initialize(ChunkLoadMemory* memory);
+	ChunkLoadMemory* Initialize(PosInt3 offsetPosition, ChunkLoadMemory* memory);
 	ChunkLoadMemory* Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
@@ -225,7 +225,7 @@ struct ChunkLoadMemory {
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
 
-	PosHashMap<PatchDataHashSet> chunkPatchDataMap;
+	PosHashMap<PatchDataHashSet> loadPatchResult;
 
 	ChunkLoadMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
@@ -292,6 +292,6 @@ struct ChunkLoadMemory {
 
 		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
-		chunkPatchDataMap.clear();
+		loadPatchResult.clear();
 	}
 };

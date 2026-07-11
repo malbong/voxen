@@ -213,16 +213,20 @@ void ChunkManager::RenderBasicAlbedo()
 
 void ChunkManager::Update(float dt, Camera& camera, const Light& light)
 {
+	/*
+	 * 청크 위치를 벗어난 경우 Load, Unload 리스트를 재구성
+	 */
 	if (m_isOnChunkUpdateDirtyFlag) {
-		/*
-		 * 카메라가 청크 범위를 벗어나 트리거되면 실행되는 함수
-		 * 로드청크와 언로드 청크를 구분함
-		 */
 		UpdateLoadUnLoadChunkList(camera.GetChunkPosition());
 
 		m_isOnChunkUpdateDirtyFlag = false;
 	}
 
+	/*
+	 * Load, Unload, Patch는 매 프레임 실행
+	 * List나 Map으로 관리하여 매 프레임 실행하게 될 것
+	 * Load, Patch의 경우 멀티쓰레드 환경이므로 로드가 완료 시 동기화함
+	 */
 	LoadChunks(camera);
 	SyncLoadedChunks();
 
@@ -231,13 +235,28 @@ void ChunkManager::Update(float dt, Camera& camera, const Light& light)
 	PatchChunks(camera);
 	SyncPatchedChunks();
 
+	/*
+	 * Load된 청크들을 순회하여 실질적으로 사용하게 될 List 재구성
+	 * - RenderChunkList: Frustum Culling 진행
+	 * - InstanceInfoList: Instance Rendering을 위한 InfoBuffer 구성
+	 */
 	UpdateRenderChunkList(camera, light);
 	UpdateInstanceInfoList(camera);
+
+	/*
+	 * 청크 자체 Update를 진행
+	 */
 	UpdateChunkConstant(dt);
 }
 
 void ChunkManager::UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos)
 {
+	/*
+	 * m_renderablePosMap
+	 * - 카메라 기준 렌더링해야 할 청크들의 포지션 3D Grid Map
+	 * - 청크 로드 후 사용 가능한 청크로 동기화할 때 재검사를 위한 3D Grid Map임
+	 * - 실제 청크를 담지 않고 월드 좌표 위치를 튜플로 저장해놓음
+	 */
 	m_renderablePosMap.clear();
 	for (int y = 0; y < MAX_HEIGHT_CHUNK_COUNT; ++y) {
 		for (int x = 0; x < CHUNK_COUNT; ++x) {
@@ -252,6 +271,16 @@ void ChunkManager::UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos)
 		}
 	}
 
+	/*
+	 * m_waitLoadChunkPosMap
+	 * - 로드를 대기할 청크들의 위치를 담고 있는 3D Grid Map
+	 * - 청크를 로드에 넣으면 해당 Map에서 제거되고, 모든 청크가 로드될때까지 해당 map에 존재하게 됨
+	 * - 로드 쓰레드의 개수 한계로 인해 관리를 잘 해야 함
+	 *
+	 * 렌더링가능한 위치를 순회하여 chunkMap에 존재하는지 판단
+	 * - 없으면 로드를 대기할 위치
+	 * - m_chunkMap은 실제로 로드된 청크가 담겨있는 3D Map
+	 */
 	m_waitLoadChunkPosMap.clear();
 	for (auto& p : m_renderablePosMap) {
 		const PosInt3& pos = p.first;
@@ -262,6 +291,12 @@ void ChunkManager::UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos)
 		m_waitLoadChunkPosMap[pos] = true;
 	}
 
+	/*
+	 * m_unloadChunkList
+	 * - 언로드할 청크들의 리스트
+	 * - m_chunkMap을 순회하므로 로드된 청크가 들어가게 될 것
+	 * - 렌더링가능한 위치가 아니면 unload 리스트에 넣어둠
+	 */
 	for (auto& p : m_chunkMap) {
 		const PosInt3& pos = p.first;
 		Chunk* chunk = p.second;
@@ -277,14 +312,19 @@ void ChunkManager::LoadChunks(Camera& camera)
 	if (m_initFutures.size() == m_initThreadCount)
 		return;
 
-	m_loadChunkPosList.clear();
+	m_waitLoadChunkPosList.clear();
 	for (auto& p : m_waitLoadChunkPosMap) {
-		m_loadChunkPosList.push_back(p.first);
+		m_waitLoadChunkPosList.push_back(p.first);
 	}
-	SortPosListByCameraDistance(camera.GetPosition(), m_loadChunkPosList);
+	SortPosListByCameraDistance(camera.GetPosition(), m_waitLoadChunkPosList);
 
-	while (!m_loadChunkPosList.empty() && m_initFutures.size() < m_initThreadCount) {
-		const PosInt3& pos = m_loadChunkPosList.back();
+	/*
+	 * 실질적인 로드 실행 로직
+	 * - GetChunkFromPool: 메모리 할당된 청크를 Pool에서 가져와 사용
+	 * - GetChunkLoadMemoryFromPool: 청크 로드에 필요한 메모리를 미리 할당 후 Pool에서 가져와 사용
+	 * - m_initFutures: <chunk, future> 리스트로 관리하여 동기화할 것
+	 */
+	while (!m_waitLoadChunkPosList.empty() && m_initFutures.size() < m_initThreadCount) {
 
 		Chunk* chunk = GetChunkFromPool();
 		if (chunk == nullptr) {
@@ -293,16 +333,26 @@ void ChunkManager::LoadChunks(Camera& camera)
 
 		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 		if (chunkLoadMemory == nullptr) {
+			/*
+			 * 할당한 Pool 누수 방지
+			 * RAII: OOP로 래핑하여 관리할 수 있을 듯 (생성자Get, 소멸자Release)
+			 */
 			ReleaseChunkToPool(chunk);
+
 			return;
 		}
 
-		chunk->SetOffsetPosition(Utils::PosInt3ToVector(pos));
+		const PosInt3& pos = m_waitLoadChunkPosList.back();
 
-		m_initFutures.push_back(std::make_pair(
-			chunk, std::async(std::launch::async, &Chunk::Initialize, chunk, chunkLoadMemory)));
+		/*
+		 * std::async(policy, &f, args..)
+		 * - 쓰레드 생성 및 실행
+		 * - 쓰레드 생성하는게 싫으면 쓰레드 풀로 관리해도 됨
+		 */
+		m_initFutures.push_back(std::make_pair(chunk,
+			std::async(std::launch::async, &Chunk::Initialize, chunk, pos, chunkLoadMemory)));
 
-		m_loadChunkPosList.pop_back();
+		m_waitLoadChunkPosList.pop_back();
 		m_waitLoadChunkPosMap.erase(pos);
 	}
 }
@@ -320,12 +370,20 @@ void ChunkManager::SyncLoadedChunks()
 		ChunkLoadMemory* chunkLoadMemory = it->second.get();
 		it = m_initFutures.erase(it);
 
-		PosHashMap<PatchDataHashSet> chunkPatchDataMap(
-			std::move(chunkLoadMemory->chunkPatchDataMap));
+		/*
+		 * 패치 정보가 chunkLoadMemory에 담겨있음
+		 * 이동 시맨틱으로 임시 데이터 공간으로 복사
+		 */
+		PosHashMap<PatchDataHashSet> loadPatchResult(std::move(chunkLoadMemory->loadPatchResult));
 		ReleaseChunkLoadMemoryToPool(chunkLoadMemory);
 
+		/*
+		 * 로드된 청크가 렌더링 위치에 존재하는지 검사
+		 * 로드된 청크가 렌더링 위치에 있다고 보장할 수 없음
+		 * - 멀티쓰레드 환경으로 로드가 늦게되는 경우에 렌더링 거리를 벗어날 수 있음
+		 * - 로드된 위치가 아닌 경우 아쉽지만 언로드리스트에 추가함
+		 */
 		const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
-
 		if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
 			m_unloadChunkList.push_back(chunk);
 			continue;
@@ -333,18 +391,51 @@ void ChunkManager::SyncLoadedChunks()
 
 		chunk->SetUpdateRequired(true);
 		chunk->SetLoad(true);
-		chunk->UpdateCpuBufferCount(); // update vertex and index count value for multi threading
 
+		/*
+		 * 멀티쓰레드 환경에서 1frame 깜빡임 문제 해결
+		 * DrawIndexed(cpuIndices.size()..)
+		 * - 로드는 괜찮으나, 로드된 청크가 패치 중에 렌더링하여 undefined 문제가 발생
+		 * - 정적인 변수로 사용하여 해결함
+		 */
+		chunk->UpdateCpuBufferCount();
+
+		/*
+		 * ChunkManager가 모든 GPU 버퍼를 관리함
+		 * - Instance 렌더링을 위해 GPU 버퍼를 ChunkManager가 모두 관리할 필요가 있었고, 그에 따라
+		 * 통일하여
+		 * - 일반적인 Vertex 렌더링도 GPU 버퍼를 모두 ChunkManager가 관리함
+		 * - 아래에서는 GPU 버퍼를 업데이트 형식으로 사용하는데, 크기가 부족하면 Resize 시켜서
+		 * Update하게 됨
+		 */
 		UpdateChunkGPUBuffer(chunk);
 
-		UpdatePatchChunkMap(chunk, chunkPatchDataMap);
+		/*
+		 * 패치 정보에 대한 업데이트를 실행함
+		 * - 청크가 나무와 같이 주변에 영향을 미치는 경우 주변 청크에 대한 Patch를 진행해야 함
+		 * - 다양한 경우에수에 맞춰 의존성-룩업 테이블 관리가 필요해짐에 따라 로직을 구성
+		 */
+		UpdatePatchChunkMap(chunk, loadPatchResult);
 
+		// 로드가 완료된 청크는 m_chunkMap에 셋업
 		m_chunkMap[pos] = chunk;
 	}
 }
 
 void ChunkManager::UnloadChunks()
 {
+	/*
+	 * 언로드 로직 - 싱글 쓰레드
+	 * - 로드된 청크만 들어오기에 들어온 모든 언로드 청크 리스트는 언로드 됨
+	 * - 단순히 메모리에서 지우는게 언로드 로직임
+	 * GPU 버퍼를 클리어하지 않음
+	 * - GPU 버퍼는 풀에서 다시 꺼내서 Update 구성으로 이루어짐
+	 * - 그에 따라, 크기를 재할당할 필요가 없어서 Release 하지 않음
+	 * CPU 버퍼는 초기화 함
+	 * - CPU 버퍼는 청크 내부에서 std::vector로 관리하기 때문에 단순히 vector.clear() 함
+	 * - 내부 메모리 사이즈는 그대로 가지고 있을 것
+	 * - 청크를 재사용 시 크기 재할당을 피함
+	 */
 	while (!m_unloadChunkList.empty()) {
 		Chunk* chunk = m_unloadChunkList.back();
 		m_unloadChunkList.pop_back();
@@ -354,8 +445,8 @@ void ChunkManager::UnloadChunks()
 		if (m_chunkMap.find(chunkPos) != m_chunkMap.end())
 			m_chunkMap.erase(chunkPos);
 
-		if (m_patchChunkMap.find(chunkPos) != m_patchChunkMap.end())
-			m_patchChunkMap.erase(chunkPos);
+		if (m_waitPatchChunkMap.find(chunkPos) != m_waitPatchChunkMap.end())
+			m_waitPatchChunkMap.erase(chunkPos);
 
 		if (m_patchedChunkSet.find(chunkPos) != m_patchedChunkSet.end())
 			m_patchedChunkSet.erase(chunkPos);
@@ -389,14 +480,17 @@ void ChunkManager::PatchChunks(Camera& camera)
 	if (m_patchFutures.size() == m_patchThreadCount)
 		return;
 
-	m_patchChunkPosList.clear();
-	for (auto& p : m_patchChunkMap) {
-		m_patchChunkPosList.push_back(p.first);
+	m_waitPatchChunkPosList.clear();
+	for (auto& p : m_waitPatchChunkMap) {
+		m_waitPatchChunkPosList.push_back(p.first);
 	}
-	SortPosListByCameraDistance(camera.GetPosition(), m_patchChunkPosList);
+	SortPosListByCameraDistance(camera.GetPosition(), m_waitPatchChunkPosList);
 
-	// update patch chunk map, run patch thread
-	for (auto& chunkPos : m_patchChunkPosList) {
+	/*
+	* 실질적인 청크 패치 실행 로직
+	* - 로드된 청크인지, 패치 중이지 않은 청크인지 판단 후 패치 실행
+	*/
+	for (auto& chunkPos : m_waitPatchChunkPosList) {
 
 		if (m_patchFutures.size() == m_patchThreadCount)
 			break;
@@ -411,19 +505,21 @@ void ChunkManager::PatchChunks(Camera& camera)
 		if (chunk->IsPatching())
 			continue;
 
-		const PatchDataHashSet& chunkPatchDataSet = m_patchChunkMap[chunkPos];
-
 		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 		if (chunkLoadMemory == nullptr)
 			return;
 
+		/*
+		 * std::async(policy, &f, args..)
+		 * - 쓰레드 생성 및 실행
+		 * - 쓰레드 생성하는게 싫으면 쓰레드 풀로 관리해도 됨
+		 * - 패치 데이터는 이동연산자로 불필요한 복사를 줄임
+		 */
 		m_patchFutures.push_back(
 			std::make_pair(chunk, std::async(std::launch::async, &Chunk::Patch, chunk,
-									  chunkPatchDataSet, chunkLoadMemory)));
+									  std::move(m_waitPatchChunkMap[chunkPos]), chunkLoadMemory)));
 
-		m_patchChunkMap.erase(chunkPos);
-
-		chunk->SetIsPatching(true);
+		m_waitPatchChunkMap.erase(chunkPos);
 	}
 }
 
@@ -445,16 +541,29 @@ void ChunkManager::SyncPatchedChunks()
 		const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 
 		if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
-			// 로드 동기에서는 체크 후 언로드 리스트에 추가했음
-			// - 언로드 리스트 로직에는 로드된 청크만 추가하기 때문
-			// - 안해도 되나, 불필요한 연산을 제거하기 위함, 특히 GPU 버퍼 연산
-			// 패치 동기에서는 체크 후 언로드 리스트에 추가할 필요가 없음
-			// - 이미 언로드된 청크임
+			/*
+			* 로드 동기에서는 체크 후 언로드 리스트에 추가했음
+			* - 언로드 리스트 로직에는 로드된 청크만 추가하기 때문
+			* - 안해도 되나, 불필요한 연산을 제거하기 위함, 특히 GPU 버퍼 연산
+			* 패치 동기에서는 체크 후 언로드 리스트에 추가할 필요가 없음
+			* - 이미 언로드된 청크임 
+			*/
 			continue;
 		}
 
+		/*
+		* 패치 중인 청크도 결국 렌더링을 계속했어야 했음
+		* - DrawIndexed(Chunk->GetCPUIndices().size())를 하는 경우: 레이스컨디션 문제가 발생
+		* - 청크 내부의 CPU 버퍼가 변경되는 와중에 렌더링을 해버릴 수 있기 때문 (로드가 아닌 패치의 경우에 발생)
+		* - 해결: Size에 대한 정보를 따로 담아두고, 로드나 패치가 완료될 때에 데이터를 갱신
+		* cf) GPU 버퍼는 ChunkManager가 관리하므로 Chunk의 쓰레드 실행에 대한 레이스컨디션 문제는 생기지 않음
+		*/
 		chunk->UpdateCpuBufferCount();
 
+		/*
+		* Block이 아닌 Instance만 패치되는 경우, 블록에 대한 GPU 버퍼를 Update할 필요가 없음
+		* - Instance는 매 프레임 청크를 뒤져가며 따로 GPU 버퍼를 갱신하지만 Blocks는 그렇지 않음
+		*/
 		if (chunk->OnPatchDirtyFlag()) {
 			UpdateChunkGPUBuffer(chunk);
 
@@ -466,69 +575,76 @@ void ChunkManager::SyncPatchedChunks()
 }
 
 void ChunkManager::UpdatePatchChunkMap(
-	Chunk* chunk, const PosHashMap<PatchDataHashSet>& chunkPatchDataMap)
+	Chunk* chunk, const PosHashMap<PatchDataHashSet>& loadPatchResult)
 {
-	PosInt3 current = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
+	/*
+	 * 로드가 완료된 청크를 동기화할 때 실행되는 Patch 로직 관련 함수
+	 *
+	 * m_patchDependencyMap: 내가 영향을 미치는 청크와 패치정보를 담는 의존성 데이터
+	 * - m_patchDependencyMap[주체] = { { 객체1: {패치1}, {패치2}, ..}, { 객체2: {패치1}, ..}, ..}
+	 *
+	 * m_lookupDependencySet: 의존성을 찾는 LUT
+	 * - m_lookupDependencySet[객체] = { 주체1, 주체2, 주체3 }
+	 * - 패치를 하지 않아도 데이터 담아 차후에 사용: 아래의 m_patchedChunkSet과 성격이 조금 다름
+	 *
+	 * m_patchedChunkSet: patch 리스트에 등록된 정보를 담음, re Patch 방지
+	 * - m_patchedChunkSet[객체] = { 주체1, 주체2, }
+	 * - 패치 리스트에 넣은 경우에만 데이터 담아 사용함: 위의 m_lookupDependencySet와 성격이 조금
+	 * 다름
+	 *
+	 * m_waitPatchChunkMap: patch할 청크들을 담음
+	 * - m_waitPatchChunkMap[주체] = { 패치1, 패치2, .. }
+	 */
+	PosInt3 curPos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 
-	// 1. 본인 청크에 대한 패치정보가 담긴 Dependency Map 확인 후 있으면 List에 넣음
-	if (m_lookupDependencySet.find(current) != m_lookupDependencySet.end()) {
+	// 1. 현재 청크: 현재 청크를 패치한 기록이 있으면 패치 정보에 넣을 것
+	if (m_lookupDependencySet.find(curPos) != m_lookupDependencySet.end()) {
 
-		for (const auto& source : m_lookupDependencySet[current]) {
+		for (const auto& srcPos : m_lookupDependencySet[curPos]) {
 
-			if (m_patchDependencyMap.find(source) != m_patchDependencyMap.end() &&
-				m_patchDependencyMap[source].find(current) != m_patchDependencyMap[source].end()) {
+			if (m_patchDependencyMap.find(srcPos) != m_patchDependencyMap.end() &&
+				m_patchDependencyMap[srcPos].find(curPos) != m_patchDependencyMap[srcPos].end()) {
 
-				for (const auto& patchData : m_patchDependencyMap[source][current]) {
-					m_patchChunkMap[current].insert(patchData);
+				for (const PatchData& patchData : m_patchDependencyMap[srcPos][curPos]) {
+					m_waitPatchChunkMap[curPos].insert(patchData);
 
-					m_patchedChunkSet[current].insert(source);
+					m_patchedChunkSet[curPos].insert(srcPos);
 				}
 			}
 		}
 	}
 
-	// 2. 플레이어에 의해서 수정된 정보를 담음
-	if (m_cameraPatchChunkMap.find(current) != m_cameraPatchChunkMap.end()) {
+	// 2. 현재 청크: 플레이어에 의해서 수정된 정보를 담음
+	if (m_cameraPatchChunkMap.find(curPos) != m_cameraPatchChunkMap.end()) {
 
-		for (const auto& patchData : m_cameraPatchChunkMap[current]) {
-			m_patchChunkMap[current].insert(patchData);
+		for (const auto& patchData : m_cameraPatchChunkMap[curPos]) {
+			m_waitPatchChunkMap[curPos].insert(patchData);
 		}
 	}
 
-	// 3. current 주변 청크에 대한 패치 처리
-	for (const auto& [neighbor, patchDataSet] : chunkPatchDataMap) {
+	// 3. 주변 청크: 현재 청크가 미치는 주변에 대한 패치 처리
+	for (const auto& [neighborPos, patchDataSet] : loadPatchResult) {
 		bool patchFlag = false;
 
-		m_lookupDependencySet[neighbor].insert(current);
+		m_lookupDependencySet[neighborPos].insert(curPos);
+		for (const auto& patchData : patchDataSet) {
+			m_patchDependencyMap[curPos][neighborPos].insert(patchData);
+		}
+
+		if (m_chunkMap.find(neighborPos) == m_chunkMap.end())
+			continue;
+
+		if (!m_chunkMap[neighborPos]->IsLoaded())
+			continue;
+
+		if (m_patchedChunkSet[neighborPos].find(curPos) != m_patchedChunkSet[neighborPos].end())
+			continue;
 
 		for (const auto& patchData : patchDataSet) {
-			m_patchDependencyMap[current][neighbor].insert(patchData);
-
-			if (m_chunkMap.find(neighbor) == m_chunkMap.end())
-				continue;
-
-			if (!m_chunkMap[neighbor]->IsLoaded())
-				continue;
-
-			if (m_patchedChunkSet[neighbor].find(current) != m_patchedChunkSet[neighbor].end())
-				continue;
-
-			m_patchChunkMap[neighbor].insert(patchData);
-
-			patchFlag = true;
+			m_waitPatchChunkMap[neighborPos].insert(patchData);
 		}
 
-		// patch를 진행할 neighbor인 경우, patched set에 기록해두고, 수정한 정보에 대한 처리
-		if (patchFlag) {
-			m_patchedChunkSet[neighbor].insert(current);
-
-			if (m_cameraPatchChunkMap.find(neighbor) != m_cameraPatchChunkMap.end()) {
-
-				for (const auto& patchData : m_cameraPatchChunkMap[neighbor]) {
-					m_patchChunkMap[neighbor].insert(patchData);
-				}
-			}
-		}
+		m_patchedChunkSet[neighborPos].insert(curPos);
 	}
 }
 
@@ -1015,7 +1131,7 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 pickingBlockPos)
 	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
 		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
-		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
+		m_waitPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	}
 
 	PropagatePatchByEdgeBlock(blockLocalPos, chunkOffsetPos, blockType);
@@ -1058,7 +1174,7 @@ void ChunkManager::AddBlockPatchAt(Vector3 position, DIR face)
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
 		m_chunkMap[chunkOffsetPosInt3]->IsLoaded()) {
 
-		m_patchChunkMap[chunkOffsetPosInt3].insert(patchData);
+		m_waitPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	}
 
 	PropagatePatchByEdgeBlock(blockLocalPos, chunkOffsetPos, blockType);
@@ -1165,7 +1281,7 @@ void ChunkManager::PropagatePatchByEdgeBlock(
 		m_cameraPatchChunkMap[patchChunkPosInt3].insert(patchData);
 		if (m_chunkMap.find(patchChunkPosInt3) != m_chunkMap.end() &&
 			m_chunkMap[patchChunkPosInt3]->IsLoaded()) {
-			m_patchChunkMap[patchChunkPosInt3].insert(patchData);
+			m_waitPatchChunkMap[patchChunkPosInt3].insert(patchData);
 		}
 	}
 }
