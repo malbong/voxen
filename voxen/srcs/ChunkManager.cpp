@@ -348,6 +348,12 @@ void ChunkManager::LoadChunks(Camera& camera)
 		 * std::async(policy, &f, args..)
 		 * - 쓰레드 생성 및 실행
 		 * - 쓰레드 생성하는게 싫으면 쓰레드 풀로 관리해도 됨
+		 *   - 윈도우 VS2022/MSVC 빌드는 윈도우쓰레드풀 위에서 동작한다고 함
+		 *   - 쓰레드를 매번 만들지 않는다고 함
+		 * 현재는 단순히 std::async를 실행시키고 동기시에 완료가 됐는지 판단함
+		 * - 거리에 따른 우선순위 시스템이나, 취소 동작을 할 수 없음
+		 * - 거리에 따른 우선순위는 단순히 컨테이너 정렬로 쓰레드 실행 전에만 동작
+		 * - 취소 동작은 하지 않고, 로드 완료 시에 필요가 없으면 언로드함
 		 */
 		m_initFutures.push_back(std::make_pair(chunk,
 			std::async(std::launch::async, &Chunk::Initialize, chunk, pos, chunkLoadMemory)));
@@ -513,6 +519,8 @@ void ChunkManager::PatchChunks(Camera& camera)
 		 * std::async(policy, &f, args..)
 		 * - 쓰레드 생성 및 실행
 		 * - 쓰레드 생성하는게 싫으면 쓰레드 풀로 관리해도 됨
+		 *   - 윈도우 VS2022/MSVC 빌드는 윈도우쓰레드풀 위에서 동작한다고 함
+		 *   - 쓰레드를 매번 만들지 않는다고 함
 		 * - 패치 데이터는 이동연산자로 불필요한 복사를 줄임
 		 */
 		m_patchFutures.push_back(
