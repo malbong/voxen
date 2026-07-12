@@ -16,6 +16,34 @@ ChunkManager* ChunkManager::GetInstance()
 	return &chunkManager;
 }
 
+ChunkManager::~ChunkManager()
+{
+	for (auto& [chunk, future] : m_patchFutures) {
+		ChunkLoadMemory* mem = future.get();
+
+		ReleaseChunkLoadMemoryToPool(mem);
+	}
+
+	for (auto& [chunk, future] : m_initFutures) {
+		ChunkLoadMemory* mem = future.get();
+		
+		ReleaseChunkLoadMemoryToPool(mem);
+		ReleaseChunkToPool(chunk);
+	}
+
+	for (auto& [pos, chunk] : m_chunkMap) {
+		ReleaseChunkToPool(chunk);
+	}
+		
+	for (ChunkLoadMemory* mem : m_chunkLoadMemoryPool)
+		delete mem;
+
+	// std::cout << m_chunkPool.size() << std::endl;
+	// m_chunkPool == CHUNK_POOL_SIZE
+	for (Chunk* chunk : m_chunkPool)
+		delete chunk;
+}
+
 bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 {
 	m_isOnChunkUpdateDirtyFlag = false;
@@ -376,11 +404,15 @@ void ChunkManager::SyncLoadedChunks()
 		 * 로드된 청크가 렌더링 위치에 존재하는지 검사
 		 * 로드된 청크가 렌더링 위치에 있다고 보장할 수 없음
 		 * - 멀티쓰레드 환경으로 로드가 늦게되는 경우에 렌더링 거리를 벗어날 수 있음
-		 * - 로드된 위치가 아닌 경우 아쉽지만 언로드리스트에 추가함
 		 */
 		const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 		if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
-			m_unloadChunkList.push_back(chunk);
+			ReleaseChunkToPool(chunk);
+			continue;
+		}
+
+		if (m_chunkMap.find(pos) != m_chunkMap.end()) {
+			ReleaseChunkToPool(chunk);
 			continue;
 		}
 
