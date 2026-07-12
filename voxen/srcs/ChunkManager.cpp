@@ -11,12 +11,9 @@
 
 ChunkManager* ChunkManager::GetInstance()
 {
-	static ChunkManager* chunkManager = nullptr;
-	if (chunkManager == nullptr) {
-		chunkManager = new ChunkManager();
-	}
+	static ChunkManager chunkManager;
 
-	return chunkManager;
+	return &chunkManager;
 }
 
 bool ChunkManager::Initialize(Vector3 cameraChunkPos)
