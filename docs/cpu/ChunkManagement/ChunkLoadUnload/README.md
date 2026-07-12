@@ -143,9 +143,15 @@ for (auto it = m_initFutures.begin(); it != m_initFutures.end(); ) {
 ```cpp
 const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 
-// (a) 아직 유효한 위치인가?
+// (a-1) 아직 유효한 위치인가?
 if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
-    m_unloadChunkList.push_back(chunk);
+    ReleaseChunkToPool(chunk);
+    continue;
+}
+
+// (a-2) 같은 위치에 이미 로드-동기화된 청크가 있는가?
+if (m_chunkMap.find(pos) != m_chunkMap.end()) {
+    ReleaseChunkToPool(chunk);
     continue;
 }
 
@@ -166,11 +172,26 @@ UpdatePatchChunkMap(chunk, loadPatchResult);
 m_chunkMap[pos] = chunk;
 ```
 
-**(a) 즉시 언로드 경로**  
-로드가 시작된 후 카메라가 크게 움직여, 완료 시점엔 이 청크가 이미 범위 밖일 수 있다. 유효성 검사를 통과하지 못하면 GPU 업로드 없이 곧장 `m_unloadChunkList`로 밀어 넣는다. 이렇게 하면 이번 프레임 `UnloadChunks`에서 함께 정리된다.
+**(a-1) 범위 밖 청크 — 곧장 Pool로 반환**  
+로드가 시작된 후 카메라가 크게 움직여, 완료 시점엔 이 청크가 이미 범위 밖일 수 있다. 이 경우 GPU 업로드를 스킵하고 곧장 Pool로 되돌린다.
 
-- 단순히 다음 프레임에 언로드 시키면 되지만, GPU 버퍼를 업데이트 하는 비용을 아끼기 위해 추가 검사를 진행하게 되었다.
-- 추가적으로 `m_chunkMap`에는 렌더링 거리에 존재하고, 로드가 완료되어 동기화된 무결한 청크만 들어가게되는 효과도 부수적으로 얻었다.
+- 왜 `m_unloadChunkList`가 아니라 `ReleaseChunkToPool`인가? `UnloadChunks`는 `chunk->GetOffsetPosition()` → `pos`를 키로 `m_chunkMap`에서 erase하는 방식으로 언로드를 수행한다. 그런데 이 chunk는 아직 `m_chunkMap`에 등록되기 전이라 pos 키로 잡히지 않는다. 언로드 리스트에 넣어도 `UnloadChunks`가 무의미하게 처리하게 되므로, 이 경로는 chunkMap을 거치지 않고 Pool로 직접 반환한다.
+- GPU 버퍼 업데이트 비용을 아끼는 것도 부수 효과.
+- 결과적으로 `m_chunkMap`에는 **렌더링 거리 안에 존재하고, 로드+동기화까지 완료된 무결한 청크만** 등록된다.
+
+**(a-2) 중복 로드된 청크 — 곧장 Pool로 반환**  
+같은 위치의 청크가 두 번 로드될 수 있다. 시나리오:
+
+1. 프레임 N: 청크 A가 `LoadChunks`에 의해 `m_initFutures`로 실행 (아직 `m_chunkMap`에는 없음)
+2. 프레임 N+1: `UpdateLoadUnLoadChunkList`가 실행되면서 `m_waitLoadChunkPosMap`을 재구성 — `m_chunkMap`에 없다는 이유로 A의 위치가 다시 등록됨
+3. 프레임 N+1의 `LoadChunks`가 같은 위치를 워커에 또 실행
+4. 두 워커 중 하나가 먼저 완료 → `m_chunkMap[pos]`에 등록됨
+5. 나머지 하나가 나중에 완료 → **`m_chunkMap[pos]`에 이미 다른 청크가 있음**
+
+이때 나중 완료된 chunk를 그냥 덮어쓰면 이전 chunk가 Pool에서 leak된다.
+이 검사로 나중 완료된 chunk를 곧장 Pool로 되돌려 leak과 중복 GPU 업로드 둘 다 회피한다.
+
+- 근본적으로는 `UpdateLoadUnLoadChunkList` 쪽에서 "이미 워커에 나간 위치인지"까지 검사하는 방법도 있지만, 그러려면 `m_waitLoadChunkPosMap` 외에 "발사 중인 위치" 집합을 하나 더 두어야 한다. Sync 시점에 방어하는 것이 자료구조 개수를 늘리지 않는 최소 변경이다.
 
 **(c) UpdateCpuBufferCount의 이유**  
 Patch를 구현하기 전 코드에서는 `UpdateCpuBufferCount의`는 존재하지 않았다.

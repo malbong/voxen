@@ -55,7 +55,7 @@ m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u); // P
 std::async는 잡 시스템의 이점을 가지지 못한다.
 
 - **거리 기반 우선순위 스케줄 불가** — 카메라 근처 청크를 먼저 완료하려면 별도 우선순위 큐가 필요하다. Voxen은 이를 **디스패치 시점 정렬**로 대체한다 (`SortPosListByCameraDistance` 후 `std::async` 발사). 워커 안의 실행 순서는 여전히 시스템 스케줄러에 맡긴다.
-- **잡 취소 불가** — 발사한 후 결과가 필요 없어져도 워커는 끝까지 실행한다. 카메라가 반대편으로 순간이동하면 이미 발사한 청크는 완료 후 곧장 언로드 큐로 밀린다 (`SyncLoadedChunks`의 즉시 언로드 경로).
+- **잡 취소 불가** — 발사한 후 결과가 필요 없어져도 워커는 끝까지 실행한다. 카메라가 반대편으로 순간이동하면 이미 발사한 청크는 완료 후 GPU 업로드 없이 곧장 Pool로 되돌려진다 (`SyncLoadedChunks`의 범위 밖 청크 경로).
 - **future의 destructor blocking** — `std::async`의 future를 임시로 두면 소멸자에서 완료를 블로킹한다. Voxen은 반환값을 반드시 `m_initFutures` / `m_patchFutures`에 저장하여 이 함정을 회피한다.
 
 ### 4.2 언제 갈아탈 것인가
