@@ -17,7 +17,7 @@ using namespace DirectX::SimpleMath;
 class ChunkManager {
 
 public:
-	static const int CHUNK_COUNT = 2 * (Camera::MAX_RENDER_DISTANCE / Chunk::CHUNK_SIZE) + 1;
+	static const int CHUNK_COUNT = 5; //2 * (Camera::MAX_RENDER_DISTANCE / Chunk::CHUNK_SIZE) + 1;
 	static const int MAX_HEIGHT = 256;
 	static const int MAX_HEIGHT_CHUNK_COUNT = 8;
 	static const int CHUNK_COUNT_P = CHUNK_COUNT + 2;
@@ -52,14 +52,6 @@ public:
 	void RemoveBlockPatchAt(Vector3 pickingBlockPos);
 	void AddBlockPatchAt(Vector3 pickingBlockPos, DIR pickingBlockFace);
 
-	PatchData MakePatchData(
-		int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap);
-	PatchData MakePatchData(Vector3 position, Block block, Instance instance,
-		int baseSize, bool needWrap);
-	void GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition, BLOCK_TYPE blockType,
-		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
-	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
-		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
 	void PropagatePatchByEdgeBlock(
 		Vector3 localPosition, Vector3 chunkOffsetPos, BLOCK_TYPE blockType);
 	
@@ -67,10 +59,10 @@ public:
 
 private:
 
-	ChunkManager();
-	~ChunkManager();
-	ChunkManager(const ChunkManager& other);
-	void operator=(const ChunkManager& rhs);
+	ChunkManager() = default;
+	~ChunkManager() = default;
+	ChunkManager(const ChunkManager& other) = delete;
+	void operator=(const ChunkManager& rhs) = delete;
 
 	void UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos);
 

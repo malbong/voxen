@@ -114,7 +114,7 @@ void Chunk::Update(float dt)
 
 		if (m_position.y > m_offsetPosition.y) {
 			m_position.y = m_offsetPosition.y;
-			
+
 			m_isUpdateRequired = false;
 		}
 
@@ -330,8 +330,7 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, Chunk
 
 	// Making chunk patch data to neighbor chunk
 	if (!IsInsideChunk(tx, ty, tz)) {
-		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-			tx, ty, tz, treeBlock, Instance(), CHUNK_SIZE, true);
+		PatchData patchData(tx, ty, tz, treeBlock, Instance(), CHUNK_SIZE, true);
 
 		Vector3 blockPos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
 		Vector3 blockOwnerOffsetPos = Utils::CalcOffsetPos(blockPos, CHUNK_SIZE);
@@ -352,8 +351,8 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, Chunk
 
 		std::pair<PosInt3, PatchData> outEdgePatchEntry[3];
 		int outEdgePatchEntryCount = 0;
-		ChunkManager::GetInstance()->GenerateEdgePatchEntry(localX, localY, localZ,
-			blockOwnerOffsetPos, treeBlock, outEdgePatchEntry, outEdgePatchEntryCount);
+		PatchData::GenerateEdgePatchEntry(localX, localY, localZ, blockOwnerOffsetPos, treeBlock,
+			CHUNK_SIZE, outEdgePatchEntry, outEdgePatchEntryCount);
 
 		PosInt3 myOffsetPosInt3 = Utils::VectorToPosInt3(m_offsetPosition);
 		for (int i = 0; i < outEdgePatchEntryCount; ++i) {
@@ -381,8 +380,7 @@ void Chunk::SetTreeVines(
 		m_instanceMap.insert(std::pair(PosInt3(tx, ty, tz), instance));
 	}
 	else {
-		PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-			tx, ty, tz, Block(), instance, CHUNK_SIZE, true);
+		PatchData patchData(tx, ty, tz, Block(), instance, CHUNK_SIZE, true);
 
 		Vector3 instancePos = m_offsetPosition + Vector3((float)tx, (float)ty, (float)tz);
 		Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
@@ -625,8 +623,7 @@ void Chunk::SetBiomeInstance(
 			m_instanceMap.insert(std::pair(PosInt3(x, y + h, z), instance));
 		}
 		else {
-			PatchData patchData = ChunkManager::GetInstance()->MakePatchData(
-				x, y + h, z, Block(), instance, CHUNK_SIZE, true);
+			PatchData patchData(x, y + h, z, Block(), instance, CHUNK_SIZE, true);
 
 			Vector3 instancePos = m_offsetPosition + Vector3((float)x, (float)(y + h), (float)z);
 			Vector3 instanceOwnerOffsetPos = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
@@ -645,7 +642,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 	std::unordered_map<BLOCK_TYPE, bool> tpTypeMap;
 	std::unordered_map<BLOCK_TYPE, bool> saTypeMap;
 
-	// 2. 
+	// 2.
 	// make cull face column bit: tp, sa
 	// make column bit: ll, op
 	// 0: x axis & left->right side (- => + : dir +)
@@ -751,7 +748,7 @@ void Chunk::InitWorldVerticesData(ChunkLoadMemory* memory)
 	}
 
 
-	// 3. face cull: lowlod & opaque 
+	// 3. face cull: lowlod & opaque
 	for (int axis = 0; axis < 3; ++axis) {
 		for (int h = 1; h < CHUNK_SIZE_P - 1; ++h) {
 			for (int w = 1; w < CHUNK_SIZE_P - 1; ++w) {
