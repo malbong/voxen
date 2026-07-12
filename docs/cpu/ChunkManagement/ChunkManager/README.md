@@ -295,7 +295,65 @@ void ChunkManager::RenderBasic(Vector3 cameraPos, bool useWireFrame)
 
 ```
 
-## 8. 회고
+## 8. 소멸
+
+원래는 단순히 OS에 맡겼으나, 직접 소멸자를 호출하여 종료하는게 좋다고 판단하여 소멸자를 작성하게 되었다.
+
+이전 코드에서 Singleton을 함수 내부의 static 포인터 인스턴스로 사용했으나, 그러면 소멸할 scope 없어 소멸자 호출이 되지 않는다.
+그래서 함수 static 인스턴스 그 자체로 사용하여 프로그램 종료 시 소멸자가 호출되도록 한다.
+
+```
+static ChunkManager* chunkManager;
+static ChunkManager chunkManager;
+```
+
+작업을 최대한 마치고, 즉각 `delete`보단 원래 사용했던 Pool에 넣고 Pool을 순회하여 `delete` 한다.
+
+메모리 존재 여부
+
+- `ChunkLoadMemory`: 작업 중인 futures + Pool
+- `Chunk`: 작업 중인 futures + 사용 중인 `m_chunkMap` + Pool
+
+```cpp
+ChunkManager::~ChunkManager()
+{
+    // 1. 워커 작업을 대기하고 사용중인 Load Memory 풀로 Release
+    //  - 사용중인 청크는 어차피 m_chunkMap에 존재함
+	for (auto& [chunk, future] : m_patchFutures) {
+		ChunkLoadMemory* mem = future.get();
+
+		ReleaseChunkLoadMemoryToPool(mem);
+	}
+
+    // 2. 워커 작업을 대기하고 사용중인 Load Memory와 Chunk를 풀로 Release
+    //  - 청크는 m_chunkMap에 등록되기 전의 상태
+	for (auto& [chunk, future] : m_initFutures) {
+		ChunkLoadMemory* mem = future.get();
+
+		ReleaseChunkLoadMemoryToPool(mem);
+		ReleaseChunkToPool(chunk);
+	}
+
+    // 3. m_chunkMap 정리
+	for (auto& [pos, chunk] : m_chunkMap) {
+		ReleaseChunkToPool(chunk);
+	}
+
+    // 4. 실질적인 메모리 할당 해제
+	for (ChunkLoadMemory* mem : m_chunkLoadMemoryPool)
+		delete mem;
+
+    // 5. 실질적인 메모리 할당 해제
+	// std::cout << m_chunkPool.size() << std::endl;
+	// m_chunkPool == CHUNK_POOL_SIZE
+	for (Chunk* chunk : m_chunkPool)
+		delete chunk;
+}
+```
+
+cf. GPU 버퍼는 STL 내부 `ComPtr<>`로 사용중이라 내부적으로 스마트포인터처럼 소멸될 것
+
+## 9. 회고
 
 여러가지 상황이 매우 많았고, Chunk 구조를 만들 때처럼 많은 시행착오를 겪은 챕터.
 
