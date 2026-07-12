@@ -411,6 +411,12 @@ void ChunkManager::SyncLoadedChunks()
 			continue;
 		}
 
+		/*
+		 * 로드된 청크가 이미 로드 동기화까지 마친 청크인지 중복 검사
+		 * 프레임에 따라 중복된 위치를 Load 했을 경우도 존재하게 됨
+		 *  - 로드가 매우 느린 A청크 + 다음 프레임에서 카메라 이동으로 같은 위치에 B청크를 로드 대기
+		 *  - A 로드 완료 후 정상 -> B 로드 완료 후 중복
+		 */
 		if (m_chunkMap.find(pos) != m_chunkMap.end()) {
 			ReleaseChunkToPool(chunk);
 			continue;
