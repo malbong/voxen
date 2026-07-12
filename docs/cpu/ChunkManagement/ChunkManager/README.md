@@ -177,9 +177,8 @@ ChunkManager의 심장부는 `Update(dt, camera, light)`다.
 
 Load/Unload와 Patch가 사실 ChunkManager Update의 핵심이고 이는 다음 문서에서 작성한다.
 
-([ChunkLoadUnload](../ChunkLoadUnload/README.md) 참조)
-
-([ChunkPatch](../ChunkPatch/README.md) 참조)
+- Load/Unload 상세 (의존성 맵, `m_renderablePosMap` 등): [Chunk Load / Unload](../ChunkLoadUnload/README.md)
+- Patch 상세 (`m_patchDependencyMap`, `m_lookupDependencySet`, DDA 피킹): [Chunk Patch](../ChunkPatch/README.md)
 
 ```
 Update(dt, camera, light)
@@ -250,11 +249,6 @@ Patch 쪽도 같은 이유로 `PatchChunks` / `SyncPatchedChunks`로 나뉜다.
 | `m_renderMirrorChunkList` | 미러 평면 반사 프러스텀     | 수면 반사                                 |
 
 프러스텀 컬링 알고리즘 자체는 [gpu/FrustumCulling](../../../gpu/FrustumCulling/README.md) 문서에서 다룬다.
-
-### 6.4 각 하위 단계의 상세 문서
-
-- Load/Unload 상세 (의존성 맵, `m_renderablePosMap` 등): [Chunk Load / Unload](../ChunkLoadUnload/README.md)
-- Patch 상세 (`m_patchDependencyMap`, `m_lookupDependencySet`, DDA 피킹): [Chunk Patch](../ChunkPatch/README.md)
 
 ## 7. 렌더링
 
