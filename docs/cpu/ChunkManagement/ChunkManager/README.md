@@ -176,7 +176,9 @@ ChunkManager의 심장부는 `Update(dt, camera, light)`다.
 매 프레임 이 함수 하나가 청크 관리 전체를 관리하게 된다.
 
 Load/Unload와 Patch는 다음 문서에서 작성한다.
+
 ([ChunkLoadUnload](../ChunkLoadUnload/README.md) 참조)
+
 ([ChunkPatch](../ChunkPatch/README.md) 참조)
 
 ```
