@@ -91,6 +91,7 @@ ChunkLoadMemory* Chunk::Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMem
 		if (patchData.block.GetType() != BLOCK_TYPE::BLOCK_NONE) {
 			if (patchData.block.GetType() != m_blocks[x + 1][y + 1][z + 1].GetType()) {
 				m_blocks[x + 1][y + 1][z + 1] = Block(patchData.block);
+
 				m_onPatchDirtyFlag = true;
 			}
 

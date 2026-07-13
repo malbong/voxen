@@ -530,7 +530,7 @@ void ChunkManager::PatchChunks(Camera& camera)
 
 		if (m_chunkMap.find(chunkPos) == m_chunkMap.end())
 			continue;
-
+			
 		Chunk* chunk = m_chunkMap[chunkPos];
 		if (!chunk->IsLoaded())
 			continue;
@@ -540,7 +540,7 @@ void ChunkManager::PatchChunks(Camera& camera)
 
 		ChunkLoadMemory* chunkLoadMemory = GetChunkLoadMemoryFromPool();
 		if (chunkLoadMemory == nullptr)
-			return;
+			break;
 
 		/*
 		 * std::async(policy, &f, args..)
@@ -575,14 +575,14 @@ void ChunkManager::SyncPatchedChunks()
 
 		const PosInt3 pos = Utils::VectorToPosInt3(chunk->GetOffsetPosition());
 
-		if (m_renderablePosMap.find(pos) == m_renderablePosMap.end()) {
+		if (m_chunkMap.find(pos) == m_chunkMap.end()) {
 			/*
-			* 로드 동기에서는 체크 후 언로드 리스트에 추가했음
-			* - 언로드 리스트 로직에는 로드된 청크만 추가하기 때문
-			* - 안해도 되나, 불필요한 연산을 제거하기 위함, 특히 GPU 버퍼 연산
-			* 패치 동기에서는 체크 후 언로드 리스트에 추가할 필요가 없음
-			* - 이미 언로드된 청크임 
-			*/
+			 * 로드 동기에서는 체크 후 언로드 리스트에 추가했음
+			 * - 언로드 리스트 로직에는 로드된 청크만 추가하기 때문
+			 * - 안해도 되나, 불필요한 연산을 제거하기 위함, 특히 GPU 버퍼 연산
+			 * 패치 동기에서는 체크 후 언로드 리스트에 추가할 필요가 없음
+			 * - 이미 언로드된 청크임
+			 */
 			continue;
 		}
 
