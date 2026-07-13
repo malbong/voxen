@@ -85,6 +85,8 @@ private:
 
 	void UpdateChunkGPUBuffer(Chunk* chunk);
 	
+	void InitWorkerThreadCount();
+
 	void InitChunkPool();
 	Chunk* GetChunkFromPool();
 	void ReleaseChunkToPool(Chunk* chunk);

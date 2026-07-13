@@ -48,11 +48,7 @@ bool ChunkManager::Initialize(Vector3 cameraChunkPos)
 {
 	m_isOnChunkUpdateDirtyFlag = false;
 
-	uint32_t maxThreads = min(6u, std::thread::hardware_concurrency());
-	uint32_t usableThreads = (maxThreads > 1) ? maxThreads - 1 : 1;
-	m_initThreadCount = std::clamp(usableThreads - 1u, 1u, 3u);
-	m_patchThreadCount = std::clamp(usableThreads - m_initThreadCount, 1u, 2u);
-
+	InitWorkerThreadCount();
 	InitChunkLoadMemoryPool();
 	InitChunkPool();
 
@@ -955,6 +951,19 @@ void ChunkManager::UpdateChunkGPUBuffer(Chunk* chunk)
 		DXUtils::UpdateBuffer(m_semiAlphaVertexBuffers[id], chunk->GetSemiAlphaVertices());
 		DXUtils::UpdateBuffer(m_semiAlphaIndexBuffers[id], chunk->GetSemiAlphaIndices());
 	}
+}
+
+void ChunkManager::InitWorkerThreadCount()
+{
+	int maxThreadCount = std::thread::hardware_concurrency();
+	if (maxThreadCount == 0)
+		maxThreadCount = 4;
+
+	const int reservedThreadCount = 2;
+	int workerThreadCount = max(2, maxThreadCount - reservedThreadCount);
+
+	m_patchThreadCount = max(1u, workerThreadCount / 2);
+	m_initThreadCount = max(1u, workerThreadCount - m_patchThreadCount);
 }
 
 void ChunkManager::InitChunkPool()
