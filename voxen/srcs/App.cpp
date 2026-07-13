@@ -162,17 +162,32 @@ bool App::InitWindow()
 		if (!RegisterClassEx(&wc))
 			return false;
 
+		/*
 		RECT wr = { 0, 0, (LONG)APP_WIDTH, (LONG)APP_HEIGHT };
 		AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
 
 		DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 100, 100, wr.right - wr.left,
 			wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+		*/
+
+		DWORD dwStyle = WS_POPUP;
+		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 0, 0, APP_WIDTH, APP_HEIGHT,
+			NULL, NULL, hInstance, NULL);
 
 		if (m_hwnd == NULL)
 			return false;
 
+		/*
 		ShowWindow(m_hwnd, SW_SHOWDEFAULT);
+		UpdateWindow(m_hwnd);
+		*/
+		
+		ShowWindow(m_hwnd, SW_SHOW);
+		SetWindowPos(m_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		SetWindowPos(m_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		SetForegroundWindow(m_hwnd);
+		SetFocus(m_hwnd);
 		UpdateWindow(m_hwnd);
 	}
 
@@ -314,7 +329,8 @@ void App::ImGuiFrame()
 	ImGui::Begin("Scene Control");
 	ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 		ImGui::GetIO().Framerate);
-
+	ImGui::Text("===========================================");
+	ImGui::Text("ESC: Close");
 	ImGui::Text("P: Pause");
 	ImGui::Text("L: Light Move");
 	ImGui::Text("===========================================");
