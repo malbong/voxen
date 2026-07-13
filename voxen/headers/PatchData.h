@@ -21,7 +21,7 @@ struct PatchData {
 	}
 	PatchData(
 		Vector3 position, Block aBlock, const Instance& aInstance, int baseSize, bool needWrap)
-		: PatchData((int)position.x, (int)position.y, (int)position.z, block, instance, baseSize,
+		: PatchData((int)position.x, (int)position.y, (int)position.z, aBlock, aInstance, baseSize,
 			  needWrap)
 	{
 	}

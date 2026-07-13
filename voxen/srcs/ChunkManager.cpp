@@ -1169,7 +1169,7 @@ void ChunkManager::RemoveBlockPatchAt(Vector3 pickingBlockPos)
 							   ? BLOCK_TYPE::BLOCK_WATER
 							   : BLOCK_TYPE::BLOCK_AIR;
 
-	PatchData patchData(blockLocalPos, blockType, Instance(), Chunk::CHUNK_SIZE, false);
+	PatchData patchData(blockLocalPos, Block(blockType), Instance(), Chunk::CHUNK_SIZE, false);
 
 	m_cameraPatchChunkMap[chunkOffsetPosInt3].insert(patchData);
 	if (m_chunkMap.find(chunkOffsetPosInt3) != m_chunkMap.end() &&
