@@ -465,12 +465,12 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
 		BIOME_TYPE biomeType = memory->biomeMap2D[x + 1][z + 1];
 
 		float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
-		int y = (int)(elevationWorldY - m_offsetPosition.y);
+		int localY = (int)(elevationWorldY - m_offsetPosition.y);
 
-		if (CanPlaceBiomeInstanceAt(x, y, z, placedBiomeInstanceCount[biomeType], memory)) {
-			INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, y, z, memory);
+		if (CanPlaceBiomeInstanceAt(x, localY, z, placedBiomeInstanceCount[biomeType], memory)) {
+			INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, localY, z, memory);
 
-			SetBiomeInstance(x, y, z, instanceType, memory);
+			SetBiomeInstance(x, localY, z, instanceType, memory);
 
 			placedBiomeInstanceCount[biomeType]++;
 		}
@@ -484,15 +484,12 @@ bool Chunk::IsInstanceAt(int x, int y, int z)
 
 INSTANCE_TYPE Chunk::GetWaterPlaneInstanceType(int x, int z, ChunkLoadMemory* memory)
 {
-	PosInt3 worldPosInt3 =
-		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, 0.0f, (float)z));
-
 	float distribution = memory->distributionNoises[x + 1][z + 1];
 	float temperature = memory->temperatureNoises[x + 1][z + 1];
 	float humidity = memory->humidityNoises[x + 1][z + 1];
 
 	INSTANCE_TYPE instanceType =
-		Instance::GetInstanceTypeForWaterPlane(temperature, humidity, distribution, worldPosInt3);
+		Instance::GetInstanceTypeForWaterPlane(temperature, humidity, distribution);
 
 	return instanceType;
 }
@@ -536,11 +533,13 @@ INSTANCE_TYPE Chunk::GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* 
 {
 	BIOME_TYPE biomeType = memory->biomeMap2D[x + 1][z + 1];
 
+	float distribution = memory->distributionNoises[x + 1][z + 1];
+
 	PosInt3 worldPosInt3 =
 		Utils::VectorToPosInt3(m_offsetPosition + Vector3((float)x, (float)y, (float)z));
 
-	INSTANCE_TYPE instanceType = Instance::GetInstanceTypeForBiome(
-		biomeType, memory->distributionNoises[x + 1][z + 1], worldPosInt3);
+	INSTANCE_TYPE instanceType =
+		Instance::GetInstanceTypeForBiome(biomeType, distribution, worldPosInt3);
 
 	return instanceType;
 }
@@ -602,12 +601,12 @@ void Chunk::SetBiomeInstance(
 	int rangeHeight = Utils::RandomRangeByPos(worldPosInt3, 1, thMaxHeight);
 
 	for (int h = 0; h < rangeHeight; ++h) {
-		TEXTURE_INDEX texIndex = Instance::GetTextureIndexByHeight(instanceType, h, rangeHeight);
+		TEXTURE_INDEX texIndex = Instance::GetTextureIndexByHeight(instanceType, h + 1, rangeHeight);
 
 		Instance instance = Instance(instanceType, texIndex, rangeRotation, rangeOffsetNoiseXZ);
 
 		if (IsInsideChunk(x, y + h, z)) {
-			m_instanceMap.insert(std::pair(PosInt3(x, y + h, z), instance));
+			m_instanceMap.insert(std::make_pair(PosInt3(x, y + h, z), instance));
 		}
 		else {
 			PatchData patchData(x, y + h, z, Block(), instance, CHUNK_SIZE, true);

@@ -22,7 +22,7 @@ const TreeShapeParams& Tree::GetTreeShapeParams(TREE_TYPE type)
 TREE_TYPE Tree::GetTreeTypeForBiome(
 	BIOME_TYPE biomeType, float d, int localX, int localY, int localZ)
 {
-	const std::vector<TREE_TYPE> biomeTrees = Biome::GetTrees(biomeType);
+	const std::vector<TREE_TYPE>& biomeTrees = Biome::GetTrees(biomeType);
 	uint32_t hash = Utils::HashInt((uint32_t)(localX * localZ), localY);
 
 	switch (biomeType) {

@@ -32,7 +32,7 @@ TEXTURE_INDEX Instance::GetTextureIndexByHeight(
 		return m_instanceTypeInfoSet.GetInfo(type).GetTextureIndex();
 	}
 	else {
-		if (currentHeight == maxHeight - 1) {
+		if (currentHeight == maxHeight) {
 			return m_instanceTypeInfoSet.GetInfo(type).GetTextureTopIndex();
 		}
 		else {
@@ -48,7 +48,7 @@ uint8_t Instance::GetMaxHeight(INSTANCE_TYPE type)
 
 INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, PosInt3 worldPos)
 {
-	const std::vector<INSTANCE_TYPE> biomeInstances = Biome::GetInstances(biomeType);
+	const std::vector<INSTANCE_TYPE>& biomeInstances = Biome::GetInstances(biomeType);
 	int worldY = std::get<1>(worldPos);
 
 	switch (biomeType) {
@@ -166,7 +166,7 @@ bool Instance::CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE 
 }
 
 INSTANCE_TYPE Instance::GetInstanceTypeForWaterPlane(
-	float temperature, float humidity, float distribution, PosInt3 worldPos)
+	float temperature, float humidity, float distribution)
 {
 	if (humidity > 0.77f && temperature > 0.5f && distribution > 0.75f)
 		return INSTANCE_TYPE::INSTANCE_WATER_LILY;
