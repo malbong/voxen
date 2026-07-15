@@ -526,7 +526,7 @@ void Chunk::SetWaterPlaneInstance(int x, int z, INSTANCE_TYPE instanceType, Chun
 
 	Instance instance = Instance(instanceType, texIndex, rangeRotation, rangeOffsetNoiseXZ);
 
-	m_instanceMap.insert(std::pair(PosInt3(x, 0, z), instance));
+	m_instanceMap.insert(std::make_pair(PosInt3(x, 0, z), instance));
 }
 
 INSTANCE_TYPE Chunk::GetBiomeInstanceType(int x, int y, int z, ChunkLoadMemory* memory)
