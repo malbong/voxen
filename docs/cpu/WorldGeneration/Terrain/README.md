@@ -113,7 +113,7 @@ static float GetContinentalness(int x, int z)
 
 예시 `scale = 1024, freq = 2, octave = 4` 일 때 각 옥타브가 world 를 어떻게 쪼개는지:
 
-<img width="1111" height="500" alt="Image" src="https://github.com/user-attachments/assets/debe0e5b-1e94-4a29-b320-6a0692a4b394" />
+<img width="2222" height="650" alt="Image" src="https://github.com/user-attachments/assets/debe0e5b-1e94-4a29-b320-6a0692a4b394" />
 
 이 관점에서 6개 노이즈의 특성을 정리하면:
 
