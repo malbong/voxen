@@ -130,6 +130,8 @@ private:
 
 	void InitTerrainNoises(ChunkLoadMemory* memory);
 
+	void InitBiomeMapAndCount(ChunkLoadMemory* memory);
+
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
 	uint32_t GetMaxPlaceCountByBiomeRatio(int maxCountPerChunk, int biomeCount);

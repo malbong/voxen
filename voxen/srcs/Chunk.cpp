@@ -31,6 +31,9 @@ ChunkLoadMemory* Chunk::Initialize(PosInt3 offsetPosition, ChunkLoadMemory* memo
 	// initialize noises for terrain
 	InitTerrainNoises(memory);
 
+	// initialize biome map and count
+	InitBiomeMapAndCount(memory);
+
 	// initialize block type of basic block
 	InitBasicBlockType(memory);
 
@@ -170,6 +173,7 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 {
 	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
 		for (int z = 0; z < CHUNK_SIZE_P; ++z) {
+
 			int worldX = (int)m_offsetPosition.x + x - 1;
 			int worldZ = (int)m_offsetPosition.z + z - 1;
 
@@ -185,6 +189,17 @@ void Chunk::InitTerrainNoises(ChunkLoadMemory* memory)
 				Biome::GetBiomeTerrainHeight(memory->continentalinessNoises[x][z],
 					memory->erosionNoises[x][z], memory->peaksValleyNoises[x][z],
 					memory->temperatureNoises[x][z], memory->humidityNoises[x][z]);
+		}
+	}
+}
+
+void Chunk::InitBiomeMapAndCount(ChunkLoadMemory* memory)
+{
+	for (int x = 0; x < CHUNK_SIZE_P; ++x) {
+		for (int z = 0; z < CHUNK_SIZE_P; ++z) {
+
+			int worldX = (int)m_offsetPosition.x + x - 1;
+			int worldZ = (int)m_offsetPosition.z + z - 1;
 
 			BIOME_TYPE biomeType = Biome::GetBiomeType(memory->continentalinessNoises[x][z],
 				memory->erosionNoises[x][z], memory->temperatureNoises[x][z],
