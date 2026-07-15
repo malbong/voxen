@@ -18,7 +18,8 @@ public:
 	static BLOCK_TYPE GetBlockTypeForInner(int x, int y, int z, float distribution);
 	static BLOCK_TYPE GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, float d);
 	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
-		float peaksValley, float temperature, float humidity, float distribution, float elevation);
+		float peaksValley, float temperature, float humidity, float distribution, float elevation,
+		BIOME_TYPE biomeType);
 
 	Block() : m_type(BLOCK_TYPE::BLOCK_NONE) {}
 	Block(BLOCK_TYPE type) : m_type(type) {}

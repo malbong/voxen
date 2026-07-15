@@ -130,12 +130,9 @@ private:
 
 	void InitTerrainNoises(ChunkLoadMemory* memory);
 
-	void InitBiomeMapAndCount(ChunkLoadMemory* memory);
-
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
-	uint32_t GetMaxPlaceCountByBiomeRatio(
-		BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount);
+	uint32_t GetMaxPlaceCountByBiomeRatio(int maxCountPerChunk, int biomeCount);
 
 	void InitTreePlace(ChunkLoadMemory* memory);
 	bool CanPlaceTreeAt(
@@ -219,8 +216,8 @@ struct ChunkLoadMemory {
 	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float elevationNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 
-	BIOME_TYPE biomeMap2D[Chunk::CHUNK_SIZE][Chunk::CHUNK_SIZE];
-	uint32_t biomeCount[Biome::BIOME_TYPE_COUNT];
+	BIOME_TYPE biomeMap2D[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	uint32_t biomeCount[BIOME_TYPE::BIOME_COUNT];
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;

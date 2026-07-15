@@ -129,10 +129,10 @@ namespace Terrain {
 
 	static float GetErosion(int x, int z)
 	{
-		float scale = 4024.0f;
+		float scale = 2048.0f;
 		float seed = 123.0f;
 
-		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
+		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 4);
 		float eValue = SplineErosion(eNoise);
 
 		return eValue;

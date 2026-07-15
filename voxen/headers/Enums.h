@@ -15,15 +15,15 @@ enum DIR : uint8_t {
 enum TREE_BLOCK_INDEX : uint8_t {
 	EMPTY = 0,
 	TRUNK = 1,
-	LEAF = 2, 
+	LEAF = 2,
 	VINE = 3,
 };
 
 enum VINE_DIR : uint8_t {
-	V_LEFT = 2,
-	V_RIGHT = 3,
-	V_FRONT = 4,
-	V_BACK = 5,
+	V_LEFT = (1 << 2),
+	V_RIGHT = (1 << 3),
+	V_FRONT = (1 << 4),
+	V_BACK = (1 << 5),
 };
 
 enum BIOME_TYPE : uint8_t {

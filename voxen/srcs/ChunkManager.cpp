@@ -38,8 +38,8 @@ ChunkManager::~ChunkManager()
 	for (ChunkLoadMemory* mem : m_chunkLoadMemoryPool)
 		delete mem;
 
-	// std::cout << m_chunkPool.size() << std::endl;
-	// m_chunkPool == CHUNK_POOL_SIZE
+	std::cout << "Chunk Manager Destructor - Chunk Pool Size: " << CHUNK_POOL_SIZE
+			  << " & Delete Pool Size: " << m_chunkPool.size() << std::endl;
 	for (Chunk* chunk : m_chunkPool)
 		delete chunk;
 }
@@ -807,25 +807,29 @@ void ChunkManager::AddInstanceInfoBySplitFace(Vector3 worldPosition, const Insta
 {
 	uint8_t faceFlag = instance.GetFaceFlag();
 
-	if (faceFlag & (1 << VINE_DIR::V_LEFT)) {
+	uint8_t mask = VINE_DIR::V_LEFT;
+	if ((faceFlag & mask) == mask) {
 		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(270.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
-	if (faceFlag & (1 << VINE_DIR::V_RIGHT)) {
+	mask = VINE_DIR::V_RIGHT;
+	if ((faceFlag & mask) == mask) {
 		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(90.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
-	if (faceFlag & (1 << VINE_DIR::V_FRONT)) {
+	mask = VINE_DIR::V_FRONT;
+	if ((faceFlag & mask) == mask) {
 		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(180.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);
 	}
 
-	if (faceFlag & (1 << VINE_DIR::V_BACK)) {
+	mask = VINE_DIR::V_BACK;
+	if ((faceFlag & mask) == mask) {
 		Instance splitedInstance = instance;
 		splitedInstance.SetYawRotation(0.0f);
 		AddInstanceInfo(worldPosition, splitedInstance);

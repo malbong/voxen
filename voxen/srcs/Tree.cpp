@@ -98,7 +98,7 @@ void AddLeafCluster(Vector3 center, Vector3 shrink, int radius, int carveStartY,
 
 				if (carveStartY <= y && y <= carveEndY) {
 					int wx = (int)(std::get<0>(worldPos) + center.x + x);
-					int wy = (int)(std::get<1>(worldPos) + center.y + y + 1);
+					int wy = (int)(std::get<1>(worldPos) + center.y + y);
 					int wz = (int)(std::get<2>(worldPos) + center.z + z);
 
 					uint32_t hash = Utils::HashInt(wx * wy * wz, 100043u);
@@ -135,7 +135,7 @@ void AddLeafPlane(Vector3 center, Vector3 shrink, int radius, bool carve, float 
 
 			if (carve) {
 				int wx = (int)(std::get<0>(worldPos) + center.x + x);
-				int wy = (int)(std::get<1>(worldPos) + center.y + 1);
+				int wy = (int)(std::get<1>(worldPos) + center.y);
 				int wz = (int)(std::get<2>(worldPos) + center.z + z);
 
 				uint32_t hash = Utils::HashInt(wx * wy * wz, 100043u);
@@ -268,8 +268,9 @@ Vector3 AddBranchForGradient(
 	Vector3 lastBranchPos = Vector3((float)nx, (float)ny, (float)nz);
 
 	Vector3 diffPos = Vector3(0.0f);
-	Vector3 curDir = GenerateNextDirectionForGradient(diffPos, gradient);
 	for (int j = 0; j < branchLength; ++j) {
+		Vector3 curDir = GenerateNextDirectionForGradient(diffPos, gradient);
+
 		nx += (int)curDir.x;
 		ny += (int)curDir.y;
 		nz += (int)curDir.z;
@@ -285,7 +286,6 @@ Vector3 AddBranchForGradient(
 		}
 
 		diffPos += curDir;
-		curDir = GenerateNextDirectionForGradient(diffPos, gradient);
 	}
 
 	return lastBranchPos;
@@ -331,9 +331,9 @@ Vector3 AddBranchForRandom(const PosInt3& worldPos, int branchLength, int startH
 	return lastBranchPos;
 }
 
-void DropVines(int x, int y, int z, int dir, int height, TreeShape& tree)
+void DropVines(int x, int y, int z, int dir, int length, TreeShape& tree)
 {
-	for (int ty = y; ty > y - height; --ty) {
+	for (int ty = y; ty > y - length; --ty) {
 		if (x < 0 || x >= Tree::TREE_SIZE || ty < 0 || ty >= Tree::TREE_SIZE || z < 0 ||
 			z >= Tree::TREE_SIZE)
 			return;
@@ -342,53 +342,54 @@ void DropVines(int x, int y, int z, int dir, int height, TreeShape& tree)
 			return;
 
 		if (dir == 0) { // TREE LEFT -> RIGHT of VINE
-			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_RIGHT));
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | VINE_DIR::V_RIGHT);
 		}
 		else if (dir == 1) { // TREE RIGHT -> LEFT of VINE
-			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_LEFT));
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | VINE_DIR::V_LEFT);
 		}
 		else if (dir == 2) { // TREE FRONT -> BACK of VINE
-			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_BACK));
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | VINE_DIR::V_BACK);
 		}
 		else if (dir == 3) { // TREE BACK -> FRONT of VINE
-			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | (1 << VINE_DIR::V_FRONT));
+			tree[ty][z][x] |= (TREE_BLOCK_INDEX::VINE | VINE_DIR::V_FRONT);
 		}
 	}
 }
 
 void AddVines(const PosInt3& worldPos, int vinePercent, TreeShape& tree)
 {
-	int dir[4][2] = { { -1, 0 }, { 1, 0 }, { 0, 1 }, { 0, -1 } }; // L R F B
+	int dir[4][2] = { { -1, 0 }, { 1, 0 }, { 0, 1 }, { 0, -1 } }; // L R F B (z 값은 방향이 반대)
 
-	for (int y = Tree::TREE_SIZE - 1; y >= 0; --y) {
+	for (int y = Tree::TREE_SIZE - 1; y >= 1; --y) {
 		for (int z = 0; z < Tree::TREE_SIZE; ++z) {
 			for (int x = 0; x < Tree::TREE_SIZE; ++x) {
-				if (tree[y][z][x] == TREE_BLOCK_INDEX::LEAF ||
-					tree[y][z][x] == TREE_BLOCK_INDEX::TRUNK) {
+				if (tree[y][z][x] != TREE_BLOCK_INDEX::LEAF &&
+					tree[y][z][x] != TREE_BLOCK_INDEX::TRUNK)
+					continue;
+				
+				for (int d = 0; d < 4; ++d) {
+					int nx = x + dir[d][0];
+					int nz = z + dir[d][1];
 
-					for (int d = 0; d < 4; ++d) {
-						int nx = x + dir[d][0];
-						int nz = z + dir[d][1];
+					if (nx < 0 || nx >= Tree::TREE_SIZE || nz < 0 || nz >= Tree::TREE_SIZE)
+						continue;
 
-						if (nx < 0 || nx >= Tree::TREE_SIZE || nz < 0 || nz >= Tree::TREE_SIZE)
-							continue;
+					if (tree[y][nz][nx] != TREE_BLOCK_INDEX::EMPTY)
+						continue;
+					
+					int wx = std::get<0>(worldPos) + nx - (Tree::TREE_SIZE / 2);
+					int wy = std::get<1>(worldPos) + y;
+					int wz = std::get<2>(worldPos) - nz + (Tree::TREE_SIZE / 2);
 
-						if (tree[y][nz][nx] == TREE_BLOCK_INDEX::EMPTY) {
+					int percent = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 0, 100);
+					if (percent <= vinePercent) {
 
-							int wx = std::get<0>(worldPos) + nx - (Tree::TREE_SIZE / 2);
-							int wy = std::get<1>(worldPos) + y + 1;
-							int wz = std::get<2>(worldPos) - nz + (Tree::TREE_SIZE / 2);
+						int length = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 1, y);
 
-							int percent = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 0, 100);
-							if (percent <= vinePercent) {
-
-								int length = Utils::RandomRangeByPos(PosInt3(wx, wy, wz), 1, y + 1);
-
-								DropVines(nx, y, nz, d, length, tree);
-							}
-						}
+						DropVines(nx, y, nz, d, length, tree);
 					}
 				}
+				
 			}
 		}
 	}

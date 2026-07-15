@@ -352,7 +352,8 @@ BLOCK_TYPE GetTestBlocks(int x, int y, int z)
 }
 
 BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float erosion,
-	float peaksValley, float temperature, float humidity, float distribution, float elevation)
+	float peaksValley, float temperature, float humidity, float distribution,
+	float elevation, BIOME_TYPE biomeType)
 {
 	if (0 <= x && x < 400 && 0 <= z && z < 256 && 100 <= y && y <= 102) {
 		return GetTestBlocks(x, y, z);
@@ -361,9 +362,8 @@ BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float
 	if (y == Terrain::MIN_HEIGHT_LEVEL)
 		return BLOCK_BEDROCK;
 
-	BLOCK_TYPE blockType = BLOCK_AIR;
-	if (y <= Terrain::WATER_HEIGHT_LEVEL)
-		blockType = BLOCK_WATER;
+	BLOCK_TYPE blockType = (y <= Terrain::WATER_HEIGHT_LEVEL) ? BLOCK_WATER : BLOCK_AIR;
+	
 	if (y == Terrain::WATER_HEIGHT_LEVEL && temperature < 0.25f)
 		blockType = BLOCK_ICE;
 
@@ -375,8 +375,6 @@ BLOCK_TYPE Block::GetBlockType(int x, int y, int z, float continentalness, float
 			blockType = GetBlockTypeForInner(x, y, z, distribution);
 		}
 		else {
-			BIOME_TYPE biomeType =
-				Biome::GetBiomeType(continentalness, erosion, temperature, humidity, x, z);
 			blockType = GetBlockTypeForBiome(biomeType, y, elevation, distribution);
 		}
 	}

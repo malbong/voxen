@@ -11,8 +11,6 @@ class BiomeTypeInfoSet;
 
 class Biome {
 public:
-	static const uint32_t BIOME_TYPE_COUNT = 13;
-
 	static RGBA_UINT GetBaseColor(BIOME_TYPE type);
 	static uint32_t GetMaxInstanceCountPerChunk(BIOME_TYPE type);
 	static uint32_t GetMaxTreeCountPerChunk(BIOME_TYPE type);
@@ -80,7 +78,7 @@ private:
 class BiomeTypeInfoSet {
 
 public:
-	BiomeTypeInfoSet() : m_biomeTypeInfoSet(Biome::BIOME_TYPE_COUNT)
+	BiomeTypeInfoSet() : m_biomeTypeInfoSet(BIOME_TYPE::BIOME_COUNT)
 	{
 		std::vector<INSTANCE_TYPE> tmpInstances;
 		std::vector<TREE_TYPE> tmpTrees;
