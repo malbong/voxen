@@ -163,13 +163,13 @@ ChunkManager::Update()
 
 ### 1. Chunk Management
 
-| 목차                | 내용                                  | 문서 경로                                       |
-| ------------------- | ------------------------------------- | ----------------------------------------------- |
-| Chunk Structure     | 블록의 집합인 청크의 구조 및 데이터   | `docs/cpu/ChunkManagement/ChunkStructure/`      |
-| Chunk Manager       | 청크 관리의 중심인 Update 리스트 관리 | `docs/cpu/ChunkManagement/ChunkManager/`        |
-| Chunk Load Unload   | 실질적인 청크 로드와 언로드의 흐름    | `docs/cpu/ChunkManagement/ChunkLoadUnload/`     |
-| Chunk Patch         | 로드된 청크를 변경하는 Patch          | `docs/cpu/ChunkManagement/ChunkPatch/`          |
-| AsyncMultithreading | 멀티쓰레드 관리                       | `docs/cpu/ChunkManagement/AsyncMultithreading/` |
+| 목차                | 내용                                  | 문서 경로                                                                            |
+| ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| Chunk Structure     | 블록의 집합인 청크의 구조 및 데이터   | [docs/cpu/ChunkManagement/ChunkStructure/](docs/cpu/ChunkManagement/ChunkStructure/) |
+| Chunk Manager       | 청크 관리의 중심인 Update 리스트 관리 | `docs/cpu/ChunkManagement/ChunkManager/`                                             |
+| Chunk Load Unload   | 실질적인 청크 로드와 언로드의 흐름    | `docs/cpu/ChunkManagement/ChunkLoadUnload/`                                          |
+| Chunk Patch         | 로드된 청크를 변경하는 Patch          | `docs/cpu/ChunkManagement/ChunkPatch/`                                               |
+| AsyncMultithreading | 멀티쓰레드 관리                       | `docs/cpu/ChunkManagement/AsyncMultithreading/`                                      |
 
 ### 2. Mesh Optimization
 
@@ -180,10 +180,10 @@ ChunkManager::Update()
 
 ### 3. World Generation
 
-| 목차      | 내용                                              | 문서 경로             |
-| --------- | ------------------------------------------------- | --------------------- |
-| Biome     | 노이즈 매개변수를 이용한 13 바이옴 결정 방식      | `docs/cpu/Biome/`     |
-| BlockType | 3단계 선택 로직으로 다양한 블록 타입 결정 방식    | `docs/cpu/BlockType/` |
-| Terrain   | 노이즈를 활용한 절차적 지형 생성                  | `docs/cpu/Terrain/`   |
-| Tree      | 8 트리 타입 및 형태 결정 그리고 Chunk Patch 전파  | `docs/cpu/Tree/`      |
-| WorldMap  | Biome과 지형에 대한 2D 월드맵 텍스쳐 구성 및 렌더 | `docs/cpu/WorldMap/`  |
+| 목차     | 내용                                         | 문서 경로                            |
+| -------- | -------------------------------------------- | ------------------------------------ |
+| Terrain  | 노이즈를 활용한 절차적 지형 생성             | `docs/cpu/WorldGeneration/Terrain/`  |
+| Biome    | 노이즈 매개변수를 이용한 12 바이옴 결정 방식 | `docs/cpu/WorldGeneration/Biome/`    |
+| Block    | 다양한 블록 타입 결정 방식                   | `docs/cpu/WorldGeneration/Block/`    |
+| Tree     | 트리 타입 및 형태 결정 그리고 Chunk Patch    | `docs/cpu/WorldGeneration/Tree/`     |
+| Instance | 인스턴스(스프라이트) 타입 및 Chunk Patch     | `docs/cpu/WorldGeneration/Instance/` |
