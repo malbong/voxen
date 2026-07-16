@@ -28,7 +28,7 @@
 
 ## 2. 도입 동기
 
-[마인크래프트 절차적 지형 생성 유튜브](https://www.youtube.com/watch?v=YyVAaJqYAfE)
+[마인크래프트 절차적 지형 생성 유튜브](https://www.youtube.com/watch?v=CSa5O6knuwI)
 
 원래는 단순히 heightMap 하나를 Perlin 노이즈 하나로 height를 최종 결정했다.
 
