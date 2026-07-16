@@ -36,6 +36,16 @@ const BiomeWeightParams& Biome::GetWeightParams(BIOME_TYPE type)
 	return m_biomeTypeInfoSet.GetInfo(type).GetWeightParams();
 }
 
+float Biome::GetElevationScale(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetElevationScale();
+}
+
+float Biome::GetBaseHeight(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetBaseHeight();
+}
+
 BIOME_TYPE Biome::GetBiomeType(float c, float e, float t, float h, int x, int z)
 {
 	float coEffi[4] = { 10.0f, 1.0f, 3.0f, 3.0f };
@@ -71,7 +81,7 @@ BIOME_TYPE Biome::GetBiomeType(float c, float e, float t, float h, int x, int z)
 			return diffs[1].second;
 		}
 	}
-	
+
 	return diffs[0].second;
 }
 
@@ -96,8 +106,11 @@ float Biome::GetBiomeTerrainHeight(float c, float e, float pv, float t, float h)
 		float weight = 1.0f / (diff * diff);
 		float weight2 = std::powf(weight, 5.0f);
 
-		sumBiomeBaseHeight += weight2 * wParams.baseHeight;
-		sumElevationScale += weight2 * wParams.elevationScale;
+		float baseHeight = GetBaseHeight((BIOME_TYPE)i);
+		float elevationScale = GetElevationScale((BIOME_TYPE)i);
+
+		sumBiomeBaseHeight += weight2 * baseHeight;
+		sumElevationScale += weight2 * elevationScale;
 		sumWeight += weight2;
 	}
 

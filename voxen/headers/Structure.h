@@ -166,6 +166,4 @@ struct BiomeWeightParams {
 	float erosion;
 	float temperature;
 	float humidity;
-	float elevationScale;
-	float baseHeight;
 };
