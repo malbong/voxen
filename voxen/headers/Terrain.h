@@ -141,7 +141,7 @@ namespace Terrain {
 	static float GetPeaksValley(int x, int z)
 	{
 		float scale = 512.0f;
-		float seed = 4.0f;
+		float seed = 321.0f;
 
 		float pvNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 1.5f, 6);
 		float pvValue = SplinePeaksValley(pvNoise);

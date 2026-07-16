@@ -249,7 +249,7 @@ bool App::InitGUI()
 bool App::InitScene()
 {
 	if (!m_camera.Initialize(
-			Vector3(-310.0f, 80.0f, -3200.0f))) // snow -500 128 2800 // jungle -310 80 -3200
+			Vector3(-920.0f, 80.0f, -1900.0f))) // snow -500 2800 // jungle -310 -3200 // pv -920 -1900
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
