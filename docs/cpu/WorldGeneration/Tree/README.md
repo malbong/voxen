@@ -1,39 +1,33 @@
 # Tree System
 
-지표가 결정된 후, 각 청크의 표면 좌표에 8종의 procedural tree (OAK / SPRUCE /
-MANGROVE / BIRCH / CHERRY / CACTUS / JUNGLE / ACACIA) 를 심는 단계.
-
-트리는 **25³ voxel scratch buffer(`TreeShape`) 위에 형태를 조립**한 뒤 이 결과를
-청크의 `m_blocks` 배열에 stamp 한다. 최대 크기가 25 블록이라 청크(32 블록) 경계를
-넘어 인접 청크에까지 걸치는 경우가 흔하고, 이때는 [Patch 시스템](../../ChunkManagement/README.md)
-을 통해 인접 청크에 패치 데이터가 전파된다.
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/afdea8f9-83ca-46e9-8b1a-25c5c69bc2e4" width="300"/></td>
+    <td><img src="https://github.com/user-attachments/assets/3f942cb7-78c8-47f4-ba6d-5b561e890689" width="300"/></td>
+    <td><img src="https://github.com/user-attachments/assets/43a74803-ee33-45db-b9e9-3de2648dc450" width="300"/></td>
+  </tr>
+</table>
 
 ## 1. 개요
 
-### 1.1 자료구조 — Tree → TreeTypeInfoSet → TreeTypeInfo
+지표가 결정된 후, 각 청크의 표면 좌표에 8종의 procedural tree를 심는 단계.
 
-[Biome](../Biome/README.md), [Block](../Block/README.md) 과 완전히 같은
-"정적 테이블 + 얇은 값 객체" 패턴이다.
+지표면에 나무를 심을 수 있는지 판단 후 Biome 별 나무를 심고
 
-- `Tree` — **정적 함수만 노출하는 접근 계층 (facade)**.
-  개별 인스턴스는 `TREE_TYPE` 한 값만 갖는다.
-- `TreeTypeInfoSet` — 256 (`TREE_TYPE_COUNT`) 크기 vector 로 `TreeTypeInfo` 를
-  보관. 생성자에서 8개 트리 타입의 속성을 초기화.
-- `TreeTypeInfo` — 한 트리 타입의 속성 3개:
-  - `m_trunkBlockType` — 기둥 블록 (`BLOCK_OAK_LOG`, `BLOCK_CACTUS`, …)
-  - `m_leafBlockType` — 잎 블록 (`BLOCK_OAK_LEAF`, …). CACTUS 는 trunk 와 동일하게 `BLOCK_CACTUS`.
-  - `m_shapeParams` — `TreeShapeParams`. 아래 5개 정수.
+트리는 **25³ voxel scratch buffer(`TreeShape`) 위에 형태를 조립**한 뒤 이 결과를 청크의 `m_blocks` 넣는다.
+최대 크기가 25 블록이라 청크(32 블록) 경계를 넘어 인접 청크에까지 걸치는 경우가 흔하기에 [Patch 시스템](../../ChunkManagement/README.md)
+을 통해 인접 청크에 패치 데이터가 전파된다.
+
+### 2. Tress 구조 — Tree → TreeTypeInfoSet → TreeTypeInfo
+
+[Biome](../Biome/README.md), [Block](../Block/README.md) 과 완전히 같은 정적 테이블 조회 패턴이다.
+
+- `Tree` — **정적 함수만 노출하는 접근 계층**. 개별 인스턴스는 `TREE_TYPE` 한 값만 갖는다.
+- `TreeTypeInfoSet` — 256 (실사용 12 언저리) 크기 vector 로 `TreeTypeInfo` 를 담는 컨테이너, 생성자에서 각 타입의 속성 세팅
+- `TreeTypeInfo` — 트리의 정보를 담는 객체: 기둥 블록, 잎 블록, shape 관련 파라미터
 
 ```cpp
 // voxen/headers/Tree.h
-struct TreeShapeParams {
-    int baseHeight;         // 기둥의 기본 높이 (변주는 +랜덤)
-    int branchCount;        // 나뭇가지 개수
-    int branchLength;       // 나뭇가지 하나당 길이
-    int branchStartHeight;  // 가지가 나오는 y 시작점
-    int leafRadius;         // 잎 클러스터 반지름
-};
-
 class Tree {
 public:
     static const uint32_t TREE_TYPE_COUNT = 256;
@@ -65,6 +59,20 @@ BLOCK_TYPE Tree::GetTrunkBlockType(TREE_TYPE type)
 }
 ```
 
+### 2.1 TreeShapeParams 구조
+
+트리 모양 결정에 사용되는 속성들이다.
+
+```cpp
+struct TreeShapeParams {
+    int baseHeight;         // 기둥의 기본 높이 (변주는 +랜덤)
+    int branchCount;        // 나뭇가지 개수
+    int branchLength;       // 나뭇가지 하나당 길이
+    int branchStartHeight;  // 가지가 나오는 y 시작점
+    int leafRadius;         // 잎 클러스터 반지름
+};
+```
+
 `TreeTypeInfoSet` 생성자에 등록된 8개 타입의 `TreeShapeParams`:
 
 | tree     | baseHeight | branchCount | branchLength | branchStartH | leafRadius |
@@ -75,24 +83,20 @@ BLOCK_TYPE Tree::GetTrunkBlockType(TREE_TYPE type)
 | BIRCH    |     6      |      0      |      0       |      0       |     2      |
 | CHERRY   |     9      |      2      |      13      |      3       |     6      |
 | CACTUS   |     7      |      2      |      4       |      4       |     0      |
-| JUNGLE   |     19     |      3      |      13      |     13       |     7      |
+| JUNGLE   |     19     |      3      |      13      |      13      |     7      |
 | ACACIA   |     10     |      1      |      10      |      3       |     6      |
 
 `branchCount=0` 인 OAK / SPRUCE / MANGROVE / BIRCH 는 **기둥 하나 + 그 위의 잎
 클러스터** 만 있는 단순 형태이고, `branchCount>0` 인 CHERRY / CACTUS / JUNGLE / ACACIA
 는 가지를 여러 번 뻗어 나가는 복잡한 형태다.
 
-### 1.2 왜 OOP 를 쓰지 않았는가
+### 2.2 왜 OOP 를 쓰지 않았는가
 
 앞선 Biome / Block 문서와 동일한 이유다.
 
-- Tree 마다 다른 것은 **파라미터(트렁크/잎 블록, shape params)** 와 **모양 생성 함수** 뿐이다.
-- 모양 생성은 `GenerateBasicTree` / `GenerateSpruce` / `GenerateJungle` / … 자유 함수들로
-  분리되고, `Tree::GenerateTreeShape` 가 switch/case 로 dispatch 한다. 다형성이 필요 없고
-  virtual 호출 오버헤드도 없다.
-- 여러 청크에서 병렬로 트리를 심으므로 인스턴스 상태를 최소화(`m_type` 하나) 하는 것이 유리.
+요약: 로직이 다르기보단, 상태 값이 다르다. 구성 로직이 다른 모양 결정은 충분히 switch-case나 if로 구성이 한 곳에 했다.
 
-## 2. Tree 심기 파이프라인 — `Chunk::InitTreePlace`
+## 3. Tree 심기 파이프라인 — `Chunk::InitTreePlace`
 
 `Chunk::Initialize` 의 4번째 단계다.
 
@@ -145,10 +149,11 @@ void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 }
 ```
 
-### 2.1 랜덤 위치 선정 — `Terrain::GenerateRandomPlace2D`
+### 3.1 랜덤 위치 선정 — `Terrain::GenerateRandomPlace2D`
 
-청크당 최대 `TREE_PLACE_MAX_COUNT_PER_CHUNK` (= `CHUNK_SIZE^2 / 16` = 64) 개의
-xz 후보 좌표를 좌표 hash 기반으로 결정론적으로 뽑는다.
+청크당 최대 `TREE_PLACE_MAX_COUNT_PER_CHUNK = 64`개의 트리 심을 기준 후보를 xz 2D 격자 내에서 뽑는다.
+
+`TREE_PLACE_MAX_COUNT_PER_CHUNK = 64` 는 상한이며, 실제 배치되는 개수는 biome-별 비율로 따로 계산한다.
 
 ```cpp
 // voxen/headers/Terrain.h
@@ -168,19 +173,19 @@ static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_
 }
 ```
 
-- 청크의 offset 좌표에서 시드를 얻어 시작하므로 **같은 청크는 항상 같은 후보 좌표 시퀀스**를 얻는다.
-  → 청크가 unload 후 다시 load 되어도 나무 배치가 동일하게 재현된다.
-- 좌표 시퀀스는 이후 순차적으로 심어보므로, 실패한 후보(quota 초과, 지형 조건 불만족)는 그냥 다음 후보로 넘어간다.
-- `TREE_PLACE_MAX_COUNT_PER_CHUNK = 64` 는 상한이며, 실제 배치되는 개수는 biome-별 quota 로 제한된다.
+### 3.2 위치 가능성 검사 — `CanPlaceTreeAt` + `CheckTreePlaceCondition`
 
-### 2.2 위치 가능성 검사 — `CanPlaceTreeAt` + `CheckTreePlaceCondition`
+트리를 심을 수 있는지 검사하는 필터는 4가지다.
 
-세 단계의 필터가 걸린다.
+- **[A] 비율 개수 검사** — biome 이 청크를 얼마나 차지하는지에 비례해서 최대 트리 수를 정한다. FOREST 는 청크 전체가 forest 면 최대 32그루, half 만 forest 면 16그루.
+- **[B] 밑동은 반드시 청크 내부** — 가장 위에 있는 블록이 청크 내부 위치인지 판단한다. Y에 대한 검사이다.
+- **[C] TREE_NONE 처리** — `GetTreeTypeForBiome`에서 `OCEAN` 처럼 트리 없는 biome 이면 `TREE_NONE` 을 반환한다.
+- **[D] 3x3 밑동 조건** — 밑동 좌표뿐 아니라 x/z ±1 (십자 5칸) 이 모두 opaque 지면 + 위 공기여야 한다. 절벽 가장자리에 트리가 심어져 공중에 떠 있는 상황을 방지.
 
 ```cpp
 bool Chunk::CanPlaceTreeAt(int x, int y, int z, uint32_t placedBiomeTreeCount, ...)
 {
-    // [A] biome 별 quota
+    // [A] biome 비율에 대한 최대 개수 검사
     BIOME_TYPE biomeType = memory->biomeMap2D[x + 1][z + 1];
     uint32_t maxTreeCountByRatio = GetMaxPlaceCountByBiomeRatio(
         Biome::GetMaxTreeCountPerChunk(biomeType), memory->biomeCount[biomeType]);
@@ -189,7 +194,7 @@ bool Chunk::CanPlaceTreeAt(int x, int y, int z, uint32_t placedBiomeTreeCount, .
     // [B] 트리 밑동이 청크 안에 있어야 함
     if (!IsInsideChunk(x, y, z))                     return false;
 
-    // [C] 이 biome 이 트리 타입을 갖는지
+    // [C] 이 biome 트리 타입을 갖는지
     TREE_TYPE treeType = Tree::GetTreeTypeForBiome(biomeType,
                             memory->distributionNoises[x + 1][z + 1], x, y, z);
     if (treeType == TREE_TYPE::TREE_NONE)            return false;
@@ -212,17 +217,15 @@ bool Chunk::CheckTreePlaceCondition(int x, int y, int z)
 }
 ```
 
-- **[A] quota** — biome 이 청크를 얼마나 차지하는지에 비례해서 최대 트리 수를 정한다. FOREST 는 청크 전체가 forest 면 최대 32그루, half 만 forest 면 16그루.
-- **[B] 밑동은 반드시 청크 내부** — 트리는 인접 청크로 뻗어 나갈 수 있지만 시작점(밑동) 은 이 청크가 소유한다. 이 규칙으로 두 청크가 같은 트리를 이중으로 심는 상황이 발생하지 않는다.
-- **[C] TREE_NONE 처리** — `GetTreeTypeForBiome` 가 OCEAN 처럼 트리 없는 biome 이면 `TREE_NONE` 을 반환하지 않지만 (첫 원소 그대로 반환) TUNDRA 첫 원소가 `TREE_SPRUCE_LOG` 인 것처럼 항상 유효한 타입이 나오도록 데이터에서 보장된다.
-  안전장치로 여기서도 한 번 더 체크.
-- **[D] 3x3 밑동 조건** — 밑동 좌표뿐 아니라 x/z ±1 (십자 5칸) 이 모두 opaque 지면 + 위 공기여야 한다. 절벽 가장자리에 트리가 심어져 공중에 떠 있는 상황을 방지.
+### 3.3 트리 종류 결정 — `Tree::GetTreeTypeForBiome`
 
-### 2.3 트리 종류 결정 — `Tree::GetTreeTypeForBiome`
+biome 마다 후보 트리가 이미 [BiomeTypeInfoSet](../Biome/README.md) 에 등록돼 있다.
 
-biome 마다 후보 트리가 이미 [BiomeTypeInfoSet](../Biome/README.md#12-왜-oop-를-쓰지-않았는가) 에
-등록돼 있다. `Tree::GetTreeTypeForBiome` 는 그 후보 목록에서 `d` (distribution 노이즈) 값에 따라
-하나를 선택하는 얇은 switch/case 다.
+`Tree::GetTreeTypeForBiome` 는 그 후보 목록에서 `d` (distribution 노이즈) 값에 따라 하나를 선택하는 switch/case 다.
+
+- cf. OOP로 구성하지 않은 점에 대한 단점이 보인다. Biome-Tree가 커플링 되어있다.
+
+후보가 1종인 biome (`TUNDRA`, `PLAINS`, `DESERT`, `TAIGA`, `SNOWY_TAIGA`) 은 항상 그 하나만, 후보가 2종인 biome 은 `d` 값의 threshold 로 확률 결정.
 
 ```cpp
 // voxen/srcs/Tree.cpp
@@ -235,7 +238,7 @@ TREE_TYPE Tree::GetTreeTypeForBiome(BIOME_TYPE biomeType, float d, ...)
     case BIOME_PLAINS:   return biomeTrees[0];                            // oak
     case BIOME_TUNDRA:
     case BIOME_TAIGA:    return biomeTrees[0];                            // spruce
-
+    ...
     case BIOME_SWAMP:    return d < 0.3f ? biomeTrees[0] : biomeTrees[1]; // oak / mangrove
     case BIOME_FOREST:   return d < 0.8f ? biomeTrees[0] : biomeTrees[1]; // oak / birch
     case BIOME_SAVANNA:  return d < 0.3f ? biomeTrees[0] : biomeTrees[1]; // oak / acacia
@@ -244,39 +247,38 @@ TREE_TYPE Tree::GetTreeTypeForBiome(BIOME_TYPE biomeType, float d, ...)
 }
 ```
 
-- 후보가 1종인 biome (`TUNDRA`, `PLAINS`, `DESERT`, `TAIGA`, `SNOWY_TAIGA`) 은 항상 그 하나만.
-- 후보가 2종인 biome 은 `d` 값의 threshold 로 확률 결정. `d < 0.3` 이면 30% 확률로 첫 후보.
-- distribution 노이즈는 scale 24 로 픽셀 단위 랜덤이라, 근접한 트리들끼리도 다른 종류가 섞여 자연스럽다.
+### 3.4 트리 심기 — `PlaceTree`
 
-### 2.4 트리 심기 — `PlaceTree`
+밑동 위치 (`x, y, z`) 가 정해지면, 25³ 임시 buffer 에 형태를 조립하고 청크의 `m_blocks` 로 이전한다.
 
-밑동 위치 (`x, y, z`) 가 정해지면, 25³ scratch buffer 에 형태를 조립하고 청크의 `m_blocks` 로 stamp 한다.
+여기서 트리모양의 결정은 아래에서 조금 더 다룬다.
 
 ```cpp
 void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE treeType)
 {
     PosInt3 worldPosInt3 = ...;
     TreeShape treeShape = { TREE_BLOCK_INDEX::EMPTY };
-    Tree::GenerateTreeShape(treeType, worldPosInt3, treeShape);      // [I] 모양 생성
+    Tree::GenerateTreeShape(treeType, worldPosInt3, treeShape);      // 모양 생성
 
     for (int dy = 0; dy < Tree::TREE_SIZE; ++dy)
     for (int dz = 0; dz < Tree::TREE_SIZE; ++dz)
     for (int dx = 0; dx < Tree::TREE_SIZE; ++dx) {
         if (treeShape[dy][dz][dx] == TREE_BLOCK_INDEX::EMPTY) continue;
 
-        // scratch buffer 좌표 → 청크 로컬 좌표
+        // 밑동 좌표 + buffer 좌표 → 청크 로컬 좌표
         int ty = y  +  dy;
         int tz = z  -  dz + (Tree::TREE_SIZE / 2);
         int tx = x  +  dx - (Tree::TREE_SIZE / 2);
 
-        // [II] trunk / leaf → 블록으로 stamp
+        // trunk / leaf → 블록으로
         if (treeShape[dy][dz][dx] == TRUNK || treeShape[dy][dz][dx] == LEAF) {
             BLOCK_TYPE treeBlock = (treeShape[dy][dz][dx] == TRUNK)
                 ? Tree::GetTrunkBlockType(treeType)
                 : Tree::GetLeafBlockType(treeType);
             SetTreeBlockType(tx, ty, tz, treeBlock, memory);
         }
-        // [III] vine 은 instance 로 심음 (블록 아님)
+
+        // vine 은 instance 로 심음 (블록 아님)
         if ((treeShape[dy][dz][dx] & VINE) == VINE) {
             uint8_t faceFlag = (treeShape[dy][dz][dx] & (~VINE));   // 상위 비트가 방향
             SetTreeVines(tx, ty, tz, INSTANCE_VINE, faceFlag, memory);
@@ -285,11 +287,9 @@ void Chunk::PlaceTree(int x, int y, int z, ChunkLoadMemory* memory, TREE_TYPE tr
 }
 ```
 
-세 단계 [I] → [III] 을 아래에서 상세히 본다.
+## 4. 모양 결정 알고리즘
 
-## 3. 모양 결정 알고리즘
-
-### 3.1 `TreeShape` — 25³ 스크래치 버퍼
+### 4.1 `TreeShape` — 25³ 임시 버퍼 사용
 
 ```cpp
 // voxen/headers/Tree.h
@@ -313,9 +313,9 @@ enum VINE_DIR : uint8_t {
 
 - 하위 2 비트는 `TREE_BLOCK_INDEX` (2 비트로 4가지). VINE 은 최상위 방향 비트와 함께 저장되므로 하나의 uint8_t 로 blocktype + vine 방향을 모두 담는다.
 - Buffer 중심은 `(x, y, z) = (12, 0, 12)` — 밑동 위치. 위로 자라나는 나무는 y 방향으로 채워진다.
-- Cactus 같은 예외를 제외하면 트리의 최대 y 는 baseHeight + 랜덤 범위 정도라 25 안에서 충분.
+- xy 방향은 그대로나, 버퍼에서 `+z`는 월드 기준 `-z`다.
 
-### 3.2 `Tree::GenerateTreeShape` — 5개 생성 함수 dispatch
+### 4.2 `Tree::GenerateTreeShape` — 5개 생성 함수 dispatch
 
 ```cpp
 void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeShape& outTreeShape)
@@ -333,12 +333,11 @@ void Tree::GenerateTreeShape(TREE_TYPE type, const PosInt3& worldPosInt3, TreeSh
 }
 ```
 
-여러 종이 공유하는 **빌딩 블록**이 4개 있다.
+여러 종이 공유하는 나무 모양을 구성하는 방식은 크게 4가지다.
 
 #### (a) 기둥 (Trunk)
 
 가장 단순한 경우 (`GenerateBasicTree`): 중심 (12, 12) 에서 y 방향으로 baseHeight ± 랜덤 만큼 TRUNK 를 채운다.
-JUNGLE 은 2x2 굵기의 기둥 4칸을 동시에 세운다.
 
 ```cpp
 int heightRange = params.baseHeight + Utils::RandomRangeByPos(worldPos, -1, 1);
@@ -351,8 +350,8 @@ for (int y = 0; y < heightRange; ++y)
 두 가지 진행 방식이 있다.
 
 **Gradient branch** (`AddBranchForGradient`) — CHERRY / JUNGLE / ACACIA 에서 사용.
-목표 gradient 방향으로 6방향 후보 중 "gradient 와 가장 잘 정렬되고 목표에서 멀어지는" 방향을 매 스텝 선택한다.
-결과적으로 gradient 방향으로 부드럽게 뻗어나가는 곡선.
+랜덤한 방향 gradient을 선택하고 축 정렬된 6방향 후보 중 gradient와 내적하여 방향을 매 스텝 선택한다.
+결과적으로 gradient 방향으로 뻗어나가는 branch가 구성된다.
 
 ```cpp
 Vector3 curDir = GenerateNextDirectionForGradient(diffPos, gradient);
@@ -365,7 +364,7 @@ Vector3 curDir = GenerateNextDirectionForGradient(diffPos, gradient);
 
 #### (c) 잎 클러스터 (Leaf Cluster / Plane)
 
-**AddLeafCluster** — 3D 타원구를 채운다. `shrink` 로 축 비율을 조정 (SPRUCE 는 y 방향 2.5배 늘려 원뿔) 하고,
+**AddLeafCluster** — 3D 타원구를 채운다. `shrink` 로 타원구의 비율을 축방향으로 줄일 때 사용한다,
 `carve` 구간에서는 좌표 hash 로 x/z 를 random 하게 0/1 만큼 늘려 표면을 오돌토돌하게 만든다.
 
 ```cpp
@@ -385,12 +384,12 @@ if (sx*sx + sy*sy + sz*sz < radius*radius) {
 ```cpp
 for y from top to bottom:
   for each (x, z) in TreeShape:
-    if tree[y][z][x] != LEAF && tree[y][z][x] != TRUNK: continue
+    if tree[y][z][x] != LEAF && tree[y][z][x] != TRUNK: continue // 덩굴이나 잎사귀가 나올때까지
 
     for d in {L, R, F, B}:
-        nx, nz = neighbor in direction d
-        if tree[y][nz][nx] != EMPTY: continue
-        if hash(world position) % 100 <= vinePercent:
+        nx, nz = neighbor in direction d      // 주변이
+        if tree[y][nz][nx] != EMPTY: continue // 비어있는지 체크
+        if hash(world position) % 100 <= vinePercent: // 퍼센트 기반 확률로 Vines 설정
             length = random(1, y)
             DropVines(nx, y, nz, d, length, tree)   // 아래로 length 칸 늘어뜨림
 ```
@@ -399,27 +398,27 @@ for y from top to bottom:
 `VINE | V_LEFT/RIGHT/FRONT/BACK` 를 덧씌운다. `d` 는 어느 트리 면에서 나온 vine 인지를 기록해서
 나중에 렌더링할 때 vine 이 벽에 붙는 방향을 결정한다.
 
-- 방향-비트 인코딩 규칙: 트리에서 왼쪽으로 나온 vine 은 그 vine 을 vine 셀 기준으로 보면 오른쪽에 트리가 있으므로 `V_RIGHT` (트리가 붙은 방향) 로 저장.
+- 방향: 트리에서 왼쪽으로 나온 vine 은 그 vine 을 vine 셀 기준으로 보면 오른쪽에 트리가 있으므로 `V_RIGHT` (트리가 붙은 방향) 로 저장.
 - **JUNGLE** 은 `vinePercent = 5 + RandomRange(0, 5)` 로 드물게, **MANGROVE** 는 `40 + RandomRange(-10, 10)` 로 매우 촘촘하게 덩굴을 늘어뜨린다.
 
-### 3.3 각 트리 타입의 조합
+### 4.3 각 트리 타입의 조합
 
-| 타입     | 함수                | trunk        | branch                   | leaf                             | vine       |
-| -------- | ------------------- | ------------ | ------------------------ | -------------------------------- | ---------- |
-| OAK, BIRCH | GenerateBasicTree | 1칸, ±1      | 없음                     | Cluster (타원구) + cap Cluster   | 없음       |
-| SPRUCE   | GenerateSpruce      | 1칸, ±2/+4   | 없음                     | Cluster (y-2.5배 늘림) + cap     | 없음       |
-| MANGROVE | GenerateMangrove    | 1칸, ±0/-1   | 없음                     | Cluster (y-1.5 배)               | 40% (많음) |
-| CHERRY   | GenerateCherry      | 1칸, ±1      | Gradient × 2             | 각 가지 끝 Cluster + 본체 Cluster | 없음      |
-| CACTUS   | GenerateCactus      | 1칸, ±1      | Random × 2 (수평 후 위)  | 없음                             | 없음       |
-| JUNGLE   | GenerateJungle      | 2x2, ±2      | Gradient × 3             | 각 가지 끝 Plane + 본체 3층 Plane | 5%(적음)  |
-| ACACIA   | GenerateAcacia      | 1칸, ±1      | Gradient × 1             | 가지 끝 Plane + 본체 2층 Plane   | 없음       |
+| 타입       | 함수              | trunk      | branch                  | leaf                              | vine       |
+| ---------- | ----------------- | ---------- | ----------------------- | --------------------------------- | ---------- |
+| OAK, BIRCH | GenerateBasicTree | 1칸, ±1    | 없음                    | Cluster (타원구) + cap Cluster    | 없음       |
+| SPRUCE     | GenerateSpruce    | 1칸, ±2/+4 | 없음                    | Cluster (y-2.5배 늘림) + cap      | 없음       |
+| MANGROVE   | GenerateMangrove  | 1칸, ±0/-1 | 없음                    | Cluster (y-1.5 배)                | 40% (많음) |
+| CHERRY     | GenerateCherry    | 1칸, ±1    | Gradient × 2            | 각 가지 끝 Cluster + 본체 Cluster | 없음       |
+| CACTUS     | GenerateCactus    | 1칸, ±1    | Random × 2 (수평 후 위) | 없음                              | 없음       |
+| JUNGLE     | GenerateJungle    | 2x2, ±2    | Gradient × 3            | 각 가지 끝 Plane + 본체 3층 Plane | 5%(적음)   |
+| ACACIA     | GenerateAcacia    | 1칸, ±1    | Gradient × 1            | 가지 끝 Plane + 본체 2층 Plane    | 없음       |
 
-## 4. 청크 경계 처리 — Patch 전파
+## 5. 청크 경계 처리 — Patch 전파
 
-트리 크기가 최대 25 블록인데 청크 하나는 32 블록이므로, 청크 가장자리(x < 13 또는 x >= 19 등)에 심어진 트리는 인접 청크로 뻗어나간다.
-청크는 각자 독립적으로 로드되므로 다른 청크에 직접 값을 쓸 수 없고, 대신 **패치 데이터를 만들어 두면 이후 Patch 파이프라인이 인접 청크에 반영**한다.
+트리 크기가 최대 25 블록인데 청크 하나는 32 블록이므로, 청크 가장자리 경계에서 트리가 주변에 퍼질 수 있다.
+A 청크가 다른 청크에 직접 값을 쓸 수 없고, 대신 **패치 데이터를 만들어 두면 이후 Patch 파이프라인이 인접 청크에 반영**한다.
 
-### 4.1 `SetTreeBlockType` — 3-way 분기
+### 5.1 `SetTreeBlockType` — 3-way 분기
 
 ```cpp
 void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, ...)
@@ -436,7 +435,7 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, ...)
         memory->loadPatchResult[Utils::VectorToPosInt3(blockOwnerOffset)].insert(patchData);
     }
 
-    // [3] 청크 안이더라도 (Inner/Outer) Edge 이면 그리디 메싱 seam 방지 위해 인접 청크에도 patch
+    // [3] 청크 안밖의 (Inner/Outer) Edge 이면 그리디 메싱을 위해 인접 청크에도 patch (본인을 수정하는 패치는 제외)
     if (IsInnerEdge(tx, ty, tz) || IsOuterEdge(tx, ty, tz)) {
         PatchData::GenerateEdgePatchEntry(...);            // 최대 3개 인접 청크
         for each entry: memory->loadPatchResult[...].insert(patchData);
@@ -444,14 +443,11 @@ void Chunk::SetTreeBlockType(int tx, int ty, int tz, BLOCK_TYPE treeBlock, ...)
 }
 ```
 
-- `IsInsideChunkWithPadding` 은 `-1 ≤ x ≤ 32` 로 padding 을 포함한 범위 (`CHUNK_SIZE_P` 배열의 유효 인덱스).
-  이 안에 들어오면 padding cell 이라도 곧바로 값을 써 둔다. Greedy meshing 이 padding 값을 참조해서 face 를 컬링하기 때문.
-- `!IsInsideChunk` 는 청크의 32×32×32 영역 밖. 이때는 자기 배열이 아니라
-  **소유 청크(blockOwnerOffsetPos) 를 계산해서 그 청크의 patch queue 에 데이터를 넣는다.**
-- Edge 블록은 인접 청크의 mesh 도 영향을 받으므로 (자기 청크 안에 있어도) patch 를 함께 보낸다.
-  이 처리가 없으면 청크 경계에서 나뭇가지가 뭉그러진 것처럼 보이는 seam 이 생긴다.
+- `IsInsideChunkWithPadding` 은 `-1 ≤ x ≤ 32` 로 padding 을 포함한 범위 (`CHUNK_SIZE_P` 배열의 유효 인덱스)
+- `!IsInsideChunk` 는 청크의 32×32×32 영역 밖. **인접 소유 청크(blockOwnerOffsetPos) 를 계산해서 Patch Data로 구성한다.**
+- 안쪽과 바깥쪽 Edge 블록은 인접 청크의 mesh 도 영향을 받으므로 (자기 청크 안에 있어도) patch 를 함께 보낸다.
 
-### 4.2 Vine 은 instance 로 patch
+### 5.2 Vine 은 instance 로 patch
 
 ```cpp
 void Chunk::SetTreeVines(int tx, int ty, int tz, INSTANCE_TYPE treeVine, uint8_t faceFlag, ...)
@@ -468,22 +464,43 @@ void Chunk::SetTreeVines(int tx, int ty, int tz, INSTANCE_TYPE treeVine, uint8_t
 }
 ```
 
-- Vine 은 블록이 아니라 **instance** (cross-billboard 형 메쉬) 로 렌더링되므로 별도의 `m_instanceMap` 에 들어간다.
-- `faceFlag` 는 vine 이 붙은 트리 면의 방향으로, 렌더러가 이걸 보고 vine quad 를 어느 벽 쪽으로 붙일지 결정.
+- Vine 은 블록이 아니라 **instance** (단순 사각형 메쉬) 로 렌더링되므로 별도의 `m_instanceMap` 에 들어간다.
+- `faceFlag` 는 vine 이 붙은 트리 면의 방향으로, ChunkManager에서 vine quad 를 어느 벽 쪽으로 붙일지 결정.
 - 청크 밖 vine 도 마찬가지로 patch 데이터로 보낸다.
 
-### 4.3 로드 시점의 패치 큐 → Patch 파이프라인
+### 5.3 로드 시점의 패치 큐 → Patch 파이프라인
 
 `memory->loadPatchResult` 는 `PosHashMap<PatchDataHashSet>` (청크 offset → 패치 세트) 이다.
 `Chunk::Initialize` 가 리턴한 후 ChunkManager 가 이 결과를 모아서 [Patch 파이프라인](../../ChunkManagement/README.md) 으로 넘긴다.
-자세한 처리(UpdatePatchChunkMap, PatchChunks, SyncPatchedChunks) 는 ChunkManagement 문서 참고.
 
-## 5. 회고
+### 6. 트리 요약
 
-- **25³ scratch buffer 방식** 이 트리 로직을 아주 단순하게 만들어 준다. Trunk / branch / leaf / vine 이 다 `TreeShape` 라는 로컬 좌표계에서만 조립되고, "청크와의 경계" 는 마지막에 stamp 단계에서만 신경 쓰면 된다.
+1. 기본 블록 구성이 완료된 청크를 바탕으로 연산
+2. 후보군 선정 `GenerateRandomPlace2D`
+3. 트리 심을 수 있는지 검사 `CanPlaceTreeAt`
+4. 트리 심기 `PlaceTree`
+5. 트리 모양 결정 `Tree::GenerateTreeShape`
+6. Block, Instance 구분 -> 패치 전파
 
-- **함수형 구성 요소 조합** — `AddLeafCluster`, `AddLeafPlane`, `AddBranchForGradient`, `AddBranchForRandom`, `AddVines` 같은 자유 함수가 각 tree type 함수 안에서 조합되는 방식이라, 새 트리를 추가할 때 새 조합 하나만 만들면 된다. OOP 상속으로 짰다면 각 트리 클래스가 이 함수들을 override 하거나 helper 를 갖게 되어 훨씬 복잡했을 것이다.
+## 6. 회고
 
-- **아쉬운 점** : `GenerateJungle` / `GenerateAcacia` / `GenerateCherry` 가 서로 유사한 코드 구조(가지 for 문 → 잎 → 본체 잎) 를 갖는데 파라미터 몇 개만 다르다. `LeafPlane` 두 층 vs `LeafCluster` 처럼 잎 스타일까지 데이터로 뽑아내면 함수 하나로 통합 가능.
+Patch 로직이 없었을 때 진행했기에 가장 어려웠던 CPU 구현 챕터였다.
 
-- **개선하고 싶은 방향** : 현재 branch 방향은 랜덤 gradient 이므로 트리의 실루엣이 좌우 대칭이 되지 않고, 청크 seed 만으로 결정되기 때문에 같은 좌표에서 항상 같은 형태가 나온다. gradient 를 world position + 시간 시드로 뽑거나, 몇 개 preset shape 을 미리 준비해 hash 로 선택하는 하이브리드 방식이 시각적 다양성 대비 비용이 낮을 것.
+- Tree를 구성하려보니 Tree 관련 로직만 작성하면 되는게 아니라, 전반적인 Patch라는 구조가 추가되는 복잡성이 있었다
+  - Patch 멀티쓰레드 구성, 동기화, 안정성 고려
+  - ChunkManager 구조 변경
+  - Patch Data 구성
+- Tree를 단순히 NxNxN 배열에서 정적으로 트리를 구성하는건 큰 의미가 없다고 판단해서 Tree Shape 결정에 신경을 많이썼다.
+  - 기둥, 가지, 잎사귀, 덩굴 등 따로 함수로 구성할 수 있어서 확장성은 나쁘지 않았다.
+  - 하지만, 테스트를 위해서는 많은 빌드 실행의 결과가 있었다.
+
+아쉬운 점
+
+- 트리 모양 결정에서 사용되는 Hash기반 랜덤 Range 선택이 머리속에 남는다.
+- Hash 기반 랜덤 Range 선택은 느릴 것 같은게 눈에 보이고 심지어 루프까지 도는 상황이였다.
+- 이전 해쉬값을 사용하면 성능 개선에 영향을 줄 것이다.
+
+전반적인 결과에 만족한다.
+
+- 다양한 트리 타입 및 다양한 트리 모양이 존재한다.
+- 청크 주변에서의 Patch도 적절하다. 문제 없었다.
