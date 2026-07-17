@@ -66,7 +66,19 @@ BLOCK_TYPE Tree::GetTrunkBlockType(TREE_TYPE type)
 }
 ```
 
-### 2.1 TreeShapeParams 구조
+### 2.1 TreeTypeInfo 내용
+
+```cpp
+class TreeTypeInfo {
+    ...
+private:
+	BLOCK_TYPE m_trunkBlockType;    // 기둥 텍스쳐 인덱스
+	BLOCK_TYPE m_leafBlockType;     // 잎사귀 텍스쳐 인덱스
+	TreeShapeParams m_shapeParams;  // 트리의 모양 관련 속성들
+};
+```
+
+### 2.2 TreeShapeParams 구조
 
 트리 모양 결정에 사용되는 속성들이다.
 
@@ -97,7 +109,7 @@ struct TreeShapeParams {
 클러스터** 만 있는 단순 형태이고, `branchCount>0` 인 CHERRY / CACTUS / JUNGLE / ACACIA
 는 가지를 여러 번 뻗어 나가는 복잡한 형태다.
 
-### 2.2 왜 OOP 를 쓰지 않았는가
+### 2.3 왜 OOP 를 쓰지 않았는가
 
 앞선 Biome / Block 문서와 동일한 이유다.
 

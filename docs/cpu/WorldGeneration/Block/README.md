@@ -100,7 +100,7 @@ bool Block::IsOpaque(BLOCK_TYPE type)
 
 또한 메쉬 성격뿐만 아니라, 렌더링 파이프라인이 다르기에 구분할 필요가 존재했다.
 
-### 3.3 BlockInfo 내용
+### 3.3 BlockTypeInfo 내용
 
 ```cpp
 class BlockTypeInfo {
