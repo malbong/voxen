@@ -101,7 +101,7 @@ struct TreeShapeParams {
 
 앞선 Biome / Block 문서와 동일한 이유다.
 
-요약: 로직이 다르기보단, 상태 값이 다르다. 구성 로직이 다른 모양 결정은 충분히 switch-case나 if로 구성이 한 곳에 했다.
+요약: 로직이 다르기보단, 상태 값이 다르다. 구성 로직이 다른 모양 결정은 충분히 switch-case나 if로 구성을 한 곳에 할 수 있다.
 
 ## 3. Tree 심기 파이프라인 — `Chunk::InitTreePlace`
 
