@@ -6,8 +6,12 @@
     <td><img src="https://github.com/user-attachments/assets/3f942cb7-78c8-47f4-ba6d-5b561e890689" width="300"/></td>
     <td><img src="https://github.com/user-attachments/assets/43a74803-ee33-45db-b9e9-3de2648dc450" width="300"/></td>
   </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/7a293d54-2480-4eff-8a8f-bd759475bb0a" width="300"/></td>
+    <td><img src="https://github.com/user-attachments/assets/86badc76-4ab7-48fe-b069-ffe61cb27a43" width="300"/></td>
+    <td><img src="https://github.com/user-attachments/assets/2a9767e1-06f1-44a7-ad43-47f9802e35f4" width="300"/></td>
+  </tr>
 </table>
-
 ## 1. 개요
 
 지표가 결정된 후, 각 청크의 표면 좌표에 8종의 procedural tree를 심는 단계.
