@@ -1,28 +1,39 @@
 # Instance System
 
-풀, 꽃, 양치, 덩굴, 켈프, 수련처럼 **블록(1×1×1) 으로 표현하기에는 세밀한 오브젝트**
-를 담당하는 시스템. 지형과 트리가 놓인 후, 표면 위 한 칸(공기 또는 물) 에
-Cross / Fence / Square / Floor 4가지 quad 프리미티브 중 하나로 그려진다.
-청크당 최대 `INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE² / 4 = 256` 개의
-후보 좌표에서 biome 별 quota 만큼 배치된다.
+<table>
+
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/63a2a38e-f114-4966-a698-00d70f9deaa3" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/42612c60-dbe2-43e6-92d9-de6550330229" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/b44261cf-effd-4760-af52-4ae058cb9d2e" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/cece57c8-f317-43f9-b936-6f8d125b8e0e" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/e0b86f35-4b77-47d0-b7ab-ee664a323843" width="400"/></td>
+    <td><img src="https://github.com/user-attachments/assets/50713410-597f-4327-a798-8652360f9eb4" width="400"/></td>
+  </tr>
+</table>
+
+<br />
 
 ## 1. 개요
 
-### 1.1 자료구조 — Instance → InstanceTypeInfoSet → InstanceTypeInfo
+풀, 꽃, 양치, 덩굴, 켈프, 수련처럼 블록(1×1×1)과 **다른 메쉬를 가지는 세밀한 오브젝트**를 Instance로 구분하였다.
 
-[Biome](../Biome/README.md), [Block](../Block/README.md), [Tree](../Tree/README.md) 와
-동일한 "정적 테이블 + 얇은 값 객체" 패턴이지만, **Instance 인스턴스 자체가 5개 필드
-를 갖는 다중 상태 값 객체** 라는 점이 다르다 (Block 은 `m_type` 하나, Tree 는 `m_type` 하나).
+청크 로드 시 지형과 트리가 놓인 후 Instance를 배치하고 이 Instance는 ChunkManager에서 정보를 모아 Cross / Fence / Square / Floor 4가지 quad 프리미티브 중 하나로 그려진다.
 
-- `Instance` — **정적 함수만 노출하는 접근 계층 (facade)** + **좌표별 상태를 5개 필드
-  로 갖는 값 객체**
-- `InstanceTypeInfoSet` — 256 (`INSTANCE_TYPE_COUNT`) 크기 vector 로 `InstanceTypeInfo`
-  를 보관. 생성자에서 각 인스턴스 타입의 shape/texture/maxHeight 를 초기화.
-- `InstanceTypeInfo` — 한 인스턴스 타입의 정적 속성:
-  - `m_shape` — Cross / Fence / Square / Floor (quad 프리미티브 종류)
-  - `m_texIndex` — 기본 텍스처 (단층 인스턴스에서 사용)
-  - `m_texTopIndex` / `m_texBottomIndex` — 다층 인스턴스의 top/bottom 텍스처
-  - `m_maxHeight` — 최대 세로 칸 수 (grass 2, kelp 10 등)
+<br />
+
+## 2. Instance 구조 — Instance → InstanceTypeInfoSet → InstanceTypeInfo
+
+[Biome](../Biome/README.md), [Block](../Block/README.md), [Tree](../Tree/README.md) 와 동일한 패턴을 사용하지만,
+**Instance** 자체가 1개의 속성이 아닌 여러 개의 속성을 가진다는 점은 다르다.
+
+- `Instance` — **정적 함수만 노출하는 접근 계층** + 개별 인스턴스는 **좌표별 상태를 5개 필드로 갖는 값 객체**
+- `InstanceTypeInfoSet` — 256개의 `InstanceTypeInfo`를 담는 컨테이너, 생성자에서 각 타입의 속성을 세팅
+- `InstanceTypeInfo` — 한 인스턴스 정보를 담는 객체: 프리미티브 종류 타입, 텍스쳐 인덱스, 다층 인스턴스 텍스처 인덱스, 최대 높이
 
 ```cpp
 // voxen/headers/Instance.h  (요약)
@@ -66,22 +77,31 @@ INSTANCE_SHAPE Instance::GetShape(INSTANCE_TYPE type)
 }
 ```
 
-즉 `type` 하나만 알면 shape / texture / maxHeight 같은 **정적 속성** 은 테이블 조회고,
-`yawRotation`, `offsetNoisePositionXZ`, `faceFlag` 같은 **좌표별 상태** 는 값 객체가 직접 든다.
+### 2.1 왜 OOP 를 쓰지 않았는가
 
-### 1.2 왜 OOP 를 쓰지 않았는가
+앞선 Biome / Block / Tree 문서와 동일한 이유다.
 
-Block / Tree 문서와 같은 이유이지만, Instance 는 개수가 청크당 최대 256개 정도라
-Block (32³ = 32768) 만큼 극단적인 메모리 압박은 없다.
-그럼에도 상속을 도입하지 않은 이유는
+요약: 로직이 다르기보단, 상태 값이 다르다. 구성 로직이 다른 모양 결정은 충분히 switch-case나 if로 구성을 한 곳에 할 수 있다.
 
-- 인스턴스 타입 별 차이는 **shape, texture 세트, maxHeight** 로 완전히 표현 가능하며,
-  이 데이터를 값으로 들고 다니면 렌더러가 GPU 인스턴스 버퍼에 그대로 밀어 넣기 쉽다.
-- 상속을 쓰면 각 인스턴스에 vtable 이 붙어 인스턴스 버퍼 packing 이 어려워지고,
-  같은 타입의 grass 여러 개를 배치할 때마다 매번 virtual dispatch 로 shape/texture 를
-  물어보는 오버헤드가 생긴다.
+### 2.2 InstanceTypeInfo 내용
 
-### 1.3 4개 shape 종류
+```cpp
+class InstanceTypeInfo {
+    ...
+private:
+	INSTANCE_SHAPE m_shape;          // 모양 종류 4 타입 중 하나
+	TEXTURE_INDEX m_texIndex;        // 기본 텍스쳐 인덱스
+	TEXTURE_INDEX m_texTopIndex;     // 위아래 구분된 Instance에서 윗방향 텍스쳐 인덱스
+	TEXTURE_INDEX m_texBottomIndex;  // 위아래 구분된 Instance에서 아랫방향 텍스쳐 인덱스
+	uint8_t m_maxHeight;             // 인스턴스의 최대 높이
+};
+```
+
+### 2.3 4개 shape 종류의 성격을 가지는 Instance
+
+이는 Instance Rendering 시 Vertex Buffer를 다르게 두기 위함이다.
+
+- SQUARE와 FLOOR는 같은 단일 Quad 이지만, 회전에 다른 예외를 주기 싫어서 따로 구분하였다.
 
 ```cpp
 // voxen/headers/Enums.h
@@ -93,37 +113,31 @@ enum INSTANCE_SHAPE : uint8_t {
 };
 ```
 
-| shape       | 형태                              | 사용 예                              |
-| ----------- | --------------------------------- | ------------------------------------ |
-| **CROSS**   | X 자로 교차한 2 개의 quad          | 대부분 (grass, tulip, fern, mushroom …) |
-| **FENCE**   | + 자로 교차한 4 개의 quad          | 볼륨감이 있는 것 (sweet berry bush, rose plants) |
-| **SQUARE**  | 벽에 붙는 단일 quad (face flag 사용) | vine (트리에서 뻗음)                |
-| **FLOOR**   | 지면에 평평하게 눕는 단일 quad      | water lily                          |
+| shape      | 형태                                 | 사용 예                                          |
+| ---------- | ------------------------------------ | ------------------------------------------------ |
+| **CROSS**  | X 자로 교차한 2개의 quad             | 대부분 (grass, tulip, fern, mushroom …)          |
+| **FENCE**  | +를 두개 교차한 4개의 quad           | 볼륨감이 있는 것 (sweet berry bush, rose plants) |
+| **SQUARE** | 벽에 붙는 단일 quad (face flag 사용) | vine (트리에서 뻗음)                             |
+| **FLOOR**  | 지면에 평평하게 눕는 단일 quad       | water lily                                       |
 
-shape 는 mesh generator 가 quad 하나 하나를 어떻게 배치할지를 결정하므로, 데이터
-자체는 GPU 셰이더 상수/오프셋으로만 존재하고 CPU 는 `INSTANCE_SHAPE` 하나만 넘긴다.
+### 2.4 등록된 인스턴스 타입 목록 일부
 
-### 1.4 등록된 인스턴스 타입 목록
+| INSTANCE_TYPE          | SHAPE  | texIndex           | texTopIndex           | texBottomIndex           | maxHeight |
+| ---------------------- | :----: | ------------------ | --------------------- | ------------------------ | :-------: |
+| `INSTANCE_GRASS`       | CROSS  | `SHORT_GRASS`      | `DOUBLE_GRASS_TOP`    | `DOUBLE_GRASS_BOTTOM`    |     2     |
+| `INSTANCE_FERN`        | CROSS  | `FERN`             | `DOUBLE_FERN_TOP`     | `DOUBLE_FERN_BOTTOM`     |     3     |
+| `INSTANCE_KELP`        | CROSS  | `KELP_TOP`         | `KELP_TOP`            | `KELP`                   |    10     |
+| `INSTANCE_SEAGRASS`    | CROSS  | `SEAGRASS`         | `DOUBLE_SEAGRASS_TOP` | `DOUBLE_SEAGRASS_BOTTOM` |     2     |
+| `INSTANCE_OXEYE_DAISY` | CROSS  | `OXEYE_DAISY`      | `NONE`                | `NONE`                   |     1     |
+| `INSTANCE_TULIP_RED`   | CROSS  | `TULIP_RED`        | `NONE`                | `NONE`                   |     1     |
+| `INSTANCE_SWEET_BERRY` | FENCE  | `SWEET_BERRY_BUSH` | `NONE`                | `NONE`                   |     1     |
+| `INSTANCE_ROSE_PLANTS` | FENCE  | `ROSE_PLANTS`      | `NONE`                | `NONE`                   |     1     |
+| `INSTANCE_VINE`        | SQUARE | `VINE`             | `NONE`                | `NONE`                   |     1     |
+| `INSTANCE_WATER_LILY`  | FLOOR  | `WATER_LILY`       | `NONE`                | `NONE`                   |     1     |
 
-```cpp
-// voxen/headers/Instance.h  InstanceTypeInfoSet 생성자에서 등록되는 항목
-GRASS       (CROSS, short/double grass 텍스처, maxHeight 2)
-SEAGRASS    (CROSS, single/double seagrass,     maxHeight 2)
-KELP        (CROSS, kelp top/body,              maxHeight 10)  ← 가장 큰 다층
-FERN        (CROSS, single/double fern,         maxHeight 3)
+<br />
 
-SWEET_BERRY_BUSH (FENCE, ...)
-ROSE_PLANTS      (FENCE, ...)
-WATER_LILY       (FLOOR, ...)
-VINE             (SQUARE, ..., faceFlag 로 방향 지정)
-
-OXEYE_DAISY / CORN_FLOWER / TULIP_PINK / TULIP_RED / TULIP_WHITE / TULIP_ORANGE
-BLUE_ORCHID / MUSHROOM_BROWN / MUSHROOM_RED / DEAD_BUSH
-ROSE_BLUE / ROSE_RED / LILY_OF_THE_VALLEY / ALLIUM / DANDELION
-   (모두 CROSS, 단층 maxHeight 1)
-```
-
-## 2. Instance 심기 파이프라인 — `Chunk::InitInstancePlace`
+## 3. Instance 심기 파이프라인 — `Chunk::InitInstancePlace`
 
 `Chunk::Initialize` 의 5번째 단계 (Tree 다음).
 
@@ -135,7 +149,7 @@ InitTerrainNoises → InitBiomeMapAndCount → InitBasicBlockType → InitTreePl
                                                               InitWorldVerticesData
 ```
 
-전체 흐름:
+전체 흐름: Tree와 유사하다.
 
 ```cpp
 // voxen/srcs/Chunk.cpp
@@ -153,42 +167,58 @@ void Chunk::InitInstancePlace(ChunkLoadMemory* memory)
         int x = memory->instanceRandomPlace2D[i].first;
         int z = memory->instanceRandomPlace2D[i].second;
 
-        // (2) 물 위 인스턴스 (수련) 먼저 시도 — y = 64 청크에서만
+        // (2-a) 물 위 인스턴스 (수련) 먼저 시도 — y = 64 청크에서만
         if (CanPlaceWaterPlaneInstanceAt(x, z, memory)) {
             INSTANCE_TYPE instanceType = GetWaterPlaneInstanceType(x, z, memory);
             SetWaterPlaneInstance(x, z, instanceType, memory);
         }
 
-        // (3) biome 인스턴스 (풀/꽃/양치/덩굴...)
+        // (2-b) 땅 위 인스턴스 시도 (풀/꽃/양치/덩굴...)
         BIOME_TYPE biomeType = memory->biomeMap2D[x + 1][z + 1];
         float elevationWorldY = std::ceil(memory->elevationNoises[x + 1][z + 1]);
         int   localY = (int)(elevationWorldY - m_offsetPosition.y);
 
         if (CanPlaceBiomeInstanceAt(x, localY, z, placedBiomeInstanceCount[biomeType], memory)) {
+
+            // (3) Biome에 따른 Instance Type 결정
             INSTANCE_TYPE instanceType = GetBiomeInstanceType(x, localY, z, memory);
+
+            // (4) Instance 심기
             SetBiomeInstance(x, localY, z, instanceType, memory);
+
             placedBiomeInstanceCount[biomeType]++;
         }
     }
 }
 ```
 
-Tree 파이프라인과 동일한 구조지만 **water plane** (수련) 이 앞에 별도 브랜치로 존재하는
-것이 특징이다. 수련은 물 표면 (`y=64`) 청크에서만 후보가 되어 별도 조건 (`humidity > 0.77
-&& temperature > 0.5 && distribution > 0.75`) 을 만족할 때 놓이며, 이후 같은 좌표에서
-biome 인스턴스가 다시 시도된다 (두 인스턴스가 y 좌표가 다르므로 충돌하지 않음).
+### 3.1 랜덤 위치 선정
 
-### 2.1 랜덤 위치 선정
+Tree 와 완전히 동일한 `Terrain::GenerateRandomPlace2D` 를 사용하지만 SOLT 값이 달라 다른 값을 사용한다.
 
-Tree 와 완전히 동일한 `Terrain::GenerateRandomPlace2D` 를 사용하지만
-**서로 다른 solt (`INSTANCE_PLACE_RANDOM_SOLT_X = 405071179U`,
-`INSTANCE_PLACE_RANDOM_SOLT_Z = 397760329U`)** 를 주어 완전히 다른 랜덤 시퀀스를 얻는다.
-그래서 트리 위치와 인스턴스 위치가 상관성이 없다.
+`INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = 256` 개의 인스턴스를 심을 기준 후보를 xz 2D 격자 내에서 뽑는다.
 
-`INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = CHUNK_SIZE² / 4 = 256` 은 청크 표면 (32×32 = 1024) 의
-1/4 정도를 후보로 뽑는 값이다. 실제 배치되는 개수는 biome quota 로 제한.
+`INSTANCE_PLACE_MAX_COUNT_PER_CHUNK = 256`는 상한이며, 실제 배치되는 개수는 biome-별 비율로 따로 계산한다.
 
-### 2.2 인스턴스 가능 검사 — 두 종류
+```cpp
+// voxen/headers/Terrain.h
+static void GenerateRandomPlace2D(Vector3 worldPosition, uint32_t soltX, uint32_t soltZ,
+    int maxPlaceCount, int indexCount,
+    std::vector<std::pair<int, int>>& outRandomPlace2D)
+{
+    uint32_t seedX = (uint32_t)floor(worldPosition.x) + soltX;
+    uint32_t seedZ = (uint32_t)floor(worldPosition.z) + soltZ;
+    uint32_t soltY = (uint32_t)floor(worldPosition.y);
+
+    for (int i = 0; i < maxPlaceCount; ++i) {
+        seedX = Utils::HashInt(seedX, soltX * soltY);
+        seedZ = Utils::HashInt(seedZ, soltZ * soltY);
+        outRandomPlace2D.push_back({ seedX % indexCount, seedZ % indexCount });
+    }
+}
+```
+
+### 3.2 인스턴스 가능 검사 — 두 종류
 
 #### (a) `CanPlaceWaterPlaneInstanceAt` — 수련 조건
 
@@ -197,19 +227,12 @@ bool Chunk::CanPlaceWaterPlaneInstanceAt(int x, int z, ChunkLoadMemory* memory)
 {
     const float WATER_HEIGHT = 64.0f;
 
-    if (m_offsetPosition.y != WATER_HEIGHT) return false;                 // [A] y=64 청크만
-    if (elevationWorldY   >= WATER_HEIGHT)  return false;                 // [B] 지형이 수면 위면 X
-    if (GetWaterPlaneInstanceType(x,z,mem) == INSTANCE_NONE) return false; // [C] t/h/d 조건 불충족
+    if (m_offsetPosition.y != WATER_HEIGHT) return false;                  // [A] y=64 청크만
+    if (elevationWorldY   >= WATER_HEIGHT)  return false;                  // [B] 지형이 수면 위면 X
+    if (GetWaterPlaneInstanceType(x,z,mem) == INSTANCE_NONE) return false; // [C] t/h/d 조건 불충족으로 만족하는 인스턴스가 없음
     return true;
 }
-```
 
-- **[A]** 청크 y offset 이 64 (수면 높이) 인 청크에만 있는 검사.
-  청크는 y 축으로 -64, -32, 0, 32, 64, ... 처럼 32 단위로 배치되므로 y=64 청크는 수면을 정확히 포함하는 하나의 층.
-- **[B] `elevationWorldY >= 64`** 이면 이 xz 는 육지라서 수련 놓을 물이 없음.
-- **[C]** 수련은 `Instance::GetInstanceTypeForWaterPlane` 이 결정. 실제 로직은:
-
-```cpp
 INSTANCE_TYPE Instance::GetInstanceTypeForWaterPlane(float t, float h, float d)
 {
     if (h > 0.77f && t > 0.5f && d > 0.75f)  return INSTANCE_TYPE::INSTANCE_WATER_LILY;
@@ -217,7 +240,7 @@ INSTANCE_TYPE Instance::GetInstanceTypeForWaterPlane(float t, float h, float d)
 }
 ```
 
-  즉 매우 습하고 따뜻한 (열대성) 지역에만 수련이 뜬다. distribution 조건이 있어 국소적으로 뿌려진다.
+즉 매우 습하고 따뜻한 (열대성) 지역에만 수련이 뜬다. distribution 조건이 있어 국소적으로 뿌려진다.
 
 #### (b) `CanPlaceBiomeInstanceAt` — 일반 지상 인스턴스
 
@@ -226,10 +249,11 @@ Tree 의 `CanPlaceTreeAt` 와 거의 같은 4단계 필터.
 ```cpp
 bool Chunk::CanPlaceBiomeInstanceAt(int x, int y, int z, uint32_t placedCount, ...)
 {
-    // [A] biome 별 quota — biome 이 청크를 얼마나 차지하는지에 비례
-    if (placedCount >= GetMaxPlaceCountByBiomeRatio(
-                          Biome::GetMaxInstanceCountPerChunk(biomeType),
-                          memory->biomeCount[biomeType])) return false;
+    // [A] biome 비율에 대한 최대 개수 검사
+    BIOME_TYPE biomeType = memory->biomeMap2D[x + 1][z + 1];
+    uint32_t maxInstanceCountByRatio = GetMaxPlaceCountByBiomeRatio(
+        Biome::GetMaxInstanceCountPerChunk(biomeType), memory->biomeCount[biomeType]);
+    if (placedBiomeInstanceCount >= maxInstanceCountByRatio) return false;
 
     // [B] 청크 내부여야 함
     if (!IsInsideChunk(x, y, z))                                 return false;
@@ -241,34 +265,26 @@ bool Chunk::CanPlaceBiomeInstanceAt(int x, int y, int z, uint32_t placedCount, .
     INSTANCE_TYPE type = GetBiomeInstanceType(x, y, z, memory);
     if (type == INSTANCE_TYPE::INSTANCE_NONE)                    return false;
 
-    // [E] shape / block 결합 조건 (Instance::CanPlace)
+    // [E] shape / block 결합 조건 (Instance::CanPlace를 호출)
     return CheckInstancePlaceCondition(type, x, y, z);
 }
-```
 
-[E] 의 `Instance::CanPlace(type, currentBlock, bottomBlock)` 는 인스턴스가 놓일 셀 하나와 그 아래 셀만 보는 로컬 규칙이다.
-
-```cpp
-bool Instance::CanPlace(INSTANCE_TYPE type, BLOCK_TYPE cur, BLOCK_TYPE bottom)
+bool Chunk::CheckInstancePlaceCondition(INSTANCE_TYPE type, int x, int y, int z)
 {
-    if (!Block::IsTransparency(cur))                             return false; // 셀은 공기/물이어야
-    if (type == INSTANCE_KELP && cur != BLOCK_WATER)             return false; // 켈프는 물 안에만
-    if (type == INSTANCE_WATER_LILY)                                            // 수련은 물 위 공기
-        return (cur == BLOCK_AIR && bottom == BLOCK_WATER);
+	BLOCK_TYPE currentBlockType = m_blocks[x + 1][y + 1][z + 1].GetType();
+	BLOCK_TYPE bottomBlockType = m_blocks[x + 1][y][z + 1].GetType();
 
-    // 지상 인스턴스는 아래가 흙/잔디/설잔디/자갈 중 하나
-    if (bottom == BLOCK_DIRT || bottom == BLOCK_GRASS ||
-        bottom == BLOCK_SNOW_GRASS || bottom == BLOCK_GRAVEL)   return true;
-
-    // dead bush 는 모래 위 허용
-    if (INSTANCE_TYPE::INSTANCE_DEAD_BUSH && bottom == BLOCK_SAND) return true;
-    return false;
+	return Instance::CanPlace(type, currentBlockType, bottomBlockType); // 결합 조건 판단 (ex. 아래가 잔디 위에는 공기인가)
 }
 ```
 
-### 2.3 인스턴스 종류 결정 — `Instance::GetInstanceTypeForBiome`
+### 3.3 인스턴스 종류 결정 — `Instance::GetInstanceTypeForBiome`
 
-Tree 의 `GetTreeTypeForBiome` 와 완전히 같은 패턴이다. Biome 의 `Instances` 후보 목록에서 `d` (distribution) 값과 좌표 hash 로 하나를 선택.
+Tree 의 `GetTreeTypeForBiome` 와 완전히 같은 패턴이다.
+
+`Instance::GetInstanceTypeForBiome`은 그 후보 목록에서 `d` (distribution 노이즈) 값에 따라 하나를 선택하는 switch/case 다.
+
+- cf. OOP로 구성하지 않은 점에 대한 단점이 보인다. Biome-Tree가 커플링 되어있다.
 
 ```cpp
 // voxen/srcs/Instance.cpp
@@ -279,11 +295,10 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, P
 
     switch (biomeType) {
     case BIOME_OCEAN:
-        // 얕은 물(<52)에서 seagrass, 깊으면 kelp
         return (worldY < 52 && d < 0.5f) ? biomeInstances[0] : biomeInstances[1];
 
     case BIOME_PLAINS:
-        if      (d < 0.70f) return biomeInstances[0];                              // grass
+        if      (d < 0.70f) return biomeInstances[0];                                        // grass
         else if (d < 0.83f) return biomeInstances[Utils::RandomRangeByPos(worldPos, 1, 2)];  // daisy/cornflower
         else                return biomeInstances[Utils::RandomRangeByPos(worldPos, 3, 6)];  // 4종 tulip
     ...
@@ -291,13 +306,16 @@ INSTANCE_TYPE Instance::GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, P
 }
 ```
 
-- `d` 로 **큰 범주 (풀 / 꽃)** 를 먼저 나누고,
-- 꽃 범주 안에서는 `Utils::RandomRangeByPos(worldPos, ...)` 좌표 hash 로 **어떤 꽃 variant** 인지를 결정.
-- 결과적으로 큰 지역에서 grass 가 지배적이고, 국소 spot 에서 각기 다른 꽃들이 섞인 자연스러운 패턴이 만들어진다.
+### 3.4 인스턴스 심기 — `SetBiomeInstance` / `SetWaterPlaneInstance`
 
-### 2.4 인스턴스 심기 — `SetBiomeInstance` / `SetWaterPlaneInstance`
+각 인스턴스는 배치 시 좌표 hash 로 **yaw 회전**과 **xz 이동 오프셋**을 뽑아 **같은 종이라도 미묘하게 다르게** 보이도록 한다.
 
-각 인스턴스는 배치 시 좌표 hash 로 yaw 회전과 xz 오프셋을 뽑아 **같은 종이라도 미묘하게 다르게** 보이도록 한다.
+Instance에는 (type, texIndex, rotation, offset)이 들어가게 되고, `ChunkManager`가 모아서 처리하게 된다.
+
+주변 청크에 심어야하는 경우, Patch를 이용한다.
+
+- Tree는 GreedyMeshing으로 인한 패치 전파, 주변 청크 넘는 상황이 여러가지라 고려할 게 많았지만, Instance는 단순히 윗방향에 대해서 Patch를 기록한다.
+- `loadPatchResult` 는 청크 로드 완료 후 `ChunkManager` 가 모아서 [Patch 파이프라인](../../ChunkManagement/ChunkPatch/README.md) 으로 넘긴다.
 
 ```cpp
 void Chunk::SetBiomeInstance(int x, int y, int z, INSTANCE_TYPE type, ...)
@@ -308,12 +326,13 @@ void Chunk::SetBiomeInstance(int x, int y, int z, INSTANCE_TYPE type, ...)
     float ofsZ = (Utils::RandomRangeByPos(worldPosInt3, 0, 50) - 25) / 100.0f;
     Vector2 rangeOffsetNoiseXZ = { ofsX, ofsZ };
 
-    // 다층 인스턴스 처리 (kelp, grass, fern...)
+    // 다층 인스턴스의 높이 처리 (kelp, grass, fern...)
     int instanceMaxH = Instance::GetMaxHeight(type);
     float thPercent  = (temperature + humidity) * 0.5f;
-    int thMaxH       = (int)std::ceil(thPercent * instanceMaxH);
-    int rangeHeight  = Utils::RandomRangeByPos(worldPosInt3, 1, thMaxH);
+    int thMaxH       = (int)std::ceil(thPercent * instanceMaxH);         // 온도, 습도에 영향을 받게 된다.
+    int rangeHeight  = Utils::RandomRangeByPos(worldPosInt3, 1, thMaxH); // 그것을 랜덤 Range로 최종 높이를 가져옴
 
+    // 인스턴스 실제로 대입하기
     for (int h = 0; h < rangeHeight; ++h) {
         TEXTURE_INDEX tex = Instance::GetTextureIndexByHeight(type, h + 1, rangeHeight);
         Instance instance = Instance(type, tex, rangeRotation, rangeOffsetNoiseXZ);
@@ -330,63 +349,17 @@ void Chunk::SetBiomeInstance(int x, int y, int z, INSTANCE_TYPE type, ...)
 }
 ```
 
-세 가지 포인트:
+<br />
 
-- **`yaw` 회전 [0, 360)** 과 **`offset` [-0.25, +0.25]** 로 같은 grass 여러 개가 반복돼도 정면 정렬돼 보이지 않는다. offset 은 CPU 에서 계산하고 GPU 인스턴스 상수로 넘김.
-- **다층 인스턴스 (grass 2, fern 3, kelp 10)** 는 세로로 여러 셀을 차지한다.
-  `thMaxH = ceil((t + h) / 2 * maxHeight)` 로 온도·습도가 높을수록 더 크게 자라도록 조절되고,
-  실제 층 수는 그 안에서 좌표 hash 랜덤. Kelp 는 물의 깊이 안에서 최대 10칸까지 자란다.
-- **`GetTextureIndexByHeight(type, h+1, rangeHeight)`** 는 층별로 다른 텍스처를 반환.
-  grass 는 (bottom, top) 두 텍스처가 있어서 2단이면 아래-위가 다르게 그려진다.
+## 4. Instanced Rendering
 
-`SetWaterPlaneInstance` 는 단층이고 y = 0 (수련은 물 표면에 한 층만) 이라 다층 처리가 없다.
+블록과 달리 인스턴스는 **한 셀에 quad 몇 개** 밖에 되지 않고 위치·회전·텍스처만 조금씩 다른 같은 mesh 가 청크에 수백~수천 개 뿌려진다.
 
-## 3. 주변 청크에 미치는 영향
-
-Instance 는 Tree 와 달리 xz 로는 **한 셀만 차지**한다. 따라서 xz 방향 청크 경계 문제는 없다.
-반면 **다층 인스턴스가 청크 y 경계를 넘는 경우** 에는 트리와 동일하게 patch 전파가 필요하다.
-
-### 3.1 y 경계 patch — 다층 인스턴스만 해당
-
-`SetBiomeInstance` 의 for 문 마지막 else 브랜치가 이 케이스다.
-
-```cpp
-if (IsInsideChunk(x, y + h, z)) {
-    m_instanceMap.insert(...);                                       // 내 청크
-} else {
-    PatchData patchData(x, y + h, z, Block(), instance, CHUNK_SIZE, true);
-    Vector3 instancePos = m_offsetPosition + Vector3(x, y + h, z);
-    Vector3 ownerOffset = Utils::CalcOffsetPos(instancePos, CHUNK_SIZE);
-    memory->loadPatchResult[ownerOffsetInt3].insert(patchData);      // 이웃 청크
-}
-```
-
-- 다층 인스턴스가 청크 상단 (y ≈ 31) 근처에 심어지면, 위쪽 몇 층은 이웃 청크(위 청크) 로 patch.
-- kelp (maxHeight 10) 가 청크 하단 근처 물속에 심어지면 아래 청크로 갈 수도 있고 (실제로는 여기선 y = elevation 위쪽이라 위 방향만 넘어감).
-- Tree 문서와 동일하게 `loadPatchResult` 는 청크 로드 완료 후 `ChunkManager` 가 모아서 [Patch 파이프라인](../../ChunkManagement/README.md) 으로 넘긴다.
-
-### 3.2 xz 경계는 불필요
-
-- 인스턴스는 xz 로 한 셀이라 인접 xz 청크에는 절대 영향을 주지 않음.
-- 심지어 mesh 도 인스턴스는 **instanced rendering (per-cell 인스턴스 상수 버퍼)** 로 그리므로,
-  블록의 greedy meshing 처럼 seam 이 생기지 않는다.
-  즉 트리처럼 `IsInnerEdge / IsOuterEdge` 로 인접 청크에 seam 방지 patch 를 보낼 필요가 없다.
-
-### 3.3 트리에서 뻗어나온 vine 은 이미 처리됨
-
-Tree 문서에서 다뤘듯이 vine 은 **Tree 파이프라인에서 `Instance` 로 만들어 저장**되며,
-청크 경계를 넘으면 그때 이미 patch 로 처리된다. `InitInstancePlace` 는 vine 을 새로 만들지 않으므로 여기서 다시 처리할 필요가 없다.
-
-## 4. 렌더링 — Instanced Rendering
-
-블록과 달리 인스턴스는 **한 셀에 quad 몇 개** 밖에 되지 않고 위치·회전·텍스처만 조금씩 다른
-같은 mesh 가 청크에 수백~수천 개 뿌려진다. 이 특성에 맞게 D3D11 의
-`DrawIndexedInstanced` 를 사용해 **하나의 base mesh 를 인스턴스 데이터 배열과 함께
-한 번의 draw call 로 그린다.**
+이 특성에 맞게 D3D11 의 `DrawIndexedInstanced` 를 사용해 종류 당 한 번의 DrawCall로 모두 렌더링하여 DrawCall을 줄인다.
 
 ### 4.1 두 개의 vertex buffer — Per-Vertex + Per-Instance
 
-인스턴스 렌더링은 두 가지 데이터를 각각 다른 rate 로 IA (Input Assembler) 에 흘려넣는다.
+인스턴스 렌더링은 두 가지 데이터를 각각 다른 IA (Input Assembler)로 사용한다.
 
 ```cpp
 // voxen/headers/Structure.h
@@ -406,12 +379,9 @@ struct InstanceInfoVertex {      // per-instance : 한 인스턴스마다 하나
   Cross 는 8 verts (X 자 quad 2개), Fence 는 16 verts (+ 자 quad 4개), Square/Floor 는 4 verts.
   이 데이터는 **앱 시작 시 한 번만 생성** 되고 이후 변하지 않는다.
 - **`InstanceInfoVertex`** — 좌표별 인스턴스 상태.
-  [1.1](#11-자료구조--instance--instancetypeinfoset--instancetypeinfo) 에서 다룬
-  `Instance` 값 객체 (`m_yawRotation`, `m_offsetNoisePositionXZ`, `m_texIndex`, 위치) 를
-  **셰이더가 읽기 편한 형태 (world matrix + texIndex)** 로 변환한 것.
-  매 프레임 render chunk list 순회하며 채워진다.
+  매 프레임 render chunk list 순회하며 ChunkManager가 채우고 초기화한다.
 
-### 4.2 앱 시작 시 — `MakeInstanceVertexBuffer` (base mesh 4 종)
+### 4.2 앱 초기화 시 Per-Vertex는 미리 초기화 — `MakeInstanceVertexBuffer` (base mesh 4 종)
 
 Shape 4개 각각에 대해 base mesh 를 만들고 GPU 정적 버퍼로 올려 둔다.
 
@@ -440,23 +410,24 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 
     // (2) 렌더 대상 청크만 훑기
     for (auto& c : m_renderChunkList) {
-        if (c->IsUpdateRequired()) continue;                                 // 로딩 중이면 skip
+        if (c->IsUpdateRequired()) continue;                                 // 업데이트하고 있는 청크는 skip
         if (chunkCenterDistance > Camera::LOD_RENDER_DISTANCE) continue;     // 원거리 LOD 청크는 인스턴스 안 그림
 
         // (3) 각 청크의 m_instanceMap 을 shape 별 buffer 에 뿌림
         for (auto& [localPos, instance] : c->GetInstanceMap()) {
             Vector3 worldPosition = c->GetOffsetPosition() + PosInt3ToVector(localPos);
+
             if (instance.GetFaceFlag() > 0)                                  // vine 은 방향별 quad split
                 AddInstanceInfoBySplitFace(worldPosition, instance);
             else
-                AddInstanceInfo(worldPosition, instance);                    // 일반: shape 하나에 push
+                AddInstanceInfo(worldPosition, instance);                    // 일반: m_instanceInfoList에 push
         }
     }
 
     // (4) shape 4개 각각의 GPU 버퍼로 한 번씩 upload
     for (int i = 0; i < INSTANCE_SHAPE_COUNT; ++i) {
         DXUtils::ResizeBuffer(m_instanceInfoBuffers[i], m_instanceInfoList[i],
-                              D3D11_BIND_VERTEX_BUFFER, m_instanceInfoList[i].size() + 1024);
+                              D3D11_BIND_VERTEX_BUFFER, m_instanceInfoList[i].size() + 1024); // 필요 시 진행됨
         DXUtils::UpdateBuffer (m_instanceInfoBuffers[i], m_instanceInfoList[i]);
     }
 }
@@ -464,14 +435,46 @@ void ChunkManager::UpdateInstanceInfoList(Camera& camera)
 
 핵심 포인트:
 
-- 인스턴스 데이터는 **청크 각자가 아니라 `ChunkManager` 가 한 큰 배열로 모아서 관리**한다.
-  청크마다 별도 GPU 인스턴스 버퍼를 두면 프레임당 draw call 수가 청크 수 × shape 수로 폭발한다.
+- 인스턴스 데이터는 **청크 각자가 아니라 `ChunkManager` 가 하나의 큰 배열로 모아서 관리**한다.
 - 시야 밖 / 로딩 중 / 원거리 청크는 여기서 필터링되므로 GPU 로 올라가는 데이터가 그만큼 줄어든다.
 - `AddInstanceInfo` 는 `instance` 하나로부터 `InstanceInfoVertex` 하나를 만들어 (world = translate·yaw·offset, texIndex 그대로) 해당 shape 배열에 push.
-- Vine 은 방향 flag (`V_LEFT / V_RIGHT / V_FRONT / V_BACK`) 마다 벽 면이 다르므로 `AddInstanceInfoBySplitFace` 로 방향별로 여러 개의 `InstanceInfoVertex` 를 만들어 넣는다.
-- 상한은 `MAX_INSTANCE_BUFFER_SIZE = 8 MB` → `InstanceInfoVertex` (약 68 byte) 로 나누면 shape 당 약 **12만 인스턴스**.
+- Vine 은 방향 flag (`V_LEFT / V_RIGHT / V_FRONT / V_BACK`) 마다 벽 면이 다르므로 `AddInstanceInfoBySplitFace` 로 방향별로 회전 시켜 `InstanceInfoVertex` 를 만들어 넣는다.
 
-### 4.4 Draw — `RenderInstance` (shape 4 개 × 각 1 draw call)
+### 4.4 AddInstanceInfo — 실질적 GPU 데이터 구성
+
+Per-Instance 데이터는 WorldMatrix와 TexIndex만을 가지고 있다.
+
+Instance에 저장된 데이터를 가지고 구성한다.
+
+```cpp
+ChunkManager::AddInstanceInfo(Vector3 worldPosition, const Instance& instance) {
+    InstanceInfoVertex info;
+
+    INSTANCE_TYPE type = instance.GetType();
+
+    // 텍스쳐 인덱스 구성
+    info.texIndex = instance.GetTexIndex();
+
+    // 이동Noise를 더해 월드 위치 Matrix 구성
+    float offsetNoiseX = instance.GetOffsetNoisePositionXZ().x;
+    float offsetNoiseZ = instance.GetOffsetNoisePositionXZ().y;
+    Vector3 offsetNoiseXZ = Vector3(0.5f) + Vector3(offsetNoiseX, 0.0f, offsetNoiseZ);
+    Vector3 instanceWorldPosition = worldPosition + offsetNoiseXZ;
+    Matrix translation = Matrix::CreateTranslation(instanceWorldPosition);
+
+    // 회전Noise를 더해 회전 Matrix 구성
+    float yawRotationRadian = instance.GetYawRotation() * (XM_PI / 180.0f);
+    Matrix rotation = Matrix::CreateFromQuaternion(
+        Quaternion::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yawRotationRadian));
+
+    info.instanceWorld = (rotation * translation).Transpose();
+
+    INSTANCE_SHAPE shapeType = instance.GetShape(type);
+    m_instanceInfoList[shapeType].push_back(info);
+}
+```
+
+### 4.5 Draw — `RenderInstance` (shape 4 개 × 각 1 draw call)
 
 ```cpp
 void ChunkManager::RenderInstance()
@@ -487,9 +490,7 @@ void ChunkManager::RenderInstance()
         context->IASetIndexBuffer  (m_instanceIndexBuffers[i].Get(), DXGI_FORMAT_R32_UINT, 0);
 
         // 이 shape 에 속한 모든 인스턴스를 한 번에 그림
-        context->DrawIndexedInstanced(indexCountPerInstance[i],
-                                      m_instanceInfoList[i].size(),
-                                      0, 0, 0);
+        context->DrawIndexedInstanced(indexCountPerInstance[i], m_instanceInfoList[i].size(), 0, 0, 0);
     }
 }
 ```
@@ -497,30 +498,36 @@ void ChunkManager::RenderInstance()
 - 프레임당 총 draw call 은 **shape 개수 만큼 (= 4 회)** 이 된다.
   청크 수나 실제 인스턴스 개수와 무관.
 - 셰이더에서는 IA slot 0 에서 정점 데이터 (`InstanceVertex.position, normal, texcoord`) 를,
-  slot 1 에서 인스턴스 데이터 (`instanceWorld`, `texIndex`) 를 받아
-  `mul(position, instanceWorld)` 로 각 인스턴스의 world 위치로 변환한 뒤
-  `texIndex` 로 텍스처 아틀라스에서 원하는 텍스처를 샘플링한다.
-- `RenderInstance` 는 서로 다른 PSO 로 두 번 호출된다:
-  Basic pass (`Graphics::instancePSO`) 와 Mirror world pass (`Graphics::instanceMirrorPSO`).
-  둘 다 같은 GPU 버퍼를 재사용.
+  slot 1 에서 인스턴스 데이터 (`instanceWorld`, `texIndex`)를 받아 위치를 변환하고 지정된 TexIndex를 렌더링하게 된다.
+
+<br />
 
 ## 5. 회고
 
-- **정적 속성은 테이블, 좌표별 상태는 값 객체 필드** 라는 분리가 Block/Tree 와 같은
-  패턴이면서도 Instance 는 `yaw`/`offset`/`faceFlag` 같은 좌표별 상태가 있어야 해서
-  값 객체가 조금 더 두꺼워졌다. 이 필드들이 그대로 GPU 인스턴스 버퍼에 흘러들어가므로
-  구조상 자연스럽다.
+블록 타입과 다른 형태의 메쉬를 렌더링하느라 Instance Rendering을 사용하게 되었고 그에 따라 다양한 수정이 필요했다.
 
-- **다층 인스턴스 y-patch 처리** 가 트리와 완전히 같은 함수를 재사용한다.
-  Patch 시스템 하나가 트리(대형)/인스턴스(다층)/vine(방향) 을 모두 통일된 방식으로
-  처리하는 것이 확장성 면에서 좋았다. 나중에 "3층 짜리 산호" 같은 걸 추가하더라도
-  같은 경로를 탈 것이다.
+- GreedyMeshing으로 1x1x1은 모두 통일하게 되었지만, 작은 블록의 형태나 Sprite 형태의 메쉬를 어떻게 렌더링할지 고민이 많았다.
+- 그래서, Chunk 내부에 Block에서 Instance를 따로 뽑아 관리하게 되었다.
+- 또한 Instance Rendering을 하게 되면서 Chunk 내부에 Instance GPU 버퍼는 ChunkManager가 관리하게 되었고, 그에 따라 다른 gpu 데이터도 ChunkManager가 관리하게 끔 구성하여 통일성을 구성하게 되었다.
+  - Chunk (cpu 데이터) <-> ChunkManager(gpu 데이터)
 
-- **아쉬운 점** : `GetInstanceTypeForBiome` 이 switch/case 로 12개 biome 을 나열하고 있어
-  Biome 추가 시 여기와 `GetTreeTypeForBiome`, `GetBlockTypeForBiome` 세 곳을 동시에 수정해야 한다.
-  Biome 마다 `(distribution → instance)` 결정 규칙을 데이터로 등록하는 방식으로 옮기면 추가가 한 파일에서 완결.
+아쉬운 점
 
-- **개선하고 싶은 방향** : 현재 다층 높이 결정이
-  `rangeHeight = RandomRangeByPos(worldPos, 1, thMaxHeight)` 라 최소 1층에서 시작한다.
-  Kelp 는 물속에서 자라므로 물의 실제 깊이 (해수면 - 지형) 를 상한으로 두어야 자연스러운데 지금은
-  물이 얕은 지역에서도 kelp 가 최대 10층까지 자랄 여지가 있다. `CanPlace` 단계에서 물 깊이 검사가 추가되면 좋을 것.
+- Block과 Instance를 둘로 나뉘었을 때 단점이 명확하다
+  - 공통된 특징은 많은데, 구분되어 있어 두가지를 따로 검사해야 한다.
+  - DDA Picking을 하거나, 사용자가 직접 블록을 수정하는 경우 Block과 Instance를 모두 고려하는 상황이 발생했다.
+  - 더구나, Patch 로직에서도 결국 Block, Instance 모두 따로 보는 로직이 구성되어 불편하기도 했다.
+  - 물론 렌더링 시에는 구분이 되어야 할 것 같다.
+    - ex. 백페이스 컬링
+
+Per-Vertex Buffer ?
+
+- Instance Rendering에서 Per-Vertex Buffer는 언제 사용하는지 학습이 되지 않았다.
+  - 내가 구성한 4개의 Shape을 따로 Per-Vertex로 구성하고 사용하는 것인가?
+  - 아니면 Per-Vertex x Per-Instance로 렌더링 되는 것인가? 아래가 맞다고 한다.
+
+    ```
+    for instance in 0..InstanceCount:
+        for vertex in 0..VertexCountPerInstance:
+            VS 실행(vertex의 Per-Vertex 데이터, instance의 Per-Instance 데이터)
+    ```
