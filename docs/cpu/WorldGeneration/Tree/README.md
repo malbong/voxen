@@ -12,6 +12,9 @@
     <td><img src="https://github.com/user-attachments/assets/2a9767e1-06f1-44a7-ad43-47f9802e35f4" width="300"/></td>
   </tr>
 </table>
+
+<br />
+
 ## 1. 개요
 
 지표가 결정된 후, 각 청크의 표면 좌표에 8종의 procedural tree를 심는 단계.
