@@ -22,7 +22,7 @@
 최대 크기가 25 블록이라 청크(32 블록) 경계를 넘어 인접 청크에까지 걸치는 경우가 흔하기에 [Patch 시스템](../../ChunkManagement/README.md)
 을 통해 인접 청크에 패치 데이터가 전파된다.
 
-### 2. Tress 구조 — Tree → TreeTypeInfoSet → TreeTypeInfo
+## 2. Tress 구조 — Tree → TreeTypeInfoSet → TreeTypeInfo
 
 [Biome](../Biome/README.md), [Block](../Block/README.md) 과 완전히 같은 정적 테이블 조회 패턴이다.
 
