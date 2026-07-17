@@ -18,7 +18,8 @@ public:
 	static BLOCK_TYPE GetBlockTypeForInner(int x, int y, int z, float distribution);
 	static BLOCK_TYPE GetBlockTypeForBiome(BIOME_TYPE biomeType, int y, float h, float d);
 	static BLOCK_TYPE GetBlockType(int x, int y, int z, float continentalness, float erosion,
-		float peaksValley, float temperature, float humidity, float distribution, float elevation);
+		float peaksValley, float temperature, float humidity, float distribution, float elevation,
+		BIOME_TYPE biomeType);
 
 	Block() : m_type(BLOCK_TYPE::BLOCK_NONE) {}
 	Block(BLOCK_TYPE type) : m_type(type) {}
@@ -80,7 +81,7 @@ private:
 	uint8_t m_texBottomIndex;
 	bool m_isTransparency;
 	bool m_isOpaque;
-	bool m_isSemiAlpha;
+	bool m_isSemiAlpha;	
 };
 
 
@@ -111,9 +112,17 @@ public:
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_COARSE].Init(22, 22, 22, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_PODZOL].Init(23, 24, 3, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_ICE].Init(25, 25, 25, false, true, false);
-		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_GOLD].Init(26, 26, 26, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_GOLD_RAW].Init(26, 26, 26, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MUD].Init(44, 44, 44, false, true, false);
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_MOSS].Init(45, 45, 45, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_AMETHYST].Init(46, 46, 46, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_GOLD].Init(47, 47, 47, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_IRON_RAW].Init(48, 48, 48, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_IRON].Init(49, 49, 49, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_COPPER_RAW].Init(50, 50, 50, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_COPPER].Init(51, 51, 51, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_DIAMOND].Init(52, 52, 52, false, true, false);
+		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_REDSTONE].Init(53, 53, 53, false, true, false);
 		
 		// tree
 		m_blockTypeInfoSet[BLOCK_TYPE::BLOCK_OAK_LOG].Init(28, 27, 28, false, true, false);

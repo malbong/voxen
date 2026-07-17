@@ -1,3 +1,8 @@
 /x64
 /release/imgui.ini
 .vs
+/tools
+*/x64
+
+CLAUDE.md
+.claude

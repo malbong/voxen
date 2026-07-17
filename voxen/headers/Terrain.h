@@ -129,10 +129,10 @@ namespace Terrain {
 
 	static float GetErosion(int x, int z)
 	{
-		float scale = 4024.0f;
+		float scale = 2048.0f;
 		float seed = 123.0f;
 
-		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 6);
+		float eNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 2.0f, 4);
 		float eValue = SplineErosion(eNoise);
 
 		return eValue;
@@ -141,7 +141,7 @@ namespace Terrain {
 	static float GetPeaksValley(int x, int z)
 	{
 		float scale = 512.0f;
-		float seed = 4.0f;
+		float seed = 321.0f;
 
 		float pvNoise = Utils::PerlinFbm(x / scale + seed, z / scale + seed, 1.5f, 6);
 		float pvValue = SplinePeaksValley(pvNoise);
@@ -165,7 +165,7 @@ namespace Terrain {
 
 	static bool IsCave(int x, int y, int z)
 	{
-		float threshold = 0.004f;
+		float threshold = 0.003f;
 
 		float density1 = Utils::PerlinFbm(x / 256.0f, y / 256.0f, z / 256.0f, 2.0f, 4);
 		if (density1 * density1 > threshold)

@@ -35,7 +35,7 @@ public:
 	Chunk(UINT id);
 	~Chunk();
 
-	ChunkLoadMemory* Initialize(ChunkLoadMemory* memory);
+	ChunkLoadMemory* Initialize(PosInt3 offsetPosition, ChunkLoadMemory* memory);
 	ChunkLoadMemory* Patch(const PatchDataHashSet& patchDataSet, ChunkLoadMemory* memory);
 	void Update(float dt);
 	void Clear();
@@ -52,7 +52,11 @@ public:
 	inline void SetUpdateRequired(bool isRequired) { m_isUpdateRequired = isRequired; }
 	inline bool IsUpdateRequired() const { return m_isUpdateRequired; }
 
-	inline bool OnPatchDirtyFlag() { return m_onPatchDirtyFlag; }
+	inline void SetOnPatchDirtyFlag(bool onPatchDirtyFlag)
+	{
+		m_onPatchDirtyFlag = onPatchDirtyFlag;
+	}
+	inline bool OnPatchDirtyFlag() const { return m_onPatchDirtyFlag; }
 
 	inline Vector3 GetOffsetPosition() const { return m_offsetPosition; }
 	inline void SetOffsetPosition(Vector3 offsetPosition) { m_offsetPosition = offsetPosition; }
@@ -130,8 +134,7 @@ private:
 
 	void InitBasicBlockType(ChunkLoadMemory* memory);
 
-	uint32_t GetMaxPlaceCountByBiomeRatio(
-		BIOME_TYPE biomeType, int maxCountPerChunk, int biomeCount);
+	uint32_t GetMaxPlaceCountByBiomeRatio(int maxCountPerChunk, int biomeCount);
 
 	void InitTreePlace(ChunkLoadMemory* memory);
 	bool CanPlaceTreeAt(
@@ -215,13 +218,13 @@ struct ChunkLoadMemory {
 	float distributionNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 	float elevationNoises[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
 
-	BIOME_TYPE biomeMap2D[Chunk::CHUNK_SIZE][Chunk::CHUNK_SIZE];
-	uint32_t biomeCount[Biome::BIOME_TYPE_COUNT];
+	BIOME_TYPE biomeMap2D[Chunk::CHUNK_SIZE_P][Chunk::CHUNK_SIZE_P];
+	uint32_t biomeCount[BIOME_TYPE::BIOME_COUNT];
 
 	std::vector<std::pair<int, int>> treeRandomPlace2D;
 	std::vector<std::pair<int, int>> instanceRandomPlace2D;
 
-	PosHashMap<PatchDataHashSet> chunkPatchDataMap;
+	PosHashMap<PatchDataHashSet> loadPatchResult;
 
 	ChunkLoadMemory()
 		: llColBit{ 0 }, opColBit{ 0 }, llCullColBit{ 0 }, opCullColBit{ 0 }, tpCullColBit{ 0 },
@@ -288,6 +291,6 @@ struct ChunkLoadMemory {
 
 		treeRandomPlace2D.clear();
 		instanceRandomPlace2D.clear();
-		chunkPatchDataMap.clear();
+		loadPatchResult.clear();
 	}
 };

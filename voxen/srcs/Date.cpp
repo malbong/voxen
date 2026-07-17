@@ -5,7 +5,11 @@ Date::Date() : m_days(0), m_iDateTime(0), m_fDateTime(0.0f) {}
 
 Date::~Date() {}
 
-bool Date::Initialize() {
+bool Date::Initialize(UINT initDateTime) 
+{
+	m_iDateTime = initDateTime;
+	m_fDateTime = (float)m_iDateTime;
+
 	m_constantData.days = m_days;
 	m_constantData.dateTime = m_iDateTime;
 	m_constantData.dayCycleRealTime = DAY_CYCLE_REAL_TIME;
@@ -19,7 +23,8 @@ bool Date::Initialize() {
 	return true;
 }
 
-void Date::Update(float dt) {
+void Date::Update(float dt) 
+{
 	m_fDateTime += DAY_CYCLE_TIME_SPEED * dt;
 
 	if (m_fDateTime > DAY_CYCLE_AMOUNT) {

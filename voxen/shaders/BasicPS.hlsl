@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DArray blockAtlasTextureArray : register(t0);
 Texture2DArray normalAtlasTextureArray : register(t1);
@@ -33,14 +34,12 @@ bool useDirtOverlay(uint texIndex)
 
 bool useGrassColor(uint texIndex)
 {
-    // TODO : 특이한 TEXTURE 정리 -> grass, foliage, side overlay
     return texIndex <= 2 || texIndex == 128 || texIndex == 131 ||
             texIndex == 148 || texIndex == 153 || texIndex == 154 || texIndex == 155 || texIndex == 156;
 }
 
 bool useFoliageColor(uint texIndex)
 {
-    // TODO
     return (64 <= texIndex && texIndex <= 70);
 }
 
@@ -67,16 +66,17 @@ float4 getAlbedo(float2 texcoord, uint texIndex, float3 worldPos, float3 normal)
         
         float3 climateColor = float3(0.0, 0.0, 0.0);
         if (useGrassColor(texIndex))
-            climateColor = grassColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            climateColor = grassColorMap.SampleLevel(linearClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
         if (useFoliageColor(texIndex))
-            climateColor = foliageColorMap.SampleLevel(pointClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
+            climateColor = foliageColorMap.SampleLevel(linearClampSS, float2(th.x, 1.0 - th.y), 0.0).rgb;
             
         albedo.rgb *= climateColor;
     }
     
     if (useDirtOverlay(texIndex))
     {
-        float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, 3));
+        const int DIRT_TEXTURE_INDEX = 3;
+        float4 dirt = blockAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, DIRT_TEXTURE_INDEX));
         albedo = lerp(dirt, albedo, albedo.a);
     }
     
@@ -146,11 +146,15 @@ psOutput
     
     psOutput output;
     
-    bool edge = (coverage != 0xf); // 0b1111 -> 1111은 모서리가 아닌 픽셀임
+    bool edge = (coverage != 0xF); // 0xF가 아니면 → 일부 샘플만 덮음 → 에지
     
     float3 normal = normalMapping(input.texcoord, input.texIndex, input.normal);
     
+#ifdef USE_ALPHA_CLIP
+    output.normalEdge = float4(normalize(normal), 2.0);
+#else
     output.normalEdge = float4(normalize(normal), float(edge));
+#endif
     
     output.position = float4(input.posWorld, 1.0);
     
@@ -181,7 +185,15 @@ float4 mainMirror(psInput input) : SV_TARGET
     
     float3 mer = merAtlasTextureArray.Sample(pointWrapSS, float3(input.texcoord, input.texIndex)).rgb;
     
-    float3 ambient = getAmbientLighting(1.0, albedo.rgb, input.posWorld, input.normal, mer.r, mer.b);
+    float3 ambient = getAmbientLighting(1.0, albedo.rgb, input.posWorld, input.normal, mer.r, mer.b, false);
     
     return float4(ambient, albedo.a);
 }
+
+float4 mainAlbedo(psInput input) : SV_TARGET
+{
+    float3 color = getAlbedo(input.texcoord, input.texIndex, input.posWorld, input.normal).rgb;
+    
+    return float4(color, 1.0);
+}
+    

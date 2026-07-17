@@ -12,31 +12,43 @@ using namespace Microsoft::WRL;
 class Light {
 
 public:
-	static const UINT CASCADE_NUM = 3;
+	static const UINT CASCADE_LEVEL = 3;
 	static const UINT CASCADE_SIZE = 1024;
 
 	Light();
 	~Light();
 
 	bool Initialize();
-	void Update(UINT dateTime, Camera &camera);
+	void Update(UINT dateTime, const Camera& camera, bool useSplit, bool useTexelSnap);
 
 	inline float GetRadianceWeight() const { return m_radianceWeight; }
 
 	ComPtr<ID3D11Buffer> m_lightConstantBuffer;
 	ComPtr<ID3D11Buffer> m_shadowConstantBuffer;
 	
-	inline Matrix GetViewMatrix() { return XMMatrixLookToLH(Vector3::Zero, -m_dir, m_up); }
-	inline Matrix GetProjectionMatrixFromCascade(int i) { return m_proj[i]; };
+	inline Matrix GetViewMatrix() const { return XMMatrixLookToLH(Vector3::Zero, -m_dir, m_up); }
+	inline Matrix GetShadowViewMatrix() const
+	{
+		return XMMatrixLookToLH(Vector3::Zero, -m_shadowDir, m_shadowUp);
+	}
+	inline Matrix GetProjectionMatrixFromCascade(int i) const { return m_proj[i]; };
 
 private:
+	void UpdateByDate(UINT dateTime, const Camera& camera);
+
+	void FitToSceneOfSplits(const Camera& camera, bool useTexelSnap);
+	void FitToSceneOfCenter(const Camera& camera, bool useTexelSnap);
+	
+
 	Vector3 m_dir;
+	Vector3 m_shadowDir;
 	float m_scale;
 	Vector3 m_radianceColor;
 	float m_radianceWeight;
 
 	Vector3 m_up;
-	Matrix m_proj[CASCADE_NUM];
+	Vector3 m_shadowUp;
+	Matrix m_proj[CASCADE_LEVEL];
 
 	LightConstantData m_lightConstantData;
 	ShadowConstantData m_shadowConstantData;

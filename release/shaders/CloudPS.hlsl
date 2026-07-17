@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 cbuffer CloudConstantBuffer : register(b0)
 {
@@ -14,28 +15,57 @@ struct psInput
     uint face : FACE;
 };
 
+float3 getNormal(uint face)
+{
+    if (face == LEFT)
+    {
+        return float3(-1.0, 0.0, 0.0);
+    }
+    else if (face == RIGHT)
+    {
+        return float3(1.0, 0.0, 0.0);
+    }
+    else if (face == BOTTOM)
+    {
+        return float3(0.0, -1.0, 0.0);
+    }
+    else if (face == TOP)
+    {
+        return float3(0.0, 1.0, 0.0);
+    }
+    else if (face == NEAR)
+    {
+        return float3(0.0, 0.0, -1.0);
+    }
+    else // FAR
+    {
+        return float3(0.0, 0.0, 1.0);
+    }
+}
+
 float4 main(psInput input) : SV_TARGET
 {   
-    // 거리가 멀면 horizon color 선택 
-    float distance = length(input.posWorld.xz - eyePos.xz);
-    float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clamp(distance, maxRenderDistance, cloudScale));
-    float3 albedo = volumeColor;
-    
     // 바라보는 방향에 대한 anisotropy 
     float sunAniso = max(dot(lightDir, eyeDir), 0.0);
     float3 eyeHorizonColor = lerp(normalHorizonColor, sunHorizonColor, sunAniso);
-    albedo = lerp(albedo, eyeHorizonColor, horizonWeight);
+
+    // 거리가 멀면 horizon color 선택 
+    // distance 범위 clamp
+    float distance = length(input.posWorld.xz - eyePos.xz);
+    float clampedDistance = clamp(distance, maxRenderDistance, cloudScale);
+    float horizonWeight = smoothstep(maxRenderDistance, cloudScale, clampedDistance);
+    float3 albedo = lerp(volumeColor, eyeHorizonColor, horizonWeight);
     
     // ambient lighting
     float3 normal = getNormal(input.face);
-    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, normal, 0.0, 0.75);
+    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, normal, 0.0, 0.75, false);
     
     // direct lighting
     float3 directLighting = getDirectLighting(normal, input.posWorld, albedo, 0.0, 0.75, false);
     
     // distance alpha
-    float alphaWeight = smoothstep(maxRenderDistance, cloudScale, clamp(distance, maxRenderDistance, cloudScale));
-    float alpha = (1.0 - alphaWeight) * 0.75; // [0, 0.75]
+    float alphaWeight = 1.0 - smoothstep(maxRenderDistance, cloudScale, clampedDistance);
+    float alpha = alphaWeight * 0.75; // [0, 0.75]
     
     return float4(ambientLighting + directLighting, alpha);
 }

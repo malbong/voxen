@@ -131,7 +131,7 @@ namespace DXUtils {
 
 			count = (count == -1) ? dataSet.size() : count;
 			if (!DXUtils::CreateDynamicBuffer(buffer, count, sizeof(T), bindFlags)) {
-				std::cout << "failed resize buffer" << std::endl;
+				std::cout << "failed to resize buffer" << std::endl;
 				return false;
 			}
 		}
@@ -302,7 +302,7 @@ namespace DXUtils {
 
 
 	static void UpdateViewport(
-		D3D11_VIEWPORT& viewport, int topLeftX, int topLeftY, int width, int height)
+		D3D11_VIEWPORT& viewport, UINT topLeftX, UINT topLeftY, UINT width, UINT height)
 	{
 		ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
 		viewport.TopLeftX = (FLOAT)topLeftX;

@@ -553,4 +553,43 @@ namespace MeshGenerator {
 		CreateLineToThickLine(corner[2], corner[6], vertices, indices);
 		CreateLineToThickLine(corner[3], corner[7], vertices, indices);
 	}
+
+	static void CreateViewFrustumLineMesh(std::vector<ViewFrustumVertex>& vertices, std::vector<uint32_t>& indices)
+	{
+		Vector3 corner[8] = { 
+			Vector3(-1.0f, -1.0f, 0.0f),
+			Vector3(-1.0f, 1.0f, 0.0f),
+			Vector3(1.0f, 1.0f, 0.0f),
+			Vector3(1.0f, -1.0f, 0.0f),
+			Vector3(-1.0f, -1.0f, 1.0f),
+			Vector3(-1.0f, 1.0f, 1.0f),
+			Vector3(1.0f, 1.0f, 1.0f),
+			Vector3(1.0f, -1.0f, 1.0f),
+		};
+
+		ViewFrustumVertex v;
+		for (int i = 0; i < 8; ++i) {
+			v.position = corner[i];
+			vertices.push_back(v);
+		}
+		
+		// near
+		for (int i = 0; i < 4; ++i) {
+			indices.push_back(i);
+			indices.push_back((i + 1) % 4);
+		}
+
+		// far
+		for (int i = 0; i < 4; ++i) {
+			indices.push_back(4 + i);
+			indices.push_back(4 + ((i + 1) % 4));
+		}
+
+		// near to far
+		for (int i = 0; i < 4; ++i) {
+			indices.push_back(i);
+			indices.push_back(i + 4);
+		}
+	}
 }
+

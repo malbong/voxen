@@ -24,7 +24,7 @@ public:
 	static INSTANCE_TYPE GetInstanceTypeForBiome(BIOME_TYPE biomeType, float d, PosInt3 worldPos);
 	static bool CanPlace(INSTANCE_TYPE type, BLOCK_TYPE currentBlock, BLOCK_TYPE bottomBlock);
 	static INSTANCE_TYPE GetInstanceTypeForWaterPlane(
-		float temperature, float humidity, float distribution, PosInt3 worldPos);
+		float temperature, float humidity, float distribution);
 
 	Instance()
 		: m_type(INSTANCE_TYPE::INSTANCE_NONE), m_texIndex(TEXTURE_INDEX::TEXTURE_NONE),

@@ -6,11 +6,11 @@
 #include <algorithm>
 
 Camera::Camera()
-	: m_projFovAngleY(80.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
+	: m_projFovAngleY(70.0f), m_nearZ(0.1f), m_farZ(1000.0f), m_aspectRatio(16.0f / 9.0f),
 	  m_eyePos(0.0f, 0.0f, 0.0f), m_chunkPos(0.0f, 0.0f, 0.0f), m_forward(0.0f, 0.0f, 1.0f),
-	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(40.0f), m_isUnderWater(false),
-	  m_isOnConstantDirtyFlag(false), m_isOnChunkDirtyFlag(false), m_mouseSensitiveX(0.0005f),
-	  m_mouseSensitiveY(0.001f), m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
+	  m_up(0.0f, 1.0f, 0.0f), m_right(1.0f, 0.0f, 0.0f), m_speed(50.0f), m_isUnderWater(false),
+	  m_isOnConstantDirtyFlag(false), m_mouseSensitiveX(0.0005f), m_mouseSensitiveY(0.001f),
+	  m_yaw(0.0f), m_pitch(0.0f), m_hasPickingObject(false)
 {
 }
 
@@ -25,6 +25,7 @@ bool Camera::Initialize(Vector3 pos)
 
 		m_constantData.view = GetViewMatrix().Transpose();
 		m_constantData.proj = GetProjectionMatrix().Transpose();
+		m_constantData.invView = GetViewMatrix().Invert().Transpose();
 		m_constantData.invProj = GetProjectionMatrix().Invert().Transpose();
 		m_constantData.eyePos = m_eyePos;
 		m_constantData.eyeDir = m_forward;
@@ -52,6 +53,38 @@ bool Camera::Initialize(Vector3 pos)
 		}
 	}
 
+	// Debug Camera for Frustum Culling
+	{
+		m_cullingViewerOffsetPos = Vector3(0.0f, 128.0f, -128.0f);
+		m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
+
+		Quaternion qPitch = Quaternion(
+			Vector3(1.0f, 0.0f, 0.0f) * sinf(XM_PIDIV2 * 0.25f), cosf(XM_PIDIV2 * 0.25f));
+		m_cullingViewerForward =
+			Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(qPitch));
+		m_cullingViewerUp =
+			Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(qPitch));
+
+		m_constantData.view =
+			XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view = m_constantData.view.Transpose();
+
+		if (!DXUtils::CreateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData)) {
+			std::cout << "failed create debug camera constant buffer" << std::endl;
+			return false;
+		}
+
+		MeshGenerator::CreateViewFrustumLineMesh(m_viewFrustumVertices, m_viewFrustumIndices);
+		if (!DXUtils::CreateVertexBuffer(m_viewFrustumVertexBuffer, m_viewFrustumVertices)) {
+			std::cout << "failed create view frustum vertex buffer in camera" << std::endl;
+			return false;
+		}
+		if (!DXUtils::CreateIndexBuffer(m_viewFrustumIndexBuffer, m_viewFrustumIndices)) {
+			std::cout << "failed create view frustum index buffer in camera" << std::endl;
+			return false;
+		}
+	}
+
 	// Picking Block Buffer
 	{
 		MeshGenerator::CreatePickingBlockLineMesh(m_pickingObjectVertices, m_pickingObjectIndices);
@@ -59,7 +92,6 @@ bool Camera::Initialize(Vector3 pos)
 			std::cout << "failed create picking block vertex buffer in camera" << std::endl;
 			return false;
 		}
-
 		if (!DXUtils::CreateIndexBuffer(m_pickingObjectIndexBuffer, m_pickingObjectIndices)) {
 			std::cout << "failed create picking block index buffer in camera" << std::endl;
 			return false;
@@ -76,37 +108,76 @@ bool Camera::Initialize(Vector3 pos)
 	return true;
 }
 
-void Camera::Update(float dt, bool keyPressed[256], LONG mouseDeltaX, LONG mouseDeltaY)
+void Camera::Update(float dt, bool keyToggled[256], bool keyPressed[256], LONG mouseDeltaX,
+	LONG mouseDeltaY, bool mouseLeftDown, bool mouseRightDown)
 {
-	UpdatePosition(keyPressed, dt);
+	UpdatePosition(keyToggled, keyPressed, dt);
+	UpdateViewDirection(keyPressed, dt);
 	UpdateViewDirection(mouseDeltaX, mouseDeltaY);
 
 	DDAPickingBlock();
 
 	if (m_isOnConstantDirtyFlag) {
+		// basic
 		m_constantData.view = GetViewMatrix().Transpose();
 		m_constantData.proj = GetProjectionMatrix().Transpose();
+		m_constantData.invView = GetViewMatrix().Invert().Transpose();
 		m_constantData.invProj = GetProjectionMatrix().Invert().Transpose();
 		m_constantData.eyePos = m_eyePos;
 		m_constantData.eyeDir = m_forward;
 		m_constantData.maxRenderDistance = (float)MAX_RENDER_DISTANCE;
 		m_constantData.lodRenderDistance = (float)LOD_RENDER_DISTANCE;
 		m_constantData.isUnderWater = m_isUnderWater;
-
 		DXUtils::UpdateConstantBuffer(m_constantBuffer, m_constantData);
 
+		// mirror
 		m_constantData.view = m_mirrorPlaneMatrix * GetViewMatrix();
 		m_constantData.view = m_constantData.view.Transpose();
 		DXUtils::UpdateConstantBuffer(m_mirrorConstantBuffer, m_constantData);
 
+		// culling viewer debug camera
+		m_cullingViewerPos = m_eyePos + m_cullingViewerOffsetPos;
+		m_constantData.view =
+			XMMatrixLookToLH(m_cullingViewerPos, m_cullingViewerForward, m_cullingViewerUp);
+		m_constantData.view = m_constantData.view.Transpose();
+		DXUtils::UpdateConstantBuffer(m_cullingViewerConstantBuffer, m_constantData);
+
+		// picking block
 		DXUtils::UpdateConstantBuffer(m_pickingObjectConstantBuffer, m_pickingObjectConstantData);
 
 		m_isOnConstantDirtyFlag = false;
 	}
+
+	if (m_hasPickingObject) {
+
+		if (mouseLeftDown) {
+			ChunkManager::GetInstance()->RemoveBlockPatchAt(m_pickingObjectPosition);
+		}
+
+		if (mouseRightDown) {
+			ChunkManager::GetInstance()->AddBlockPatchAt(m_pickingObjectPosition, m_pickingObjectFace);
+		}
+
+	}
 }
 
-void Camera::UpdatePosition(bool keyPressed[256], float dt)
+void Camera::UpdatePosition(bool keyToggled[256], bool keyPressed[256], float dt)
 {
+	if (keyToggled[0x71]) { // F1
+		dt *= 0.25f;
+	}
+
+	if (keyToggled[0x70]) {
+		m_eyePos = Vector3(158.0f, 128.0f, 50.0f);
+		m_forward = Vector3(0.0f, 0.0f, 1.0f);
+		m_right = Vector3(1.0f, 0.0f, 0.0f);
+		m_up = Vector3(0.0f, 1.0f, 0.0f);
+
+		keyToggled[0x70] = !keyToggled[0x70];
+
+		m_isOnConstantDirtyFlag = true;
+	}
+
 	if (keyPressed['W']) {
 		MoveForward(dt);
 		m_isOnConstantDirtyFlag = true;
@@ -125,26 +196,19 @@ void Camera::UpdatePosition(bool keyPressed[256], float dt)
 	}
 
 	if (m_isOnConstantDirtyFlag) {
-		SetIsUnderWater();
+		CheckUnderWater();
 
 		Vector3 newChunkPos = Utils::CalcOffsetPos(m_eyePos, Chunk::CHUNK_SIZE);
 		if (newChunkPos != m_chunkPos) {
-			m_isOnChunkDirtyFlag = true;
+			ChunkManager::GetInstance()->OnChunkUpdateDirtyFlag();
+
 			m_chunkPos = newChunkPos;
 		}
 	}
 }
 
-void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
+void Camera::UpdateBasis()
 {
-	if (mouseDeltaX == 0 && mouseDeltaY == 0)
-		return;
-
-	m_isOnConstantDirtyFlag = true;
-
-	m_yaw += mouseDeltaX * m_mouseSensitiveX;
-	m_pitch += mouseDeltaY * m_mouseSensitiveY;
-
 	float thetaHorizontal = DirectX::XM_PI * m_yaw;
 	float thetaVertical = DirectX::XM_PIDIV2 * m_pitch;
 	// using Quaternion not Euler
@@ -163,11 +227,47 @@ void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
 	m_up = Vector3::Transform(basisY, Matrix::CreateFromQuaternion(qPitch));
 }
 
+void Camera::UpdateViewDirection(bool keyPressed[256], float dt)
+{
+	if (keyPressed[VK_LEFT] || keyPressed[VK_RIGHT]) {
+		m_isOnConstantDirtyFlag = true;
+
+		int sign = keyPressed[VK_LEFT] ? -1 : 1;
+
+		m_yaw += sign * dt * 0.25f;
+
+		UpdateBasis();
+	}
+
+	if (keyPressed[VK_UP] || keyPressed[VK_DOWN]) {
+		m_isOnConstantDirtyFlag = true;
+
+		int sign = keyPressed[VK_UP] ? -1 : 1;
+
+		m_pitch += sign * dt * 0.25f;
+
+		UpdateBasis();
+	}
+}
+
+void Camera::UpdateViewDirection(LONG mouseDeltaX, LONG mouseDeltaY)
+{
+	if (mouseDeltaX == 0 && mouseDeltaY == 0)
+		return;
+
+	m_isOnConstantDirtyFlag = true;
+
+	m_yaw += mouseDeltaX * m_mouseSensitiveX;
+	m_pitch += mouseDeltaY * m_mouseSensitiveY;
+
+	UpdateBasis();
+}
+
 void Camera::MoveForward(float dt) { m_eyePos += m_forward * m_speed * dt; }
 
 void Camera::MoveRight(float dt) { m_eyePos += m_right * m_speed * dt; }
 
-void Camera::SetIsUnderWater()
+void Camera::CheckUnderWater()
 {
 	m_isUnderWater = false;
 
@@ -251,18 +351,15 @@ void Camera::DDAPickingBlock()
 				Matrix::CreateTranslation(m_pickingObjectPosition).Transpose();
 
 			m_isOnConstantDirtyFlag = true;
-			
+
 			break;
 		}
 	}
 }
 
-void Camera::RenderPickingBlock() 
-{ 
+void Camera::RenderPickingBlock()
+{
 	Graphics::SetPipelineStates(Graphics::pickingBlockPSO);
-
-	Graphics::context->OMSetRenderTargets(
-		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
 	UINT stride = sizeof(PickingObjectVertex);
 	UINT offset = 0;
@@ -273,4 +370,19 @@ void Camera::RenderPickingBlock()
 	Graphics::context->VSSetConstantBuffers(0, 1, m_pickingObjectConstantBuffer.GetAddressOf());
 
 	Graphics::context->DrawIndexed((UINT)m_pickingObjectIndices.size(), 0, 0);
+}
+
+void Camera::RenderViewFrustum()
+{
+	Graphics::SetPipelineStates(Graphics::viewFrustumPSO);
+
+	Graphics::context->OMSetRenderTargets(1, Graphics::cullingViewerRTV.GetAddressOf(), nullptr);
+
+	UINT stride = sizeof(ViewFrustumVertex);
+	UINT offset = 0;
+	Graphics::context->IASetIndexBuffer(m_viewFrustumIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	Graphics::context->IASetVertexBuffers(
+		0, 1, m_viewFrustumVertexBuffer.GetAddressOf(), &stride, &offset);
+
+	Graphics::context->DrawIndexed((UINT)m_viewFrustumIndices.size(), 0, 0);
 }

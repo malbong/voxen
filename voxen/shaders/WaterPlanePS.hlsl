@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DMS<float4, SAMPLE_COUNT> msaaRenderTex : register(t0);
 Texture2D mirrorWorldTex : register(t1);
@@ -13,17 +14,17 @@ struct psInput
     float4 posProj : SV_POSITION;
     float3 posWorld : POSITION;
     float3 normal : NORMAL;
-    sample float2 texcoord : TEXCOORD;
+    float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
 };
 
-float3 schlickFresnel(float3 N, float3 E, float3 R)
+float3 schlickFresnel(float3 N, float3 E, float3 F0)
 {
     // https://en.wikipedia.org/wiki/Schlick%27s_approximation
     // [f0 ~ 1]
     // 90 -> dot(N,E)==0 -> f0+(1-f0)*1^5 -> 1
     //  0 -> dot(N,E)==1 -> f0+(1-f0)*0*5 -> f0
-    return R + (1 - R) * pow((1 - max(dot(N, E), 0.0)), 5.0);
+    return F0 + (1 - F0) * pow((1 - max(dot(N, E), 0.0)), 5.0);
 }
 
 float3 getWaterAlbedo(float2 texcoord, uint stillIndex, float3 worldPos, float3 normal)
@@ -50,9 +51,9 @@ float3 getWaterAlbedo(float2 texcoord, uint stillIndex, float3 worldPos, float3 
 float3 normalMapping(float2 texcoord, uint stillIndex)
 {
     float3 normalTex = waterStillNormalAtlasTextureArray.Sample(pointWrapSS, float3(texcoord, stillIndex)).rgb;
-    normalTex = normalize(2.0 * normalTex - 1.0); // TBN 스페이스에 존재하는 TBN 좌표
+    normalTex = normalize(2.0 * normalTex - 1.0); // TBN ????????? ??????? TBN ???
     
-    // Water Plane이 고정이므로 직접 TBN행렬 곱을 진행했다고 가정하고 리턴
+    // Water Plane?? ???????? ???? TBN??? ???? ???????? ??????? ????
     //  float3 T = float3(1.0, 0.0, 0.0); // T`
     //  float3 B = float3(0.0, 0.0, -1.0); // B`
     //  float3 N = float3(0.0, 1.0, 0.0); // N` 
@@ -62,58 +63,52 @@ float3 normalMapping(float2 texcoord, uint stillIndex)
 
 float4 main(psInput input, uint sampleIndex : SV_SampleIndex) : SV_TARGET
 {
+    if (input.normal.y <= 0 || input.posWorld.y < 64.0 - 1e-4 || 64.0 + 1e-4 < input.posWorld.y)
+        discard;
+
+    // choose water Texture by date time
     uint waterStillTextureArraySize = 32;
     uint dateAmountPerSecond = dayCycleAmount / dayCycleRealTime; // 24000 / 30 -> 800
     uint dateAmountPerIndex = dateAmountPerSecond / waterStillTextureArraySize; // 800 / 32 -> 25
     uint waterStillTextureIndex = (dateTime % dateAmountPerSecond) / dateAmountPerIndex;
     
-    if (input.normal.y <= 0 || input.posWorld.y < 64.0 - 1e-4 || 64.0 + 1e-4 < input.posWorld.y)
-        discard;
-    
+    // normal mapping and get roughness from dot(mappedNormal, input.normal)
     float3 mappedNormal = normalMapping(input.texcoord, waterStillTextureIndex);
     float roughness = 0.2 / max(dot(mappedNormal, input.normal), 1e-3);
+    roughness = clamp(roughness, 0.0, 1.0);
     
-    // absorption color
+    // water color
     float3 albedo = getWaterAlbedo(input.texcoord, waterStillTextureIndex, input.posWorld, mappedNormal);
-    
-    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, mappedNormal, 0.0, roughness);
-    
+    float3 ambientLighting = getAmbientLighting(1.0, albedo, input.posWorld, mappedNormal, 0.0, roughness, true);
     float3 directLighting = getDirectLighting(mappedNormal, input.posWorld, albedo, 0.0, roughness, true);
-    
     float3 waterColor = ambientLighting + directLighting;
-    
-    float2 screenTexcoord = float2(input.posProj.x / appWidth, input.posProj.y / appHeight);
         
-    // origin render color
-    float3 originColor = msaaRenderTex.Load(input.posProj.xy, sampleIndex).rgb;
-   
+    // projection render color
+    float3 projectedColor = msaaRenderTex.Load(input.posProj.xy, sampleIndex).rgb;
     if (isUnderWater)
     {
-        return float4(lerp(originColor, waterColor, 0.5), 1.0);
+        return float4(lerp(projectedColor, waterColor, 0.5), 1.0);
     }
     else
     {
-        // absorption factor
-        float3 originPosition = positionTex.Load(input.posProj.xy, sampleIndex).xyz;
-        float objectDistance = length(eyePos - originPosition);
-        float planeDistance = length(eyePos - input.posWorld);
-        float diffDistance = abs(objectDistance - planeDistance);
-        float absorptionCoeff = 0.075;
-        float absorptionFactor = 1.0 - exp(-absorptionCoeff * diffDistance); // beer-lambert
-    
-        float3 projColor = lerp(originColor, waterColor, absorptionFactor);
+        // absorption -> mix(projectedColor, waterColor, absorptionFactor)
+        float3 projectedObjectPosition = positionTex.Load(input.posProj.xy, sampleIndex).xyz;
+        float planeToProjectionObjectDistance = length(input.posWorld - projectedObjectPosition);
+        float waterAbsorptionCoeff = 0.075;
+        float waterAbsorptionFactor = 1.0 - exp(-waterAbsorptionCoeff * planeToProjectionObjectDistance); // beer-lambert
+        float3 eyeToWaterPlaneColor = lerp(projectedColor, waterColor, waterAbsorptionFactor);
     
         // reflect color
+        float2 screenTexcoord = float2(input.posProj.x / appWidth, input.posProj.y / appHeight);
         float3 mirrorColor = mirrorWorldTex.Sample(linearClampSS, screenTexcoord).rgb;
         
         // fresnel factor
-        float3 toEye = normalize(eyePos - input.posWorld);
-        float3 reflectCoeff = float3(0.2, 0.2, 0.2);
-        float3 fresnelFactor = schlickFresnel(mappedNormal, toEye, reflectCoeff);
+        float3 planeToEye = normalize(eyePos - input.posWorld);
+        float3 reflectCoeff = float3(0.02, 0.02, 0.02); // fresnel 값의 최소
+        float3 fresnelFactor = schlickFresnel(mappedNormal, planeToEye, reflectCoeff);
         
         // blending 3 colors
-        projColor *= (1.0 - fresnelFactor);
-        float3 blendColor = lerp(projColor, mirrorColor, fresnelFactor);
+        float3 blendColor = lerp(eyeToWaterPlaneColor, mirrorColor, fresnelFactor);
         
         return float4(blendColor, 1.0);
     }

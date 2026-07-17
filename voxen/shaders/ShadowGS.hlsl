@@ -1,6 +1,10 @@
+#include "Common.hlsli"
+
+#define CASCADE_LEVEL 3
+
 cbuffer ShadowConstantBuffer : register(b0)
 {
-    Matrix viewProj[3];
+    Matrix viewProj[CASCADE_LEVEL];
 }
 
 struct gsInput
@@ -14,12 +18,12 @@ struct gsInput
 
 struct gsOutput
 {
-    float4 pos : SV_POSITION;
+    float4 posProj : SV_POSITION;
 #ifdef USE_INSTANCE
     float2 texcoord : TEXCOORD;
     uint texIndex : INDEX;
 #endif
-    uint VPIndex : SV_ViewportArrayIndex;
+    uint RTIndex : SV_RenderTargetArrayIndex;
 };
 
 [maxvertexcount(9)]
@@ -27,14 +31,14 @@ void main(triangle gsInput input[3], inout TriangleStream<gsOutput> output)
 {
     gsOutput element;
     
-    for (int cascade = 0; cascade < 3; ++cascade)
+    for (int cascade = 0; cascade < CASCADE_LEVEL; ++cascade)
     {
-        element.VPIndex = cascade;
+        element.RTIndex = cascade;
 
         for (int i = 0; i < 3; ++i)
         {
             float4 position = float4(input[i].posWorld.xyz, 1.0);
-            element.pos = mul(position, viewProj[cascade]);
+            element.posProj = mul(position, viewProj[cascade]);
             
 #ifdef USE_INSTANCE
             element.texcoord = input[i].texcoord;

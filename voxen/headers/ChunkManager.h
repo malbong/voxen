@@ -31,52 +31,49 @@ public:
 	static ChunkManager* GetInstance();
 
 	bool Initialize(Vector3 cameraChunkPos);
-	void Update(float dt, Camera& camera, Light& light, bool mouseLeftDown, bool mouseRightDown);
+	void Update(float dt, Camera& camera, const Light& light);
 
 	void RenderOpaqueChunk(Chunk* chunk);
 	void RenderSemiAlphaChunk(Chunk* chunk);
 	void RenderLowLodChunk(Chunk* chunk);
 	void RenderTransparencyChunk(Chunk* chunk);
 	void RenderInstance();
-
-	void RenderBasic(Vector3 cameraPos);
+	void RenderBasic(Vector3 cameraPos, bool useWireFrame, bool useInstance, bool useSemialpha);
 	void RenderMirrorWorld();
 	void RenderTransparency();
 	void RenderBasicShadowMap();
+	void RenderBasicAlbedo();
 
 	const Chunk* GetChunkByPosition(Vector3 position);
 	const Block* GetBlockByPosition(Vector3 position);
 	const Instance* GetInstanceByPosition(Vector3 position);
 
-	bool HasObjectAt(Vector3 position);
-	void RemoveBlockPatchAt(Vector3 position);
-	void AddBlockPatchAt(Vector3 position, DIR face);
+	bool HasObjectAt(Vector3 pickingBlockPos);
+	void RemoveBlockPatchAt(Vector3 pickingBlockPos);
+	void AddBlockPatchAt(Vector3 pickingBlockPos, DIR pickingBlockFace);
 
-	PatchData MakePatchData(
-		int x, int y, int z, Block block, Instance instance, int baseSize, bool needWrap);
-	PatchData MakePatchData(Vector3 position, Block block, Instance instance,
-		int baseSize, bool needWrap);
-	void GenerateEdgePatchEntry(int x, int y, int z, Vector3 chunkPosition, BLOCK_TYPE blockType,
-		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
-	void GenerateEdgePatchEntry(Vector3 position, Vector3 chunkPosition, BLOCK_TYPE blockType,
-		std::pair<PosInt3, PatchData>* outEdgePatchEntry, int& outEdgePatchEntryCount);
 	void PropagatePatchByEdgeBlock(
 		Vector3 localPosition, Vector3 chunkOffsetPos, BLOCK_TYPE blockType);
 	
+	inline void OnChunkUpdateDirtyFlag() { m_isOnChunkUpdateDirtyFlag = true; }
 
 private:
-	static ChunkManager* chunkManager;
 
-	ChunkManager();
+	ChunkManager() = default;
 	~ChunkManager();
-	ChunkManager(const ChunkManager& other);
-	void operator=(const ChunkManager& rhs);
+	ChunkManager(const ChunkManager& other) = delete;
+	void operator=(const ChunkManager& rhs) = delete;
 
-	void UpdateChunkList(Vector3 cameraChunkPos);
-	void UpdateLoadChunkList(Camera& camera);
-	void UpdateUnloadChunkList();
-	void UpdatePatchChunkMap(Camera& camera);
-	void UpdateRenderChunkList(Camera& camera, Light& light);
+	void UpdateLoadUnLoadChunkList(Vector3 cameraChunkPos);
+
+	void LoadChunks(Camera& camera);
+	void SyncLoadedChunks();
+	void UnloadChunks();
+	void PatchChunks(Camera& camera);
+	void SyncPatchedChunks();
+
+	void UpdatePatchChunkMap(Chunk* chunk, const PosHashMap<PatchDataHashSet>& loadPatchResult);
+	void UpdateRenderChunkList(Camera& camera, const Light& light);
 	void UpdateInstanceInfoList(Camera& camera);
 	void UpdateChunkConstant(float dt);
 
@@ -84,15 +81,26 @@ private:
 	void AddInstanceInfoBySplitFace(Vector3 worldPosition, const Instance& instance);
 
 	bool FrustumCulling(
-		Vector3 position, Camera& camera, Light& light, bool useMirror, bool useShadow, int index = 0);
+		Vector3 position, const Camera& camera, const Light& light, bool useMirror, bool useShadow, int index = 0);
 
-	void UpdateChunkBuffer(Chunk* chunk);
+	void UpdateChunkGPUBuffer(Chunk* chunk);
 	
+	void InitWorkerThreadCount();
+
+	void InitChunkPool();
 	Chunk* GetChunkFromPool();
 	void ReleaseChunkToPool(Chunk* chunk);
 
+	void InitChunkLoadMemoryPool();
+	ChunkLoadMemory* GetChunkLoadMemoryFromPool();
+	void ReleaseChunkLoadMemoryToPool(ChunkLoadMemory* chunkLoadMemory);
+
 	bool MakeInstanceVertexBuffer();
 	bool MakeInstanceInfoBuffer();
+
+	void SortPosListByCameraDistance(Vector3 cameraPos, std::vector<PosInt3>& posList);
+
+	bool m_isOnChunkUpdateDirtyFlag;
 
 	std::vector<Chunk*> m_chunkPool;
 	PosHashMap<Chunk*> m_chunkMap;
@@ -100,10 +108,14 @@ private:
 	PosHashMap<PosHashMap<PatchDataHashSet>> m_patchDependencyMap;
 	PosHashMap<PosHashSet> m_lookupDependencySet;
 	PosHashMap<PosHashSet> m_patchedChunkSet;
+	PosHashMap<PatchDataHashSet> m_waitPatchChunkMap;
 	PosHashMap<PatchDataHashSet> m_cameraPatchChunkMap;
-	PosHashMap<PatchDataHashSet> m_patchChunkMap;
+	std::vector<PosInt3> m_waitPatchChunkPosList;
 
-	std::vector<Chunk*> m_loadChunkList;
+	PosHashMap<bool> m_renderablePosMap;
+	PosHashMap<bool> m_waitLoadChunkPosMap;
+	std::vector<PosInt3> m_waitLoadChunkPosList;
+
 	std::vector<Chunk*> m_unloadChunkList;
 	std::vector<Chunk*> m_renderChunkList;
 	std::vector<Chunk*> m_renderMirrorChunkList;

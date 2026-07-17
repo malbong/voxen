@@ -3,6 +3,7 @@
 #include "DXUtils.h"
 #include "Terrain.h"
 #include "SimpleQuadRenderer.h"
+#include "ScopedRenderEvent.h"
 
 #include <iostream>
 #include <imgui.h>
@@ -129,216 +130,6 @@ LRESULT App::EventHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return true;
 }
 
-void App::Run()
-{
-	MSG msg = { 0 };
-	while (WM_QUIT != msg.message) {
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else {
-			ImGui_ImplDX11_NewFrame(); // GUI ÌîÑÎ†àÏûÑ ÏãúÏûë
-			ImGui_ImplWin32_NewFrame();
-
-			ImGui::NewFrame(); // Ïñ¥Îñ§ Í≤ÉÎì§ÏùÑ Î†åÎçîÎßÅ Ìï†ÏßÄ Í∏∞Î°ù ÏãúÏûë
-			ImGui::Begin("Scene Control");
-			ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-				ImGui::GetIO().Framerate);
-
-			float worldX = m_camera.GetPosition().x;
-			float worldY = m_camera.GetPosition().y;
-			float worldZ = m_camera.GetPosition().z;
-			ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
-
-			float c = Terrain::GetContinentalness((int)worldX, (int)worldZ);
-			float e = Terrain::GetErosion((int)worldX, (int)worldZ);
-			float pv = Terrain::GetPeaksValley((int)worldX, (int)worldZ);
-			ImGui::Text("C : %.2f | E : %.2f | PV : %.2f", c, e, pv);
-
-			float t = Terrain::GetTemperature((int)worldX, (int)worldZ);
-			float h = Terrain::GetHumidity((int)worldX, (int)worldZ);
-			float b = Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-			ImGui::Text("B : %.2f | T : %.2f | H : %.2f", b, t, h);
-			Biome::GetBiomeTerrainHeight(c, e, pv, t, h);
-
-			BIOME_TYPE biomeType = Biome::GetBiomeType(c, e, t, h, (int)worldX, (int)worldZ);
-			const char *biomeString = nullptr;
-			switch (biomeType) {
-			case BIOME_TYPE::BIOME_OCEAN:
-				biomeString = "BIOME_OCEAN";
-				break;
-
-			case BIOME_TYPE::BIOME_TUNDRA:
-				biomeString = "BIOME_TUNDRA";
-				break;
-
-			case BIOME_TYPE::BIOME_TAIGA:
-				biomeString = "BIOME_TAIGA";
-				break;
-
-			case BIOME_TYPE::BIOME_PLAINS:
-				biomeString = "BIOME_PLAINS";
-				break;
-
-			case BIOME_TYPE::BIOME_SWAMP:
-				biomeString = "BIOME_SWAMP";
-				break;
-
-			case BIOME_TYPE::BIOME_FOREST:
-				biomeString = "BIOME_FOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SHRUBLAND:
-				biomeString = "BIOME_SHRUBLAND";
-				break;
-
-			case BIOME_TYPE::BIOME_DESERT:
-				biomeString = "BIOME_DESERT";
-				break;
-
-			case BIOME_TYPE::BIOME_RAINFOREST:
-				biomeString = "BIOME_RAINFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SEASONFOREST:
-				biomeString = "BIOME_SEASONFOREST";
-				break;
-
-			case BIOME_TYPE::BIOME_SAVANNA:
-				biomeString = "BIOME_SAVANNA";
-				break;
-
-			case BIOME_TYPE::BIOME_SNOWY_TAIGA:
-				biomeString = "BIOME_SNOWY_TAIGA";
-				break;
-
-			default:
-				biomeString = "BIOME_NONE";
-				break;
-			}
-			ImGui::Text("BIOME: %s", biomeString);
-
-			ImGui::End();
-			ImGui::Render(); // Î†åÎçîÎßÅÌï† Í≤ÉÎì§ Í∏∞Î°ù ÎÅù
-
-			Update(ImGui::GetIO().DeltaTime);
-			Render(); // Ïö∞Î¶¨Í∞Ä Íµ¨ÌòÑÌïú Î†åÎçîÎßÅ
-
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI Î†åÎçîÎßÅ
-
-			Graphics::swapChain->Present(1, 0);
-		}
-	}
-}
-
-void App::Update(float dt)
-{
-	if (m_keyToggled['F']) {
-		m_date.Update(dt);
-	}
-	else {
-		m_date.Update(0.0f);
-	}
-
-	m_camera.Update(dt, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY);
-
-	m_postEffect.Update(dt, m_camera.IsUnderWater());
-
-	ChunkManager::GetInstance()->Update(dt, m_camera, m_light, m_mouseLeftDown, m_mouseRightDown);
-
-	m_worldMap.Update(m_camera.GetPosition());
-
-	m_skybox.Update(m_date.GetDateTime());
-
-	m_light.Update(m_date.GetDateTime(), m_camera);
-
-	m_cloud.Update(dt, m_camera.GetPosition());
-
-	m_mouseDeltaX = 0;
-	m_mouseDeltaY = 0;
-	m_mouseLeftDown = false;
-	m_mouseRightDown = false;
-}
-
-void App::Render()
-{
-	std::vector<ID3D11Buffer*> ppConstantBuffers;
-	ppConstantBuffers.push_back(m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_camera.m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_skybox.m_constantBuffer.Get());
-	ppConstantBuffers.push_back(m_light.m_lightConstantBuffer.Get());
-	ppConstantBuffers.push_back(m_light.m_shadowConstantBuffer.Get());
-	ppConstantBuffers.push_back(m_date.m_constantBuffer.Get());
-
-	Graphics::context->VSSetConstantBuffers(
-		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
-	Graphics::context->PSSetConstantBuffers(
-		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
-
-	Graphics::context->PSGetShaderResources(10, 1, Graphics::brdfSRV.GetAddressOf());
-
-	// 0. Shadow Map
-	{
-		RenderShadowMap();
-	}
-
-	// 1. Deferred Render Pass
-	{
-		FillGBuffer();
-		MaskMSAAEdge();
-		RenderSSAO();
-		ShadingBasic();
-	}
-
-	// 2. No-MSAA to MSAA Texture
-	{
-		ConvertToMSAA();
-	}
-
-	// 3. Picking Block
-	{
-		if (m_camera.HasPickingObject()) {
-			m_camera.RenderPickingBlock();
-		}
-	}
-
-	// 4. Forward Render Pass MSAA
-	{
-		if (m_camera.IsUnderWater()) {
-			RenderFogFilter();
-			RenderSkybox();
-			RenderCloud();
-			RenderWaterPlane();
-		}
-		else {
-			RenderMirrorWorld();
-			RenderWaterPlane();
-			RenderFogFilter();
-			RenderSkybox();
-			RenderCloud();
-		}
-	}
-
-	// 5. Post Effect
-	{
-		Graphics::context->ResolveSubresource(Graphics::basicBuffer.Get(), 0,
-			Graphics::basicMSBuffer.Get(), 0, DXGI_FORMAT_R16G16B16A16_FLOAT);
-
-		if (m_camera.IsUnderWater()) {
-			RenderWaterFilter();
-		}
-
-		m_postEffect.Bloom();
-	}
-
-	// 6. Biome Map
-	{
-		if (m_keyToggled['M'])
-			m_worldMap.RenderBiomeMap();
-	}
-}
-
 bool App::Initialize()
 {
 	if (!InitWindow())
@@ -358,7 +149,7 @@ bool App::Initialize()
 
 bool App::InitWindow()
 {
-	// Window Ï¥àÍ∏∞Ìôî
+	// Window √ ±‚»≠
 	{
 		const wchar_t CLASS_NAME[] = L"Voxen Class";
 		HINSTANCE hInstance = GetModuleHandle(0);
@@ -371,21 +162,36 @@ bool App::InitWindow()
 		if (!RegisterClassEx(&wc))
 			return false;
 
+		/*
 		RECT wr = { 0, 0, (LONG)APP_WIDTH, (LONG)APP_HEIGHT };
 		AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
 
 		DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 100, 100, wr.right - wr.left,
 			wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+		*/
+
+		DWORD dwStyle = WS_POPUP;
+		m_hwnd = CreateWindow(wc.lpszClassName, L"Voxen", dwStyle, 0, 0, APP_WIDTH, APP_HEIGHT,
+			NULL, NULL, hInstance, NULL);
 
 		if (m_hwnd == NULL)
 			return false;
 
+		/*
 		ShowWindow(m_hwnd, SW_SHOWDEFAULT);
+		UpdateWindow(m_hwnd);
+		*/
+		
+		ShowWindow(m_hwnd, SW_SHOW);
+		SetWindowPos(m_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		SetWindowPos(m_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		SetForegroundWindow(m_hwnd);
+		SetFocus(m_hwnd);
 		UpdateWindow(m_hwnd);
 	}
 
-	// RAW INPUT Îì±Î°ù
+	// RAW INPUT µÓ∑œ
 	{
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
@@ -442,7 +248,8 @@ bool App::InitGUI()
 
 bool App::InitScene()
 {
-	if (!m_camera.Initialize(Vector3(-50.0f, 177.0f, 84.0f))) // snow Vector3(-500.0f, 128.0f, 2800.0f)
+	if (!m_camera.Initialize(Vector3(
+			-310.0f, 80.0f, -3200.0f))) // snow -500 2800 // jungle -310 -3200 // pv -920 -1900
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
@@ -463,7 +270,11 @@ bool App::InitScene()
 	if (!m_worldMap.Initialize(m_camera.GetPosition()))
 		return false;
 
-	if (!m_date.Initialize()) {
+	if (!m_date.Initialize(1000)) {
+		return false;
+	}
+
+	if (!m_SSAO.Initialize()) {
 		return false;
 	}
 
@@ -476,11 +287,233 @@ bool App::InitScene()
 		return false;
 	}
 
+	memset(&m_renderStatesConstantData, 0, sizeof(RenderStatesConstantData));
+	if (!DXUtils::CreateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData)) {
+		std::cout << "failed create render states constant buffer in app" << std::endl;
+		return false;
+	}
+
 	return true;
+}
+
+void App::Run()
+{
+	MSG msg = { 0 };
+	while (WM_QUIT != msg.message) {
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else {
+			ImGuiFrame();
+
+			Update(ImGui::GetIO().DeltaTime);
+			Render();
+
+			{
+				SCOPED_RENDER_EVENT("ImGUI");
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ∑ª¥ı∏µ
+			}
+			
+			Graphics::swapChain->Present(1, 0);
+		}
+	}
+}
+
+void App::ImGuiFrame()
+{
+	ImGui_ImplDX11_NewFrame(); // GUI «¡∑π¿” Ω√¿€
+	ImGui_ImplWin32_NewFrame();
+
+	ImGui::NewFrame(); // æÓ∂≤ ∞ÕµÈ¿ª ∑ª¥ı∏µ «“¡ˆ ±‚∑œ Ω√¿€
+	ImGui::Begin("Scene Control");
+	float worldX = m_camera.GetPosition().x;
+	float worldY = m_camera.GetPosition().y;
+	float worldZ = m_camera.GetPosition().z;
+	ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
+	ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+		ImGui::GetIO().Framerate);
+	ImGui::Text("===========================================");
+	ImGui::Text("ESC: Close");
+	ImGui::Text("P: Pause");
+	ImGui::Text("L: Light Move");
+	ImGui::Text("===========================================");
+	ImGui::Text("M: World Map View");
+	ImGui::Text("Q: Frustum Culling View");
+	ImGui::Text("===========================================");
+	ImGui::Text("R: Reflection World View");
+	ImGui::Text("===========================================");
+	ImGui::Text("G: GBuffer View");
+	ImGui::Text("===========================================");
+	ImGui::Text("E: Edge View");
+	ImGui::Text("F: Toggle Full SemiAlpha Edge");
+	ImGui::Text("===========================================");
+	ImGui::Text("O: SSAO View");
+	ImGui::Text("I: Toggle SSAO On/Off");
+	ImGui::Text("U: Toggle SSAO Blur [Bilateral vs Gaussian]");
+	ImGui::Text("===========================================");
+	ImGui::Text("Z: Toggle Cascade Blending");
+	ImGui::Text("X: Cascade Color View");
+	ImGui::Text("C: Cascade Shadow Map View");
+	ImGui::Text("V: Toggle [Center vs Split] Light View Box");
+	ImGui::Text("B: Toggle [Map vs Inteval] Based Cascade");
+	ImGui::Text("N: Toggle Texel Snap");
+	ImGui::Text("===========================================");
+	ImGui::Text("T: Change Tone Mapping");
+	ImGui::Text("Y: Toggle Bloom");
+	ImGui::Text("===========================================");
+	ImGui::Text("F1: Go to Materials For Lighting");
+	ImGui::Text("F2: Camera Speed");
+	ImGui::Text("F3: Render Toggle WireFrame");
+	ImGui::Text("F4: Render Toggle SemiAlpha");
+	ImGui::Text("F5: Render Toggle Instance");
+	ImGui::Text("===========================================");
+
+	ImGui::End();
+	ImGui::Render(); // ∑ª¥ı∏µ«“ ∞ÕµÈ ±‚∑œ ≥°
+}
+
+void App::Update(float dt)
+{
+	UpdateRenderStatesConstantBuffer();
+
+	if (m_keyToggled['P'])
+		return;
+
+	if (m_keyToggled['L'])
+		m_date.Update(dt);
+
+	m_camera.Update(dt, m_keyToggled, m_keyPressed, m_mouseDeltaX, m_mouseDeltaY, m_mouseLeftDown,
+		m_mouseRightDown);
+
+	m_postEffect.Update(dt, m_camera.IsUnderWater());
+
+	ChunkManager::GetInstance()->Update(dt, m_camera, m_light);
+
+	m_worldMap.Update(m_camera.GetPosition());
+
+	m_skybox.Update(m_date.GetDateTime());
+
+	m_light.Update(m_date.GetDateTime(), m_camera, m_keyToggled['V'], !m_keyToggled['N']);
+
+	m_cloud.Update(dt, m_camera.GetPosition());
+
+	m_mouseDeltaX = 0;
+	m_mouseDeltaY = 0;
+	m_mouseLeftDown = false;
+	m_mouseRightDown = false;
+}
+
+void App::Render()
+{
+	SetGlobalConstantBuffer();
+
+	// 0. Shadow Map
+	{
+		RenderShadowMap();
+	}
+
+	SetGlobalLightingSRVs();
+
+	// 1. Deferred Render Pass
+	{
+		FillGBuffer();
+		MaskMSAAEdge();
+		RenderSSAO();
+		ShadingBasic();
+	}
+
+	// 2. No-MSAA to MSAA Texture
+	{
+		ConvertToMSAA();
+	}
+
+	// 3. Picking Block
+	{
+		if (m_camera.HasPickingObject()) {
+			RenderPickingBlock();
+		}
+	}
+
+	// 4. Forward Render Pass MSAA
+	{
+		if (m_camera.IsUnderWater()) {
+			RenderFogFilter();
+			RenderSkybox();
+			RenderCloud();
+			RenderWaterPlane();
+		}
+		else {
+			RenderMirrorWorld();
+			RenderWaterPlane();
+			RenderFogFilter();
+			RenderSkybox();
+			RenderCloud();
+		}
+	}
+
+	// 5. Post Effect
+	{
+		SCOPED_RENDER_EVENT("Post Effects");
+
+		Graphics::context->ResolveSubresource(Graphics::basicBuffer.Get(), 0,
+			Graphics::basicMSBuffer.Get(), 0, DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+		if (m_camera.IsUnderWater()) {
+			RenderWaterFilter();
+		}
+
+		RenderBloom();
+	}
+
+	// 6. Biome Map
+	{
+		if (m_keyToggled['M']) {
+			RenderWorldMap();
+		}
+	}
+
+	// 7. Debug Camera for Frustum Culling
+	{
+		if (m_keyToggled['Q']) {
+			RenderFrustumCullingViewer();
+		}
+	}
+
+	// 8. Water Reflection World View
+	{
+		if (m_keyToggled['R']) {
+			RenderReflectionWorld();
+		}
+	}
+
+	// 9. G-Buffer View
+	{
+		if (m_keyToggled['G']) {
+			RenderGBufferViewer();
+		}
+	}
+
+	// 10. SSAO View
+	{
+		if (m_keyToggled['O']) {
+			RenderSSAOViewer();
+		}
+	}
+	
+	// 11. Cascade Shadow Map View
+	{
+		if (m_keyToggled['C']) {
+			RenderCascadeShadowMapViewer();
+		}
+	}
+
 }
 
 void App::FillGBuffer()
 {
+	SCOPED_RENDER_EVENT("Fill G-Buffer");
+
 	float clearColor[4] = { 0.0f, 0.0f, 0.0f, -1.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::normalEdgeRTV.Get(), clearColor);
 	Graphics::context->ClearRenderTargetView(Graphics::positionRTV.Get(), clearColor);
@@ -508,16 +541,21 @@ void App::FillGBuffer()
 	ppSRVs.push_back(Graphics::climateMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
 
-	ChunkManager::GetInstance()->RenderBasic(m_camera.GetPosition());
+	bool useWireFrame = m_keyToggled[0x72];
+	bool useSemiAlpha = !m_keyToggled[0x73];
+	bool useInstance = !m_keyToggled[0x74];
+	ChunkManager::GetInstance()->RenderBasic(
+		m_camera.GetPosition(), useWireFrame, useInstance, useSemiAlpha);
 }
 
 void App::MaskMSAAEdge()
 {
+	SCOPED_RENDER_EVENT("Mask MSAA Edge");
+
 	Graphics::context->ClearDepthStencilView(
 		Graphics::deferredDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	Graphics::context->OMSetRenderTargets(
-		1, Graphics::basicRTV.GetAddressOf(), Graphics::deferredDSV.Get());
+	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::deferredDSV.Get());
 
 	std::vector<ID3D11ShaderResourceView*> ppSRVs;
 	ppSRVs.push_back(Graphics::normalEdgeSRV.Get());
@@ -530,6 +568,8 @@ void App::MaskMSAAEdge()
 
 void App::RenderSSAO()
 {
+	SCOPED_RENDER_EVENT("SSAO");
+
 	// SSAO
 	{
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -538,34 +578,28 @@ void App::RenderSSAO()
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::ssaoRTV.GetAddressOf(), Graphics::deferredDSV.Get());
 
-		std::vector<ID3D11Buffer*> ppConstants;
-		ppConstants.push_back(m_postEffect.m_ssaoConstantBuffer.Get());
-		ppConstants.push_back(m_postEffect.m_ssaoNoiseConstantBuffer.Get());
-		Graphics::context->PSSetConstantBuffers(0, (UINT)ppConstants.size(), ppConstants.data());
-
-		std::vector<ID3D11ShaderResourceView*> ppSRVs;
-		ppSRVs.push_back(Graphics::normalEdgeSRV.Get());
-		ppSRVs.push_back(Graphics::positionSRV.Get());
-		ppSRVs.push_back(Graphics::coverageSRV.Get());
-		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-
-		Graphics::SetPipelineStates(Graphics::ssaoPSO);
-		SimpleQuadRenderer::GetInstance()->Render();
-
-		Graphics::SetPipelineStates(Graphics::ssaoEdgePSO);
-		SimpleQuadRenderer::GetInstance()->Render();
+		m_SSAO.Render();
 	}
 
-	// blur
+	// Blur
 	{
-		Graphics::SetPipelineStates(Graphics::samplingPSO);
-		m_postEffect.Blur(2, Graphics::ssaoSRV, Graphics::ssaoRTV, Graphics::ssaoBlurSRV,
-			Graphics::ssaoBlurRTV, Graphics::blurSsaoPS);
+		int blurCount = 2;
+
+		if (!m_keyToggled['U']) {
+			m_postEffect.BlurBilateral(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
+				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
+		}
+		else {
+			m_postEffect.BlurGaussian(blurCount, Graphics::ssaoSRV, Graphics::ssaoRTV,
+				Graphics::ssaoBlurSRV, Graphics::ssaoBlurRTV);
+		}
 	}
 }
 
 void App::ShadingBasic()
 {
+	SCOPED_RENDER_EVENT("Deferred Shading");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicRTV.GetAddressOf(), Graphics::deferredDSV.Get());
 
@@ -575,24 +609,20 @@ void App::ShadingBasic()
 	ppSRVs.push_back(Graphics::albedoSRV.Get());
 	ppSRVs.push_back(Graphics::merSRV.Get());
 	ppSRVs.push_back(Graphics::ssaoSRV.Get());
-
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
 
 	Graphics::SetPipelineStates(Graphics::shadingBasicPSO);
 	SimpleQuadRenderer::GetInstance()->Render();
 
-	Graphics::SetPipelineStates(Graphics::shadingBasicEdgePSO);
+	Graphics::SetPipelineStates(
+		m_keyToggled['E'] ? Graphics::shadingBasicEdgeHighlightPSO : Graphics::shadingBasicEdgePSO);
 	SimpleQuadRenderer::GetInstance()->Render();
-
-	ID3D11ShaderResourceView* nullSRV[] = {
-		0,
-	};
-	Graphics::context->PSSetShaderResources(11, 1, nullSRV);
 }
 
 void App::ConvertToMSAA()
 {
+	SCOPED_RENDER_EVENT("Convert To MSAA");
+
 	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
 
 	Graphics::context->PSSetShaderResources(0, 1, Graphics::basicSRV.GetAddressOf());
@@ -603,6 +633,8 @@ void App::ConvertToMSAA()
 
 void App::RenderSkybox()
 {
+	SCOPED_RENDER_EVENT("Skybox");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -612,6 +644,8 @@ void App::RenderSkybox()
 
 void App::RenderCloud()
 {
+	SCOPED_RENDER_EVENT("Cloud");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -619,43 +653,11 @@ void App::RenderCloud()
 	m_cloud.Render();
 }
 
-void App::RenderFogFilter()
-{
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->CopyResource(
-		Graphics::copyForwardRenderBuffer.Get(), Graphics::basicMSBuffer.Get());
-
-	std::vector<ID3D11ShaderResourceView*> ppSRVs;
-	ppSRVs.push_back(Graphics::copyForwardSRV.Get());
-	ppSRVs.push_back(Graphics::basicDepthSRV.Get());
-	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-
-	Graphics::context->PSSetConstantBuffers(
-		0, 1, m_postEffect.m_fogFilterConstantBuffer.GetAddressOf());
-
-	Graphics::SetPipelineStates(Graphics::fogFilterPSO);
-	SimpleQuadRenderer::GetInstance()->Render();
-}
-
-void App::RenderWaterFilter()
-{
-	Graphics::context->CopyResource(Graphics::bloomBuffer[0].Get(), Graphics::basicBuffer.Get());
-
-	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
-
-	Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[0].GetAddressOf());
-
-	Graphics::context->PSSetConstantBuffers(
-		0, 1, m_postEffect.m_waterFilterConstantBuffer.GetAddressOf());
-
-	Graphics::SetPipelineStates(Graphics::waterFilterPSO);
-	SimpleQuadRenderer::GetInstance()->Render();
-}
-
 void App::RenderMirrorWorld()
 {
-	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewPort);
+	SCOPED_RENDER_EVENT("Planar Mirror World");
+
+	Graphics::context->RSSetViewports(1, &Graphics::mirrorWorldViewport);
 
 	const FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Graphics::context->ClearRenderTargetView(Graphics::mirrorDepthRTV.Get(), clearColor);
@@ -663,60 +665,65 @@ void App::RenderMirrorWorld()
 	Graphics::context->ClearDepthStencilView(
 		Graphics::mirrorWorldDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// stencil
+	// stencil and water depth
 	{
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::mirrorDepthRTV.GetAddressOf(), Graphics::mirrorWorldDSV.Get());
-		Graphics::context->PSSetShaderResources(0, 1, Graphics::positionSRV.GetAddressOf());
+		Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
 		Graphics::SetPipelineStates(Graphics::mirrorMaskingPSO);
 		ChunkManager::GetInstance()->RenderTransparency();
 	}
 
-	// mirror sky shader
+	// mirror world render in stencil
 	{
 		Graphics::context->OMSetRenderTargets(
 			1, Graphics::mirrorWorldRTV.GetAddressOf(), Graphics::mirrorWorldDSV.Get());
-		Graphics::SetPipelineStates(Graphics::skyboxMirrorPSO);
-		m_skybox.Render();
-	}
 
-	// mirror cloud
-	{
-		// mirror constant buffer: mirror plane view matrix
-		Graphics::context->VSSetConstantBuffers(
-			8, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
-		Graphics::SetPipelineStates(Graphics::cloudMirrorPSO);
-		m_cloud.Render();
-	}
+		// mirror sky shader
+		{
+			Graphics::SetPipelineStates(Graphics::skyboxMirrorPSO);
+			m_skybox.Render();
+		}
 
-	// mirror low lod world
-	{
-		std::vector<ID3D11ShaderResourceView*> ppSRVs;
-		ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
-		ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
-		ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
-		ppSRVs.push_back(Graphics::climateMapSRV.Get());
-		ppSRVs.push_back(Graphics::mirrorDepthSRV.Get());
-		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-		ChunkManager::GetInstance()->RenderMirrorWorld();
+		// mirror cloud
+		{
+			// mirror constant buffer: mirror plane view matrix
+			Graphics::context->VSSetConstantBuffers(
+				9, 1, m_camera.m_mirrorConstantBuffer.GetAddressOf());
+			Graphics::SetPipelineStates(Graphics::cloudMirrorPSO);
+			m_cloud.Render();
+		}
+
+		// mirror low lod world
+		{
+			std::vector<ID3D11ShaderResourceView*> ppSRVs;
+			ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
+			ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
+			ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
+			ppSRVs.push_back(Graphics::climateMapSRV.Get());
+			ppSRVs.push_back(Graphics::mirrorDepthSRV.Get());
+			Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+			ChunkManager::GetInstance()->RenderMirrorWorld();
+		}
 	}
 
 	// blur mirror world
 	{
-		Graphics::SetPipelineStates(Graphics::samplingPSO);
-		m_postEffect.Blur(3, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
-			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV, Graphics::blurMirrorPS);
+		m_postEffect.BlurGaussian(2, Graphics::mirrorWorldSRV, Graphics::mirrorWorldRTV,
+			Graphics::mirrorBlurSRV, Graphics::mirrorBlurRTV);
 	}
 
-	// ÏõêÎûòÏùò Í∏ÄÎ°úÎ≤åÎ°ú ÎëêÍ∏∞
-	Graphics::context->VSSetConstantBuffers(8, 1, m_camera.m_constantBuffer.GetAddressOf());
+	// ø¯∑°¿« ±€∑Œπ˙∑Œ µŒ±‚
+	Graphics::context->VSSetConstantBuffers(9, 1, m_camera.m_constantBuffer.GetAddressOf());
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
 void App::RenderWaterPlane()
 {
+	SCOPED_RENDER_EVENT("Water Plane");
+
 	Graphics::context->OMSetRenderTargets(
 		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
 
@@ -732,20 +739,19 @@ void App::RenderWaterPlane()
 	ppSRVs.push_back(Graphics::waterStillAtlasMapSRV.Get());
 	ppSRVs.push_back(Graphics::waterStillNormalAtlasMapSRV.Get());
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
-	Graphics::context->PSSetShaderResources(11, 1, Graphics::shadowSRV.GetAddressOf());
 
-	Graphics::SetPipelineStates(Graphics::waterPlanePSO);
+	bool useWireFrame = m_keyToggled[0x72];
+	Graphics::SetPipelineStates(useWireFrame ? Graphics::waterPlaneWirePSO : Graphics::waterPlanePSO);
 	ChunkManager::GetInstance()->RenderTransparency();
-
-	ID3D11ShaderResourceView* nullSRV[] = {
-		0,
-	};
-	Graphics::context->PSSetShaderResources(11, 1, nullSRV);
 }
 
 void App::RenderShadowMap()
 {
-	Graphics::context->RSSetViewports(Light::CASCADE_NUM, Graphics::shadowViewPorts);
+	SCOPED_RENDER_EVENT("Cascade Shadow Map");
+
+	UnsetGlobalLightingSRVs();
+
+	Graphics::context->RSSetViewports(1, &Graphics::shadowViewports);
 
 	Graphics::context->OMSetRenderTargets(0, nullptr, Graphics::shadowDSV.Get());
 
@@ -770,18 +776,167 @@ void App::RenderShadowMap()
 	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
 }
 
+void App::RenderPickingBlock() 
+{ 
+	SCOPED_RENDER_EVENT("Picking Block");
+
+	Graphics::context->OMSetRenderTargets(
+		1, Graphics::basicMSRTV.GetAddressOf(), Graphics::basicDSV.Get());
+
+	m_camera.RenderPickingBlock(); 
+}
+
+void App::RenderWorldMap() 
+{ 
+	Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+
+	m_worldMap.RenderMap(); 
+}
+
+void App::RenderFogFilter() 
+{ 
+	SCOPED_RENDER_EVENT("Fog Filter");
+
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicMSRTV.GetAddressOf(), nullptr);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::basicDepthSRV.GetAddressOf());
+
+	m_postEffect.FogFilter();
+}
+
+void App::RenderWaterFilter() 
+{ 
+	Graphics::context->OMSetRenderTargets(1, Graphics::basicRTV.GetAddressOf(), nullptr);
+
+	m_postEffect.WaterFilter(); 
+}
+
+void App::RenderBloom() 
+{ 
+	m_postEffect.Bloom(3, Graphics::basicSRV, Graphics::bloomRTV[0]);
+	m_postEffect.CombineFromBloom(Graphics::basicSRV, Graphics::backBufferRTV);
+}
+
+void App::RenderFrustumCullingViewer() 
+{
+	Graphics::context->VSSetConstantBuffers(
+		9, 1, m_camera.m_cullingViewerConstantBuffer.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::cullingViewerViewport);
+
+	float clearColor[4] = { 0.5f, 0.5f, 0.5f, 0.0f };
+	Graphics::context->ClearRenderTargetView(Graphics::cullingViewerRTV.Get(), clearColor);
+	Graphics::context->ClearDepthStencilView(
+		Graphics::cullingViewerDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	
+	Graphics::context->OMSetRenderTargets(
+		1, Graphics::cullingViewerRTV.GetAddressOf(), Graphics::cullingViewerDSV.Get());
+
+	// chunk render
+	{
+		std::vector<ID3D11ShaderResourceView*> ppSRVs;
+		ppSRVs.push_back(Graphics::blockAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::normalAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::merAtlasMapSRV.Get());
+		ppSRVs.push_back(Graphics::grassColorMapSRV.Get());
+		ppSRVs.push_back(Graphics::foliageColorMapSRV.Get());
+		ppSRVs.push_back(Graphics::climateMapSRV.Get());
+		Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
+
+		ChunkManager::GetInstance()->RenderBasicAlbedo();
+	}
+	
+	// view frustum grid render
+	{
+		m_camera.RenderViewFrustum();
+	}
+
+	// To BackBuffer
+	{
+		Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+
+		Graphics::context->PSSetShaderResources(0, 1, Graphics::cullingViewerSRV.GetAddressOf());
+
+		Graphics::SetPipelineStates(Graphics::samplingGammaPSO);
+		SimpleQuadRenderer::GetInstance()->Render();
+	}
+
+	Graphics::context->VSSetConstantBuffers(9, 1, m_camera.m_constantBuffer.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderReflectionWorld() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingGammaPSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::mirrorWorldSRV.GetAddressOf());
+
+	Graphics::context->RSSetViewports(1, &Graphics::reflectionWorldViewport);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderGBufferViewer() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingMSGammaPSO); 
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::albedoSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[0]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::SetPipelineStates(Graphics::samplingMSPSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::normalEdgeSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[1]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::positionSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[2]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::merSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[3]);
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	//Graphics::SetPipelineStates(Graphics::samplingCoveragePSO);
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::coverageSRV.GetAddressOf());
+	Graphics::context->RSSetViewports(1, &Graphics::GBufferViewerViewport[4]);
+	SimpleQuadRenderer::GetInstance()->Render();
+	
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
+void App::RenderSSAOViewer() 
+{ 
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::ssaoSRV.GetAddressOf());
+
+	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void App::RenderCascadeShadowMapViewer()
+{ 
+	Graphics::context->RSSetViewports(1, &Graphics::cascadeShadowMapViewerViewport);
+
+	Graphics::SetPipelineStates(Graphics::samplingCascadeShadowMapPSO);
+
+	Graphics::context->PSSetShaderResources(0, 1, Graphics::shadowSRV.GetAddressOf());
+
+	SimpleQuadRenderer::GetInstance()->Render();
+
+	Graphics::context->RSSetViewports(1, &Graphics::basicViewport);
+}
+
 void App::LockCursor()
 {
 	if (!m_isActive) {
 		POINT topLeft = { 0, 0 };
 		POINT bottomRight = { APP_WIDTH, APP_HEIGHT };
-		ClientToScreen(m_hwnd, &topLeft);	  // Ï¢åÏ∏°ÏÉÅÎã® Ìè¨Ïù∏ÌÑ∞
-		ClientToScreen(m_hwnd, &bottomRight); // Ïö∞Ï∏°ÌïòÎã® Ìè¨Ïù∏ÌÑ∞
+		ClientToScreen(m_hwnd, &topLeft);	  // ¡¬√¯ªÛ¥‹ ∆˜¿Œ≈Õ
+		ClientToScreen(m_hwnd, &bottomRight); // øÏ√¯«œ¥‹ ∆˜¿Œ≈Õ
 		RECT clipRect = { topLeft.x, topLeft.y, bottomRight.x, bottomRight.y };
 
 		ClipCursor(&clipRect);
 
-		ShowCursor(false); // Ï†ÑÏó≠ Ïπ¥Ïö¥Ìä∏Î°ú ÎèôÏûëÌïòÍ∏∞ ÎïåÎ¨∏Ïóê m_isActiveÎ•º Ïù¥Ïö©Ìïú flag Ï≤òÎ¶¨ ÌïÑÏöî
+		ShowCursor(false); // ¿¸ø™ ƒ´øÓ∆Æ∑Œ µø¿€«œ±‚ ∂ßπÆø° m_isActive∏¶ ¿ÃøÎ«— flag √≥∏Æ « ø‰
 
 		m_isActive = true;
 	}
@@ -795,5 +950,85 @@ void App::UnlockCursor()
 		ShowCursor(true);
 
 		m_isActive = false;
+	}
+}
+
+void App::SetGlobalConstantBuffer()
+{
+	std::vector<ID3D11Buffer*> ppConstantBuffers;
+	ppConstantBuffers.push_back(m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_renderStatesConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_camera.m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_skybox.m_constantBuffer.Get());
+	ppConstantBuffers.push_back(m_light.m_lightConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_light.m_shadowConstantBuffer.Get());
+	ppConstantBuffers.push_back(m_date.m_constantBuffer.Get());
+
+	Graphics::context->VSSetConstantBuffers(
+		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
+	Graphics::context->PSSetConstantBuffers(
+		7, (UINT)ppConstantBuffers.size(), ppConstantBuffers.data());
+}
+
+void App::SetGlobalLightingSRVs()
+{
+	Graphics::context->OMSetRenderTargets(0, nullptr, nullptr);
+
+	std::vector<ID3D11ShaderResourceView*> ppLightSRVs;
+	ppLightSRVs.push_back(Graphics::brdfSRV.Get());
+	ppLightSRVs.push_back(Graphics::sunSRV.Get());
+	ppLightSRVs.push_back(Graphics::moonSRV.Get());
+	ppLightSRVs.push_back(Graphics::shadowSRV.Get());
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)ppLightSRVs.size(), ppLightSRVs.data());
+}
+
+void App::UnsetGlobalLightingSRVs()
+{
+	std::vector<ID3D11ShaderResourceView*> nullSRVs(GLOBAL_LIGHTING_SRVS_COUNT, nullptr);
+
+	Graphics::context->PSSetShaderResources(
+		GLOBAL_LIGHTING_STARTING_SLOT, (UINT)nullSRVs.size(), nullSRVs.data());
+}
+
+void App::UpdateRenderStatesConstantBuffer()
+{
+	bool renderConstantBufferDirtyFlag = false;
+
+	if ((bool)m_renderStatesConstantData.useFullSemiAlphaEdge != m_keyToggled['F']) {
+		m_renderStatesConstantData.useFullSemiAlphaEdge = (uint32_t)m_keyToggled['F'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useSSAO == m_keyToggled['I']) {
+		m_renderStatesConstantData.useSSAO = (uint32_t)!m_keyToggled['I'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useCascadeColor != m_keyToggled['X']) {
+		m_renderStatesConstantData.useCascadeColor = (uint32_t)m_keyToggled['X'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useCascadeBlend == m_keyToggled['Z']) {
+		m_renderStatesConstantData.useCascadeBlend = (uint32_t)!m_keyToggled['Z'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useMapBasedCascade == m_keyToggled['B']) {
+		m_renderStatesConstantData.useMapBasedCascade = (uint32_t)!m_keyToggled['B'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.useBloom == m_keyToggled['Y']) {
+		m_renderStatesConstantData.useBloom = (uint32_t)!m_keyToggled['Y'];
+		renderConstantBufferDirtyFlag = true;
+	}
+	if ((bool)m_renderStatesConstantData.toggleTonemappingFunctions != m_keyToggled['T']) {
+		m_renderStatesConstantData.toggleTonemappingFunctions = m_keyToggled['T'];
+		m_renderStatesConstantData.toneMappingFunctionIndex++;
+		m_renderStatesConstantData.toneMappingFunctionIndex %= 8;
+
+		renderConstantBufferDirtyFlag = true;
+	}
+
+	if (renderConstantBufferDirtyFlag) {
+		DXUtils::UpdateConstantBuffer(m_renderStatesConstantBuffer, m_renderStatesConstantData);
+		renderConstantBufferDirtyFlag = false;
 	}
 }

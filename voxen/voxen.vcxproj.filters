@@ -51,7 +51,7 @@
     <ClInclude Include="headers\Instance.h">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="headers\light.h">
+    <ClInclude Include="headers\Light.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\MeshGenerator.h">
@@ -87,11 +87,23 @@
     <ClInclude Include="headers\WorldMap.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\SSAO.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\ScopedRenderEvent.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
     <None Include="..\.gitignore" />
     <None Include="shaders\Common.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\Lighting.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\Shadow.hlsli">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -150,6 +162,9 @@
     <ClCompile Include="srcs\WorldMap.cpp">
       <Filter>srcs</Filter>
     </ClCompile>
+    <ClCompile Include="srcs\SSAO.cpp">
+      <Filter>srcs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\BasicPS.hlsl">
@@ -167,7 +182,7 @@
     <FxCompile Include="shaders\BloomUpPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\BlurPS.hlsl">
+    <FxCompile Include="shaders\BlurGaussianPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\CloudPS.hlsl">
@@ -185,9 +200,6 @@
     <FxCompile Include="shaders\FogFilterPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\InstancePS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
     <FxCompile Include="shaders\InstanceShadowPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
@@ -195,12 +207,6 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\MirrorMaskingPS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\NormalPassBasicPS.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\NormalPassInstancePS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\PickingBlockPS.hlsl">
@@ -234,6 +240,18 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\WaterPlanePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\ViewFrustumVS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SamplingCoveragePS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\BlurBilateralPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\SamplingCascadeShadowMapPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
