@@ -168,7 +168,7 @@ void ChunkManager::RenderInstance()
 	}
 }
 
-void ChunkManager::RenderBasic(Vector3 cameraPos, bool useWireFrame)
+void ChunkManager::RenderBasic(Vector3 cameraPos, bool useWireFrame, bool useInstance, bool useSemialpha)
 {
 	for (auto& c : m_renderChunkList) {
 		Vector3 chunkOffset = c->GetOffsetPosition();
@@ -182,14 +182,19 @@ void ChunkManager::RenderBasic(Vector3 cameraPos, bool useWireFrame)
 		else {
 			RenderOpaqueChunk(c);
 
-			Graphics::SetPipelineStates(
-				useWireFrame ? Graphics::semiAlphaWirePSO : Graphics::semiAlphaPSO);
-			RenderSemiAlphaChunk(c);
+			if (useSemialpha) {
+				Graphics::SetPipelineStates(
+					useWireFrame ? Graphics::semiAlphaWirePSO : Graphics::semiAlphaPSO);
+				RenderSemiAlphaChunk(c);
+			}
 		}
 	}
 
-	Graphics::SetPipelineStates(useWireFrame ? Graphics::instanceWirePSO : Graphics::instancePSO);
-	RenderInstance();
+	if (useInstance) {
+		Graphics::SetPipelineStates(
+			useWireFrame ? Graphics::instanceWirePSO : Graphics::instancePSO);
+		RenderInstance();
+	}
 }
 
 void ChunkManager::RenderMirrorWorld()

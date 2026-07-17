@@ -248,8 +248,8 @@ bool App::InitGUI()
 
 bool App::InitScene()
 {
-	if (!m_camera.Initialize(
-			Vector3(-920.0f, 80.0f, -1900.0f))) // snow -500 2800 // jungle -310 -3200 // pv -920 -1900
+	if (!m_camera.Initialize(Vector3(
+			-310.0f, 80.0f, -3200.0f))) // snow -500 2800 // jungle -310 -3200 // pv -920 -1900
 		return false;
 
 	if (!ChunkManager::GetInstance()->Initialize(m_camera.GetChunkPosition()))
@@ -327,6 +327,10 @@ void App::ImGuiFrame()
 
 	ImGui::NewFrame(); // 어떤 것들을 렌더링 할지 기록 시작
 	ImGui::Begin("Scene Control");
+	float worldX = m_camera.GetPosition().x;
+	float worldY = m_camera.GetPosition().y;
+	float worldZ = m_camera.GetPosition().z;
+	ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
 	ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 		ImGui::GetIO().Framerate);
 	ImGui::Text("===========================================");
@@ -360,13 +364,10 @@ void App::ImGuiFrame()
 	ImGui::Text("===========================================");
 	ImGui::Text("F1: Go to Materials For Lighting");
 	ImGui::Text("F2: Camera Speed");
-	ImGui::Text("F3: Render WireFrame");
-	ImGui::Text("");
-	
-	float worldX = m_camera.GetPosition().x;
-	float worldY = m_camera.GetPosition().y;
-	float worldZ = m_camera.GetPosition().z;
-	ImGui::Text("x : %.4f y : %.4f z : %.4f", worldX, worldY, worldZ);
+	ImGui::Text("F3: Render Toggle WireFrame");
+	ImGui::Text("F4: Render Toggle SemiAlpha");
+	ImGui::Text("F5: Render Toggle Instance");
+	ImGui::Text("===========================================");
 
 	ImGui::End();
 	ImGui::Render(); // 렌더링할 것들 기록 끝
@@ -541,7 +542,10 @@ void App::FillGBuffer()
 	Graphics::context->PSSetShaderResources(0, (UINT)ppSRVs.size(), ppSRVs.data());
 
 	bool useWireFrame = m_keyToggled[0x72];
-	ChunkManager::GetInstance()->RenderBasic(m_camera.GetPosition(), useWireFrame);
+	bool useSemiAlpha = !m_keyToggled[0x73];
+	bool useInstance = !m_keyToggled[0x74];
+	ChunkManager::GetInstance()->RenderBasic(
+		m_camera.GetPosition(), useWireFrame, useInstance, useSemiAlpha);
 }
 
 void App::MaskMSAAEdge()

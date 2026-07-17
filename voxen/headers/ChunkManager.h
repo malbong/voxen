@@ -38,7 +38,7 @@ public:
 	void RenderLowLodChunk(Chunk* chunk);
 	void RenderTransparencyChunk(Chunk* chunk);
 	void RenderInstance();
-	void RenderBasic(Vector3 cameraPos, bool useWireFrame);
+	void RenderBasic(Vector3 cameraPos, bool useWireFrame, bool useInstance, bool useSemialpha);
 	void RenderMirrorWorld();
 	void RenderTransparency();
 	void RenderBasicShadowMap();
