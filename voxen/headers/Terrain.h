@@ -165,7 +165,7 @@ namespace Terrain {
 
 	static bool IsCave(int x, int y, int z)
 	{
-		float threshold = 0.004f;
+		float threshold = 0.003f;
 
 		float density1 = Utils::PerlinFbm(x / 256.0f, y / 256.0f, z / 256.0f, 2.0f, 4);
 		if (density1 * density1 > threshold)
