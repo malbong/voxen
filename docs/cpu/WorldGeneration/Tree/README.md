@@ -170,7 +170,7 @@ void Chunk::InitTreePlace(ChunkLoadMemory* memory)
 
 ### 3.1 랜덤 위치 선정 — `Terrain::GenerateRandomPlace2D`
 
-청크당 최대 `TREE_PLACE_MAX_COUNT_PER_CHUNK = 64`개의 트리 심을 기준 후보를 xz 2D 격자 내에서 뽑는다.
+청크당 최대 `TREE_PLACE_MAX_COUNT_PER_CHUNK = 64`개의 트리를 심을 기준 후보를 xz 2D 격자 내에서 뽑는다.
 
 `TREE_PLACE_MAX_COUNT_PER_CHUNK = 64` 는 상한이며, 실제 배치되는 개수는 biome-별 비율로 따로 계산한다.
 
@@ -240,7 +240,7 @@ bool Chunk::CheckTreePlaceCondition(int x, int y, int z)
 
 biome 마다 후보 트리가 이미 [BiomeTypeInfoSet](../Biome/README.md) 에 등록돼 있다.
 
-`Tree::GetTreeTypeForBiome` 는 그 후보 목록에서 `d` (distribution 노이즈) 값에 따라 하나를 선택하는 switch/case 다.
+`Tree::GetTreeTypeForBiome`은 그 후보 목록에서 `d` (distribution 노이즈) 값에 따라 하나를 선택하는 switch/case 다.
 
 - cf. OOP로 구성하지 않은 점에 대한 단점이 보인다. Biome-Tree가 커플링 되어있다.
 
