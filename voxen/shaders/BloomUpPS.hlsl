@@ -33,9 +33,11 @@ float4 main(psInput input) : SV_TARGET
     float3 i = renderTex.Sample(linearClampSS, float2(input.texcoord.x + dx, input.texcoord.y + dy)).rgb;
     
     float3 color = float3(0.0, 0.0, 0.0);
+    
     color += (a + c + g + i);
     color += (b + d + f + h) * 2.0;
     color += e * 4.0;
+     
     color /= 16.0;
     
     return float4(color, 1.0);

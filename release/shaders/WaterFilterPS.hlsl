@@ -1,7 +1,5 @@
 #include "Common.hlsli"
 
-Texture2D renderTex : register(t0);
-
 cbuffer WaterFilterConstantBuffer : register(b0)
 {
     float3 filterColor;
@@ -16,9 +14,9 @@ struct psInput
 
 float4 main(psInput input) : SV_TARGET
 {
-    float3 renderColor = renderTex.Sample(linearClampSS, input.texcoord).rgb;
-   
-    float3 blendColor = lerp(renderColor, filterColor * clamp(radianceWeight, 0.1, 1.0), filterStrength);
+    float clampedRadianceWeight = clamp(radianceWeight, 0.1, 1.0);
     
-    return float4(blendColor, 1.0);
+    float blendAlpha = filterStrength;
+    
+    return float4(filterColor * clampedRadianceWeight, blendAlpha);
 }

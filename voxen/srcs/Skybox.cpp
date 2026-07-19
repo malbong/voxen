@@ -67,8 +67,9 @@ void Skybox::Update(uint32_t dateTime)
 
 			normalHorizonColor = Utils::Lerp(NORMAL_DAY_HORIZON, NORMAL_NIGHT_HORIZON, w);
 			normalZenithColor = Utils::Lerp(NORMAL_DAY_ZENITH, NORMAL_NIGHT_ZENITH, w);
-		} // 11000 ~ 13700 | 22300 ~ 25000
-		else if (Date::NIGHT_END <= dateTime && dateTime <= Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
+		}
+		else if (Date::NIGHT_END <= dateTime &&
+				 dateTime <= Date::DAY_START + Date::DAY_CYCLE_AMOUNT) {
 			float w = (float)(dateTime - Date::NIGHT_END) /
 					  (Date::DAY_START + Date::DAY_CYCLE_AMOUNT - Date::NIGHT_END);
 

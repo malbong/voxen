@@ -36,43 +36,53 @@ const BiomeWeightParams& Biome::GetWeightParams(BIOME_TYPE type)
 	return m_biomeTypeInfoSet.GetInfo(type).GetWeightParams();
 }
 
+float Biome::GetElevationScale(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetElevationScale();
+}
+
+float Biome::GetBaseHeight(BIOME_TYPE type)
+{
+	return m_biomeTypeInfoSet.GetInfo(type).GetBaseHeight();
+}
+
 BIOME_TYPE Biome::GetBiomeType(float c, float e, float t, float h, int x, int z)
 {
 	float coEffi[4] = { 10.0f, 1.0f, 3.0f, 3.0f };
-	std::vector<std::pair<float, BIOME_TYPE>> weights;
+	std::vector<std::pair<float, BIOME_TYPE>> diffs;
 
 	for (int i = 0; i < (int)BIOME_TYPE::BIOME_COUNT; ++i) {
 		const BiomeWeightParams& wParams = GetWeightParams((BIOME_TYPE)i);
 
-		float cWeight = coEffi[0] * std::powf(std::fabs(c - wParams.continentalness), 2.0f);
-		float eWeight = coEffi[1] * std::powf(std::fabs(e - wParams.erosion), 2.0f);
-		float tWeight = coEffi[2] * std::powf(std::fabs(t - wParams.temperature), 2.0f);
-		float hWeight = coEffi[3] * std::powf(std::fabs(h - wParams.humidity), 2.0f);
-		float weight = std::sqrtf(cWeight + eWeight + tWeight + hWeight);
+		float cDiff = coEffi[0] * std::powf(std::fabs(c - wParams.continentalness), 2.0f);
+		float eDiff = coEffi[1] * std::powf(std::fabs(e - wParams.erosion), 2.0f);
+		float tDiff = coEffi[2] * std::powf(std::fabs(t - wParams.temperature), 2.0f);
+		float hDiff = coEffi[3] * std::powf(std::fabs(h - wParams.humidity), 2.0f);
+		float diff = std::sqrtf(cDiff + eDiff + tDiff + hDiff);
 
-		weights.push_back(std::make_pair(weight, (BIOME_TYPE)i));
+		diffs.push_back(std::make_pair(diff, (BIOME_TYPE)i));
 	}
 
-	std::sort(weights.begin(), weights.end(),
+	std::sort(diffs.begin(), diffs.end(),
 		[](const std::pair<float, BIOME_TYPE>& a, const std::pair<float, BIOME_TYPE>& b) {
 			return (a.first < b.first);
 		});
 
-	float weightDiff = std::fabsf(weights[0].first - weights[1].first);
+	float diffOfTop = std::fabsf(diffs[0].first - diffs[1].first);
 	float threshold = 0.005f;
 
-	if (weightDiff < threshold) { // blending
+	if (diffOfTop < threshold) { // blending
 		uint32_t hashX = Utils::HashInt(x, 27551u);
 		uint32_t hashZ = Utils::HashInt(z, 35251u);
 
 		uint32_t hash = hashX ^ hashZ;
 
 		if (hash % 11 == 0) {
-			return weights[1].second;
+			return diffs[1].second;
 		}
 	}
-	
-	return weights[0].second;
+
+	return diffs[0].second;
 }
 
 float Biome::GetBiomeTerrainHeight(float c, float e, float pv, float t, float h)
@@ -96,8 +106,11 @@ float Biome::GetBiomeTerrainHeight(float c, float e, float pv, float t, float h)
 		float weight = 1.0f / (diff * diff);
 		float weight2 = std::powf(weight, 5.0f);
 
-		sumBiomeBaseHeight += weight2 * wParams.baseHeight;
-		sumElevationScale += weight2 * wParams.elevationScale;
+		float baseHeight = GetBaseHeight((BIOME_TYPE)i);
+		float elevationScale = GetElevationScale((BIOME_TYPE)i);
+
+		sumBiomeBaseHeight += weight2 * baseHeight;
+		sumElevationScale += weight2 * elevationScale;
 		sumWeight += weight2;
 	}
 

@@ -12,6 +12,7 @@
 #include "PostEffect.h"
 #include "WorldMap.h"
 #include "Date.h"
+#include "SSAO.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -29,10 +30,11 @@ public:
 
 	static const UINT APP_WIDTH = 1920;
 	static const UINT APP_HEIGHT = 1080;
-	static const UINT SHADOW_WIDTH = 3072;
-	static const UINT SHADOW_HEIGHT = 1024;
 	static const UINT MIRROR_WIDTH = APP_WIDTH / 2;
 	static const UINT MIRROR_HEIGHT = APP_HEIGHT / 2;
+
+	static const UINT GLOBAL_LIGHTING_STARTING_SLOT = 10;
+	static const UINT GLOBAL_LIGHTING_SRVS_COUNT = 4;
 
 private:
 	bool InitWindow();
@@ -40,6 +42,7 @@ private:
 	bool InitGUI();
 	bool InitScene();
 
+	void ImGuiFrame();
 	void Update(float dt);
 	void Render();
 
@@ -53,21 +56,38 @@ private:
 	void RenderSkybox();
 	void RenderCloud();
 
-	void RenderFogFilter();
-	void RenderWaterFilter();
+	void RenderShadowMap();
 
 	void RenderMirrorWorld();
 	void RenderWaterPlane();
 
-	void RenderShadowMap();
+	void RenderPickingBlock();
+	void RenderWorldMap();
+	void RenderFogFilter();
+	void RenderWaterFilter();
+	void RenderBloom();
+
+	void RenderFrustumCullingViewer();
+	void RenderReflectionWorld();
+	void RenderGBufferViewer();
+	void RenderSSAOViewer();
+	void RenderCascadeShadowMapViewer();
 
 	void LockCursor();
 	void UnlockCursor();
+
+	void SetGlobalConstantBuffer();
+	void SetGlobalLightingSRVs();
+	void UnsetGlobalLightingSRVs();
+	void UpdateRenderStatesConstantBuffer();
 
 	HWND m_hwnd;
 
 	ComPtr<ID3D11Buffer> m_constantBuffer;
 	AppConstantData m_constantData;
+
+	ComPtr<ID3D11Buffer> m_renderStatesConstantBuffer;
+	RenderStatesConstantData m_renderStatesConstantData;
 
 	bool m_keyPressed[256];
 	bool m_keyToggled[256];
@@ -87,4 +107,5 @@ private:
 	Light m_light;
 	PostEffect m_postEffect;
 	WorldMap m_worldMap;
+	SSAO m_SSAO;
 };

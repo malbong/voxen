@@ -11,42 +11,65 @@ struct psInput
 
 float4 main(psInput input) : SV_Target
 {
-    float sumEdge = 0;
-    float invaildPos = 0;
-    float minDiff = 987654321.0f;
+    // 1. 마킹 값 체크
+    const float INVALID_MASK = -1.0;
+    const float EDGE_MASK = 1.0;
+    const float SEMIALPHA_MASK = 2.0;
+    
+    uint invalidPosition = 0;
+    uint edgeCount = 0;
+    uint semiAlphaCount = 0;
     
     [unroll]
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
     {
-        invaildPos += positionTex.Load(input.posProj.xy, i).w;
+        float ne_w = normalEdgeTex.Load(input.posProj.xy, i).w; // invaild -1, noEdge 0, edge 1, semialpha 2
         
-        uint edge = normalEdgeTex.Load(input.posProj.xy, i).w; // edge 1, no edge 0, invaild -1
-        sumEdge += (edge > 0) ? 1 : 0;
+        if (ne_w == INVALID_MASK)
+            ++invalidPosition;
+        else if (ne_w == EDGE_MASK)
+            ++edgeCount;
+        else if (ne_w == SEMIALPHA_MASK)
+            ++semiAlphaCount;
     }
-    if (!sumEdge) // coverage가 아니면 엣지가 아님
-        discard;
-    if (invaildPos == -1.0 * SAMPLE_COUNT) // 유효하지 않은 위치가 SAMPLE 개수만큼 있으면 엣지가 아님
+    
+    if (invalidPosition == SAMPLE_COUNT) // 유효하지 않은 위치가 SAMPLE 개수만큼 있으면 엣지가 아님
         discard;
     
+    bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
+    if (useFullSemiAlphaEdge == true)
+    {
+        bool isFullSemiAlphaPixel = (semiAlphaCount == SAMPLE_COUNT);
+        if (edgeCount == 0 && !isSemiAlphaEdgePixel && !isFullSemiAlphaPixel)
+            discard;
+    }
+    else
+    {
+        if (edgeCount == 0 && !isSemiAlphaEdgePixel)
+            discard;
+    }
+    
+    
+    // 2. rough, far 엣지 체크
     uint rough = 0;
     uint far = 0;
     float3 baseNormal = normalEdgeTex.Load(input.posProj.xy, 0).xyz;
     float3 basePosition = positionTex.Load(input.posProj.xy, 0).xyz;
+    const float ROUGH_THRESHOLD = 0.98;
+    const float DISTANCE_THRESHOLD = 1.0;
+    
     [unroll]
     for (uint j = 1; j < SAMPLE_COUNT; ++j)
     {
         float angle = dot(baseNormal, normalEdgeTex.Load(input.posProj.xy, j).xyz);
-        rough += (angle < 0.98) ? 1 : 0;
+        rough += (angle < ROUGH_THRESHOLD) ? 1 : 0;
         
         float dist = length(basePosition - positionTex.Load(input.posProj.xy, j).xyz);
-        far += (dist > 1.0) ? 1 : 0;
+        far += (dist > DISTANCE_THRESHOLD) ? 1 : 0;
     }
     
     if (!rough && !far) // 노멀 모두 비슷하고, 위치도 모두 비슷하면 엣지가 아님
         discard;
-    
-    // coverage가 다르고, 유효한 위치이며, 노멀이 다르거나 위치가 다른 경우인데
-    // 카메라와의 거리가 최소 샘플 중, 최솟값이 임계값보다 멀면 엣지가 아님
     
     return float4(1, 0, 0, 0);
 }

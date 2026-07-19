@@ -6,11 +6,9 @@
 #include "SimpleQuadRenderer.h"
 
 #include <algorithm>
-#include <random>
 
 PostEffect::PostEffect()
 	: m_fogFilterConstantBuffer(nullptr), m_waterFilterConstantBuffer(nullptr),
-	  m_ssaoConstantBuffer(nullptr), m_ssaoNoiseConstantBuffer(nullptr),
 	  m_waterAdaptationTime(0.0f), m_waterMaxDuration(2.5f)
 {
 }
@@ -35,45 +33,6 @@ bool PostEffect::Initialize()
 		return false;
 	}
 
-	std::uniform_real_distribution<float> randomFloats(0.0001f, 1.0f);
-	std::default_random_engine generator;
-	for (int i = 0; i < 16; ++i) {
-		Vector4 sampleKernel;
-
-		sampleKernel.x = randomFloats(generator) * 2.0f - 1.0f;
-		sampleKernel.y = randomFloats(generator) * 2.0f - 1.0f;
-		sampleKernel.z = randomFloats(generator);
-		sampleKernel.w = 0.0f;
-		sampleKernel.Normalize();
-
-		sampleKernel *= randomFloats(generator);
-
-		float scale = (float)i / 16;
-		sampleKernel *= Utils::Lerp(0.1f, 1.0f, scale * scale);
-
-		m_ssaoConstantData.sampleKernel[i] = sampleKernel;
-	}
-	if (!DXUtils::CreateConstantBuffer(m_ssaoConstantBuffer, m_ssaoConstantData)) {
-		std::cout << "failed create ssao constant buffer" << std::endl;
-		return false;
-	}
-
-	for (int i = 0; i < 16; ++i) {
-		Vector4 rotationNoise;
-
-		rotationNoise.x = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.y = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.z = randomFloats(generator) * 2.0f - 1.0f;
-		rotationNoise.w = 0.0f;
-		rotationNoise.Normalize();
-
-		m_ssaoNoiseConstantData.rotationNoise[i] = rotationNoise;
-	}
-	if (!DXUtils::CreateConstantBuffer(m_ssaoNoiseConstantBuffer, m_ssaoNoiseConstantData)) {
-		std::cout << "failed create ssao noise constant buffer" << std::endl;
-		return false;
-	}
-
 	return true;
 }
 
@@ -81,7 +40,7 @@ void PostEffect::Update(float dt, bool isUnderWater)
 {
 	if (isUnderWater) {
 		m_waterAdaptationTime += dt;
-		m_waterAdaptationTime = min(m_waterMaxDuration, m_waterAdaptationTime);
+		m_waterAdaptationTime = std::clamp(m_waterAdaptationTime, 0.0f, m_waterMaxDuration);
 
 		float duration = m_waterAdaptationTime / m_waterMaxDuration;
 
@@ -108,21 +67,27 @@ void PostEffect::Update(float dt, bool isUnderWater)
 	DXUtils::UpdateConstantBuffer(m_waterFilterConstantBuffer, m_waterFilterConstantData);
 }
 
-void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
+void PostEffect::BlurGaussian(int count, ComPtr<ID3D11ShaderResourceView>& src,
 	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
-	ComPtr<ID3D11RenderTargetView> blurRTV[2], ComPtr<ID3D11PixelShader> blurPS[2])
+	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
-	for (int i = 0; i < count; ++i) {
-		Graphics::context->OMSetRenderTargets(1, blurRTV[0].GetAddressOf(), nullptr);
+	if (count == 0)
+		return;
 
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+
+	for (int i = 0; i < count; ++i) {
+		// Blur X
+		Graphics::context->OMSetRenderTargets(1, blurRTV[0].GetAddressOf(), nullptr);
 		if (i == 0)
 			Graphics::context->PSSetShaderResources(0, 1, src.GetAddressOf());
 		else
 			Graphics::context->PSSetShaderResources(0, 1, blurSRV[1].GetAddressOf());
 
-		Graphics::context->PSSetShader(blurPS[0].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurGaussianPS[0].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 
+		// Blur Y
 		if (i == count - 1)
 			Graphics::context->OMSetRenderTargets(1, dst.GetAddressOf(), nullptr);
 		else
@@ -130,17 +95,48 @@ void PostEffect::Blur(int count, ComPtr<ID3D11ShaderResourceView>& src,
 
 		Graphics::context->PSSetShaderResources(0, 1, blurSRV[0].GetAddressOf());
 
-		Graphics::context->PSSetShader(blurPS[1].Get(), nullptr, 0);
+		Graphics::context->PSSetShader(Graphics::blurGaussianPS[1].Get(), nullptr, 0);
 		SimpleQuadRenderer::GetInstance()->Render();
 	}
 }
 
-void PostEffect::Bloom()
+void PostEffect::BlurBilateral(int count, ComPtr<ID3D11ShaderResourceView>& src,
+	ComPtr<ID3D11RenderTargetView>& dst, ComPtr<ID3D11ShaderResourceView> blurSRV[2],
+	ComPtr<ID3D11RenderTargetView> blurRTV[2])
 {
-	// bloom Down 0 -> 1 -> 2 -> 3
+	if (count == 0)
+		return;
+
+	Graphics::SetPipelineStates(Graphics::samplingPSO);
+
+	for (int i = 0; i < count; ++i) {
+		Graphics::context->OMSetRenderTargets(1, blurRTV[i % 2].GetAddressOf(), nullptr);
+
+		if (i == 0)
+			Graphics::context->PSSetShaderResources(0, 1, src.GetAddressOf());
+		else
+			Graphics::context->PSSetShaderResources(0, 1, blurSRV[(i + 1) % 2].GetAddressOf());
+
+		Graphics::context->PSSetShader(Graphics::blurBilateralPS.Get(), nullptr, 0);
+		SimpleQuadRenderer::GetInstance()->Render();
+	}
+
+	// copyResource
+	Graphics::context->OMSetRenderTargets(1, dst.GetAddressOf(), nullptr);
+	Graphics::context->PSSetShaderResources(0, 1, blurSRV[(count - 1) % 2].GetAddressOf());
+	Graphics::context->PSSetShader(Graphics::samplingPS.Get(), nullptr, 0);
+	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void PostEffect::Bloom(
+	int count, ComPtr<ID3D11ShaderResourceView>& srv, ComPtr<ID3D11RenderTargetView>& rtv)
+{
+	count = min(3, count);
+
+	// bloom Down
 	{
 		Graphics::SetPipelineStates(Graphics::bloomDownPSO);
-		for (int i = 0; i <= 3; ++i) {
+		for (int i = 0; i <= count; ++i) {
 			int div = (int)std::pow(2, i + 1);
 
 			DXUtils::UpdateViewport(
@@ -151,7 +147,7 @@ void PostEffect::Bloom()
 				1, Graphics::bloomRTV[i + 1].GetAddressOf(), nullptr);
 
 			if (i == 0)
-				Graphics::context->PSSetShaderResources(0, 1, Graphics::basicSRV.GetAddressOf());
+				Graphics::context->PSSetShaderResources(0, 1, srv.GetAddressOf());
 			else
 				Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[i].GetAddressOf());
 
@@ -162,30 +158,51 @@ void PostEffect::Bloom()
 	// bloom Up
 	{
 		Graphics::SetPipelineStates(Graphics::bloomUpPSO);
-		for (int i = 3; i >= 0; --i) {
+		for (int i = count; i >= 0; --i) {
 			int div = (int)std::pow(2, i);
 
 			DXUtils::UpdateViewport(
 				Graphics::bloomViewport, 0, 0, App::APP_WIDTH / div, App::APP_HEIGHT / div);
 			Graphics::context->RSSetViewports(1, &Graphics::bloomViewport);
 
-			Graphics::context->OMSetRenderTargets(1, Graphics::bloomRTV[i].GetAddressOf(), nullptr);
+			if (i == 0)
+				Graphics::context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+			else
+				Graphics::context->OMSetRenderTargets(
+					1, Graphics::bloomRTV[i].GetAddressOf(), nullptr);
 
 			Graphics::context->PSSetShaderResources(0, 1, Graphics::bloomSRV[i + 1].GetAddressOf());
 
 			SimpleQuadRenderer::GetInstance()->Render();
 		}
 	}
+}
 
+void PostEffect::CombineFromBloom(
+	ComPtr<ID3D11ShaderResourceView>& originSRV, ComPtr<ID3D11RenderTargetView>& rtv)
+{
 	// Combine & Tonemapping
-	{
-		Graphics::context->OMSetRenderTargets(1, Graphics::backBufferRTV.GetAddressOf(), nullptr);
+	Graphics::context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
 
-		ID3D11ShaderResourceView* ppSRVs[2] = { Graphics::basicSRV.Get(),
-			Graphics::bloomSRV[0].Get() };
-		Graphics::context->PSSetShaderResources(0, 2, ppSRVs);
+	ID3D11ShaderResourceView* ppSRVs[2] = { originSRV.Get(), Graphics::bloomSRV[0].Get() };
+	Graphics::context->PSSetShaderResources(0, 2, ppSRVs);
 
-		Graphics::SetPipelineStates(Graphics::combineBloomPSO);
-		SimpleQuadRenderer::GetInstance()->Render();
-	}
+	Graphics::SetPipelineStates(Graphics::combineBloomPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void PostEffect::FogFilter()
+{
+	Graphics::context->PSSetConstantBuffers(0, 1, m_fogFilterConstantBuffer.GetAddressOf());
+
+	Graphics::SetPipelineStates(Graphics::fogFilterPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
+}
+
+void PostEffect::WaterFilter()
+{
+	Graphics::context->PSSetConstantBuffers(0, 1, m_waterFilterConstantBuffer.GetAddressOf());
+
+	Graphics::SetPipelineStates(Graphics::waterFilterPSO);
+	SimpleQuadRenderer::GetInstance()->Render();
 }

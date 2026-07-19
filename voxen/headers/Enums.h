@@ -15,15 +15,15 @@ enum DIR : uint8_t {
 enum TREE_BLOCK_INDEX : uint8_t {
 	EMPTY = 0,
 	TRUNK = 1,
-	LEAF = 2, 
+	LEAF = 2,
 	VINE = 3,
 };
 
 enum VINE_DIR : uint8_t {
-	V_LEFT = 2,
-	V_RIGHT = 3,
-	V_FRONT = 4,
-	V_BACK = 5,
+	V_LEFT = (1 << 2),
+	V_RIGHT = (1 << 3),
+	V_FRONT = (1 << 4),
+	V_BACK = (1 << 5),
 };
 
 enum BIOME_TYPE : uint8_t {
@@ -169,9 +169,17 @@ enum BLOCK_TYPE : uint8_t {
 	BLOCK_COARSE = 19,
 	BLOCK_PODZOL = 20,
 	BLOCK_ICE = 21,
-	BLOCK_GOLD = 22,
+	BLOCK_GOLD_RAW = 22,
 	BLOCK_MUD = 31,
 	BLOCK_MOSS = 32,
+	BLOCK_AMETHYST = 33,
+	BLOCK_GOLD = 34,
+	BLOCK_IRON_RAW = 35,
+	BLOCK_IRON = 36,
+	BLOCK_COPPER_RAW = 37,
+	BLOCK_COPPER = 38,
+	BLOCK_DIAMOND = 39,
+	BLOCK_REDSTONE = 40,
 
 	// tree
 	BLOCK_OAK_LOG = 23,

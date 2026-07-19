@@ -54,9 +54,14 @@ struct PickingObjectVertex {
 	Vector3 color;
 };
 
+struct ViewFrustumVertex {
+	Vector3 position;
+};
+
 struct CameraConstantData {
 	Matrix view;
 	Matrix proj;
+	Matrix invView;
 	Matrix invProj;
 	Vector3 eyePos;
 	float maxRenderDistance;
@@ -102,8 +107,11 @@ struct BlurConstantData {
 
 struct ShadowConstantData {
 	Matrix viewProj[3];
-	float topLX[4];
-	float viewportWidth[4];
+	Vector4 cascadeSplits;
+	uint32_t width;
+	uint32_t height;
+	uint32_t cascadeLevel;
+	uint32_t dummy;
 };
 
 struct FogFilterConstantData {
@@ -142,11 +150,20 @@ struct DateConstantData {
 	uint32_t dayCycleAmount;
 };
 
+struct RenderStatesConstantData {
+	uint32_t useFullSemiAlphaEdge;
+	uint32_t useSSAO;
+	uint32_t useCascadeColor;
+	uint32_t useCascadeBlend;
+	uint32_t useMapBasedCascade;
+	uint32_t useBloom;
+	uint32_t toggleTonemappingFunctions;
+	uint32_t toneMappingFunctionIndex;
+};
+
 struct BiomeWeightParams {
 	float continentalness;
 	float erosion;
 	float temperature;
 	float humidity;
-	float elevationScale;
-	float baseHeight;
 };

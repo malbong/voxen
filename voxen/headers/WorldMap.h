@@ -28,7 +28,7 @@ public:
 	bool Initialize(Vector3 cameraPosition);
 	void Update(Vector3 cameraPosition);
 
-	void RenderBiomeMap();
+	void RenderMap();
 
 
 private:

@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "Lighting.hlsli"
 
 Texture2DMS<float4, SAMPLE_COUNT> normalEdgeTex : register(t0);
 Texture2DMS<float4, SAMPLE_COUNT> positionTex : register(t1);
@@ -43,25 +44,31 @@ float4 main(psInput input) : SV_TARGET
     mer /= SAMPLE_COUNT;
     
     float metallic = mer.r;
-    float roughness = mer.b;
     
-    float ao = ssaoTex.Sample(pointClampSS, input.texcoord).r;
-    ao = pow(ao, 4.0);
+    float roughnessBias = 0.05;
+    float roughness = min(1.0, mer.b + roughnessBias);
     
-    float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
+    float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
+    ao = pow(ao, 2.0);
+    
+    //float3 ambientLighting = float3(0.0, 0.0, 0.0);
+    float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness, true);
+    //float3 directLighting = float3(0.0, 0.0, 0.0);
     float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
     
     float3 lighting = ambientLighting + directLighting;
-    float3 clampLighting = clamp(lighting, 0.0f, 1000.0f);
-    
-    return float4(clampLighting, 1.0);
+    return float4(lighting, 1.0);
 }
 
 float4 mainMSAA(psInput input) : SV_TARGET
 {   
-    float3 sumClampLighting = float3(0.0, 0.0, 0.0);
+    #ifdef EDGE_HIGHLIGHT
+        return float4(1, 0, 0, 1);
+    #endif
     
-    uint vaildSampleCount = 0;
+    float3 sumLighting = float3(0.0, 0.0, 0.0);
+    
+    uint validSampleCount = 0;
     
     [unroll]
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
@@ -72,7 +79,7 @@ float4 mainMSAA(psInput input) : SV_TARGET
         if (position.w == -1.0)
             continue;
         
-        vaildSampleCount++;
+        validSampleCount++;
         
         float3 normal = normalEdgeTex.Load(input.posProj.xy, i).xyz;
         
@@ -80,20 +87,24 @@ float4 mainMSAA(psInput input) : SV_TARGET
         
         float3 mer = merTex.Load(input.posProj.xy, i).rgb;
         
-        // todo
         float metallic = mer.r;
-        float roughness = mer.b;
+
+        float roughnessBias = 0.05;
+        float roughness = min(1.0, mer.b + roughnessBias);
         
-        float ao = ssaoTex.Sample(pointClampSS, input.texcoord).r;
-        ao = pow(ao, 4.0);
+        float ao = 1.0 - ssaoTex.Sample(linearClampSS, input.texcoord).r;
+        ao = pow(ao, 2.0);
         
-        float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness);
+        //float3 ambientLighting = float3(0.0, 0.0, 0.0);
+        float3 ambientLighting = getAmbientLighting(ao, albedo, position.xyz, normal, metallic, roughness, true);
         float3 directLighting = getDirectLighting(normal, position.xyz, albedo, metallic, roughness, true);
         
         float3 lighting = ambientLighting + directLighting;
-        float3 clampLighting = clamp(lighting, 0.0f, 1000.0f);
-        sumClampLighting += clampLighting;
+        sumLighting += lighting;
     }
     
-    return float4(sumClampLighting / max(1e-3, vaildSampleCount), 1.0);
+    if (validSampleCount == 0)
+        discard;
+       
+    return float4(sumLighting / validSampleCount, 1.0);
 }

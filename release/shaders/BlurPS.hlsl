@@ -31,18 +31,9 @@ float4 main(psInput input) : SV_TARGET
         offset = float2(0.0, dy * (i - 2));
 #endif
         float4 sampleColor = renderTex.Sample(linearClampSS, input.texcoord + offset);
-        
-#ifdef USE_ALPHA_BLUR
-        color.rgb += sampleColor.rgb * sampleColor.a * gaussianKernel[i];
-        color.a += sampleColor.a * gaussianKernel[i];
-#else
+   
         color += sampleColor * gaussianKernel[i];
-#endif
     }
     
-#ifdef USE_ALPHA_BLUR
-    if (color.a > 0.0)
-        color.rgb /= color.a;
-#endif
     return color;
 }

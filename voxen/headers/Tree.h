@@ -82,45 +82,45 @@ public:
 	{
 		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_OAK_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_OAK_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetShapeParams({ 6, 0, 0, 0, 3 });
+		m_treeTypeInfoSet[TREE_TYPE::TREE_OAK_LOG].SetShapeParams({ 7, 0, 0, 0, 3 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_SPRUCE_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams({ 11, 0, 0, 0, 4 });
+		m_treeTypeInfoSet[TREE_TYPE::TREE_SPRUCE_LOG].SetShapeParams({ 12, 0, 0, 0, 4 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_MANGROVE_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams({ 6, 0, 0, 0, 3 });
+		m_treeTypeInfoSet[TREE_TYPE::TREE_MANGROVE_LOG].SetShapeParams({ 7, 0, 0, 0, 3 });
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetTrunkBlockType(BLOCK_TYPE::BLOCK_BIRCH_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetLeafBlockType(BLOCK_TYPE::BLOCK_BIRCH_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetShapeParams({5, 0, 0, 0, 2});
+		m_treeTypeInfoSet[TREE_TYPE::TREE_BIRCH_LOG].SetShapeParams({6, 0, 0, 0, 2});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_CHERRY_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetShapeParams({ 8, 2, 13, 3, 6});
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CHERRY_LOG].SetShapeParams({ 9, 2, 13, 3, 6});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetTrunkBlockType(BLOCK_TYPE::BLOCK_CACTUS);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetLeafBlockType(BLOCK_TYPE::BLOCK_CACTUS);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetShapeParams({6, 2, 4, 4, 0});
+		m_treeTypeInfoSet[TREE_TYPE::TREE_CACTUS].SetShapeParams({7, 2, 4, 4, 0});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_JUNGLE_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetShapeParams({ 18, 3, 13, 13, 7});
+		m_treeTypeInfoSet[TREE_TYPE::TREE_JUNGLE_LOG].SetShapeParams({ 19, 3, 13, 13, 7});
 
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetTrunkBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LOG);
 		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetLeafBlockType(
 			BLOCK_TYPE::BLOCK_ACACIA_LEAF);
-		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetShapeParams({ 9, 1, 10, 3, 6 });
+		m_treeTypeInfoSet[TREE_TYPE::TREE_ACACIA_LOG].SetShapeParams({ 10, 1, 10, 3, 6 });
 	}
 
 	inline const TreeTypeInfo& GetInfo(TREE_TYPE type) const { return m_treeTypeInfoSet[type]; }
