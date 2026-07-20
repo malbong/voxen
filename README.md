@@ -166,7 +166,7 @@ ChunkManager::Update()
 | 목차                | 내용                                  | 문서 경로                                                                                      |
 | ------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Chunk Structure     | 블록의 집합인 청크의 구조 및 데이터   | [docs/cpu/ChunkManagement/ChunkStructure/](docs/cpu/ChunkManagement/ChunkStructure/)           |
-| Chunk Manager       | 청크 관리의 중심인 Update 리스트 관리 | [docs/cpu/ChunkManagement/ChunkManager/]([docs/cpu/ChunkManagement/ChunkManager/])             |
+| Chunk Manager       | 청크 관리의 중심인 Update 리스트 관리 | [docs/cpu/ChunkManagement/ChunkManager/](docs/cpu/ChunkManagement/ChunkManager/)             |
 | Chunk Load Unload   | 실질적인 청크 로드와 언로드의 흐름    | [docs/cpu/ChunkManagement/ChunkLoadUnload/](docs/cpu/ChunkManagement/ChunkLoadUnload/)         |
 | Chunk Patch         | 로드된 청크를 변경하는 Patch          | [docs/cpu/ChunkManagement/ChunkPatch/](docs/cpu/ChunkManagement/ChunkPatch/)                   |
 | AsyncMultithreading | 멀티쓰레드 관리                       | [docs/cpu/ChunkManagement/AsyncMultithreading/](docs/cpu/ChunkManagement/AsyncMultithreading/) |
