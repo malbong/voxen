@@ -11,6 +11,10 @@ struct psInput
 
 float4 main(psInput input) : SV_Target
 {
+    if (useFullSemiAlphaEdge)
+    {
+        return float4(1, 0, 0, 1);
+    }
     // 1. 마킹 값 체크
     const float INVALID_MASK = -1.0;
     const float EDGE_MASK = 1.0;
@@ -36,15 +40,14 @@ float4 main(psInput input) : SV_Target
     if (invalidPosition == SAMPLE_COUNT) // 유효하지 않은 위치가 SAMPLE 개수만큼 있으면 엣지가 아님
         discard;
     
-    bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
     if (useFullSemiAlphaEdge == true)
     {
-        bool isFullSemiAlphaPixel = (semiAlphaCount == SAMPLE_COUNT);
-        if (edgeCount == 0 && !isSemiAlphaEdgePixel && !isFullSemiAlphaPixel)
+        if (edgeCount == 0 && semiAlphaCount == 0)
             discard;
     }
     else
     {
+        bool isSemiAlphaEdgePixel = (0 < semiAlphaCount && semiAlphaCount < SAMPLE_COUNT);
         if (edgeCount == 0 && !isSemiAlphaEdgePixel)
             discard;
     }

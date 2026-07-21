@@ -11,6 +11,10 @@ struct psInput
 
 float4 main(psInput input) : SV_Target
 {
+    if (useFullSemiAlphaEdge)
+    {
+        return float4(1, 0, 0, 1);
+    }
     // 1. 마킹 값 체크
     const float INVALID_MASK = -1.0;
     const float EDGE_MASK = 1.0;
