@@ -20,6 +20,8 @@ G-Buffer에 기록된 Normal Map, MER(Metallic/Emission/Roughness) 텍스처 정
 - **GPU (Lighting.hlsli)** — Schlick Fresnel, GGX NDF, Schlick-GGX Geometry, IBL 근사, Shadow 함수
 - **GPU (ShadingBasicPS.hlsl)** — G-Buffer 로드 후 Ambient + Direct Lighting 합산
 
+참고 자료: https://github.com/Nadrin/PBR/blob/master/data/shaders/hlsl/pbr.hlsl
+
 ## 2. 도입 동기
 
 Full Forward Rendering Pass에서 SSAO 구현의 이유로 Deferred Rendering Pass를 구성했으므로 이에 따른 라이팅 연산도 스크린 스페이스에서 연산할 수 있어서 비용에 큰 부담이 없었다.
