@@ -218,7 +218,7 @@ return gl * gv;
 
 #### diffuse BRDF
 
-Diffuse는 기본적으로 상수 값을 사용한다.
+Diffuse는 기본적으로 상수 값을 사용한다. (Lambertian BRDF)
 
 <img width="663" height="173" alt="Image" src="https://github.com/user-attachments/assets/404528a6-23fd-4534-98d3-79cb11d560fd" />
 
