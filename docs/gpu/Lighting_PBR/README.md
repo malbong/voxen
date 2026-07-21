@@ -286,7 +286,7 @@ float3 getBasicAmbientColor()
 
 #### Diffuse Term
 
-Specular Irradiance 근사:
+Diffuse Irradiance 근사:
 
 - 기본적으로 들어오는 환경광`getBasicAmbientColor`을 기본적으로 사용한다.
 - 노멀과 태양의 방향이 가까울 수록 직접광의 색(`radianceColor`)에 대한 색을 더한다.
