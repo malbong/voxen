@@ -78,6 +78,20 @@ App::Render()
 
 ### CPU Chunk Update 도식화
 
+```
+ChunkManager::Update()
+│
+├── 1. UpdateLoadUnLoadChunkList()  — 카메라 이동 시 로드/언로드 대상 결정
+├── 2. LoadChunks()                 — 비동기 로드 (월드 생성 + 메싱)
+├── 3. SyncLoadedChunks()           — 로드 완료 데이터 동기화
+├── 4. UnloadChunks()               — 불필요 청크 정리
+├── 5. PatchChunks()                — 비동기 패치 (메시 수정)
+├── 6. SyncPatchedChunks()          — 패치 완료 데이터 동기화
+├── 7. UpdateRenderChunkList()      — 프러스텀 컬링 → 렌더 리스트 구성
+├── 8. UpdateInstanceInfoList()     — 인스턴스 버퍼 갱신
+└── 9. UpdateChunkConstant()        — 청크 상수 버퍼 갱신
+```
+
 <img width="1345" height="948" alt="Image" src="https://github.com/user-attachments/assets/b0f41a87-4155-4c47-9757-25adc2c7b888" />
 
 <br />
