@@ -46,7 +46,6 @@ float sampleCascade(float4 proj, uint cascadeIndex, float bias)
 
 bool InBound(float3 ndc, float xMargin, float yMargin, float zMargin)
 {
-    zMargin = 0;
     return abs(ndc.x) < 1.0 - xMargin && abs(ndc.y) < 1.0 - yMargin && zMargin < ndc.z && ndc.z < 1.0;
 }
 

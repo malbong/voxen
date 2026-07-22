@@ -462,16 +462,20 @@ float NdcDist  = min(NdcDistXY, NdcDistZ);
 
 - 그림자의 원리는 되게 단순하다.
   - Light로 렌더링 -> PS에서 (VP)-1 역산하여 Light에 정투영 -> 샘플링 -> 깊이 검사
+
 - Shadow는 RS 환경에서 어려운 과제인 것 같다.
   - 지금까지 voxen중에 가장 어렵고 수정하기 난해한 챕터다.
   - 하나를 고치면 다른 하나의 문제가 발생하고, 트레이드오프 상황도 많았다.
   - Shimmering 제거하는 방식이 처음에 잘 와닿지 않아 코드를 이해하는데 한참이 걸렸다.
   - Projection Matrix를 구하는 법 Cascade를 선택하는 방식에 따라 고려할 게 정말 많았다.
   - Cascade 경계 문제에서 어떤 값이 문제인지 아니면 Sampler State가 잘못되었는지 판단하기 너무 어려웠다.
+
 - 결과는 만족하나 미흡한점이 많이 있다.
   - Bias: 현재는 hard 설정되어 있어서 Light View Box에 따라 bias가 달라지고, Peter Panning이 존재한다.
   - Light 움직임에 따른 Shimmering: View에 대해서는 stable하지만 Light가 움직이면 깜빡거린다. 각도 회전에 대해서 양자화했지만 크게 달라지지 않았다.
   - 해상도 낭비: 어떤 방식을 선택하던지 Shimmering을 제거함에 있어서 해상도 낭비가 심하다.
+
+- Piter Panning은 Front Face Culling을 하고 BackFace를 살리면 일반적인 프로젝트에서는 해결이 가능한 것으로 보인다.
 
 <details>
 <summary>Shadow.hlsli (클릭해서 펼치기)</summary>
