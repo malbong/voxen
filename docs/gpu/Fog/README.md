@@ -8,7 +8,7 @@
 
 ## 1. 개요
 
-Deferred Shading 이후 Forward Pass에서 진행하는 Post Processing
+Deferred Shading 이후 Forward Pass에서 진행하는 Post Processing.
 Fill G-Buffer에서 사용된 Depth Buffer를 SRV로 가지고 BlendState를 활용하여 Blending한다.
 Blending 방식은 Beer-Lambert 법칙 기반의 지수 감쇄 함수를 이용한다.
 안개색은 태양을 보는 방향에 관련된 함수를 사용한다.
