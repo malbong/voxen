@@ -98,6 +98,9 @@ if (offsetDiff.Length() > 0) {
 
 ### 4.3 PS: Climate Noise 샘플링과 ColorMap 참조 (BasicPS.hlsl)
 
+<img width="640" height="640" alt="Image" src="https://github.com/user-attachments/assets/a72291d4-3a8a-4473-b28f-25ef2bc0ad41" />
+<img width="640" height="640" alt="Image" src="https://github.com/user-attachments/assets/0c4c26fe-b6b6-427c-bfd5-f3200fb2fd04" />
+
 `getAlbedo()` 함수에서 잔디/잎 블록일 때 climate noise 텍스처를 샘플링하고, 그 값을 ColorMap의 UV로 사용한다.
 
 #### 텍스처 바인딩
