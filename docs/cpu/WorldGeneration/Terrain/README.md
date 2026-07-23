@@ -4,6 +4,14 @@
 
 <img width="1918" height="1074" alt="Image" src="https://github.com/user-attachments/assets/ed9ae7e6-f5c4-4ac2-b112-8cee3825a178" />
 
+<br />
+
+<img width="1916" height="1079" alt="Image" src="https://github.com/user-attachments/assets/477d0ebe-dd0e-492f-9301-b1a4fab6bc9c" />
+
+<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/3871b57e-cdc3-4ff3-8a74-5af0042f6747" />
+
+<br />
+
 ## 1. 개요
 
 높이 결정에 관련된 내용을 중심으로 이야기합니다: 블록 타입 결정은 Block 문서에서.
