@@ -18,25 +18,6 @@
   </tr>
 </table>
 
-
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/29dbc56d-b346-4384-98ef-522b448568b5" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/1d46375d-23b1-4a75-8974-8f4c7c852d65" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/15ae9b89-4e43-4570-a2f1-f51a77fdd51c" width="300"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/02c3a34e-85b3-4e43-bb09-1d8caa18e1f3" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/969852d7-2f94-45c7-b247-8adb3226cb28" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/ad8ddcb6-1aff-46ef-bf49-3185492e59e7" width="300"/></td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/c07a63da-165d-4143-b0f8-46f57096a4fa" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/fe39a9f6-023d-4d87-8bdd-86f05a4eb13d" width="300"/></td>
-    <td><img src="https://github.com/user-attachments/assets/aad7bbbb-f044-425c-a9d0-f28cd9552dfd" width="300"/></td>
-  </tr>
-</table>
-
 <br />
 
 `4096 × 4096` 블록 스케일에서의 mix off / on:
