@@ -183,7 +183,7 @@ stencilMaskDSS:
 
 discard된 픽셀은 PS가 실행되지 않으므로 Stencil이 초기값(0)을 유지한다. 결과적으로 Stencil Buffer에 Edge(1) / NonEdge(0) 맵이 완성된다.
 
-### 4.3 SSAO & Shading — Edge/NonEdge 분기
+### 4.3 SSAO & Lighting_PBR — Edge/NonEdge 분기
 
 SSAO 패스에서는 동일한 Render Target에 대해 **두 번의 Draw Call**을 실행한다.
 
@@ -210,12 +210,12 @@ float mainMSAA(psInput input) : SV_TARGET
 ```
 
 NonEdge에 대해서 한번 실행하고, Edge에 대해서 따로 실행한다.
-Edge, NonEdge을 하나의 메인함수에 if로 분기하여 사용할 수 있으나, Edge는 비용이 많이드는데 반해 Non-Edge는 비용이 적게 든다.
+Edge, NonEdge을 하나의 쉐이더 메인함수에서 `if`로 분기하여 사용할 수 있으나, Edge는 비용이 많이드는데 반해 Non-Edge는 비용이 적게 든다.
 이러한 과정에서 먼저 끝낸 GPU 쓰레드가 대기 상태에 걸리게 되고, 한번에 실행 시키는 것이 비효율적라는 것을 문서를 통해 알게되었고, 따로 main 진입점을 분기하여 작성하였다.
 
-분기에 대한 자세한 내용은 SSAO, Lighting 문서에 작성할 것이다.
-
 <img width="862" height="235" alt="Image" src="https://github.com/user-attachments/assets/4d3b2dcb-9826-4353-9c6c-82b020630f89" />
+
+분기 방식은 Lighting_PBR과 SSAO에 작성했다.
 
 ### 4.4 Deferred → Forward 전환 (ConvertToMSAA)
 
@@ -319,7 +319,15 @@ if (edgeCount == 0 && !isSemiAlphaEdgePixel)
 
 - `ConvertToMSAA()` 중간 단계를 삽입하여, Deferred 결과를 MSAA 버퍼로 복사한 뒤 Forward Pass를 진행한다. Forward 렌더링 완료 후 `ResolveSubresource()`로 최종 리졸브한다.
 
-## 6. 회고
+## 6. NonEdge / Edge 분기 2-Pass로 얻은 결과
+
+<img width="531" height="367" alt="Image" src="https://github.com/user-attachments/assets/afa8e6cc-5e13-4811-88be-4db60fd07de1" />
+
+2-Pass 자체로 구분하여 하나의 파이프라인에서는 속도가 향상되었지만 Edge Masking 자체로 비용이 추가적으로 생기기에 프레임 전체에 대한 효과는 미비.
+
+SSAO의 샘플이 늘어나거나, Lighting 연산이 복잡해질 때, Edge Masking 비용보다 높아지는 경우 이득일 것
+
+## 7. 회고
 
 - SSAO를 작성하기 위해 Full-Forward Rendering Pass를 Deferred Rendering으로 수정해야했고, 거기서 투명 물질에 대한 처리는 어떻게해야할까 고민이 정말 많았다.
   - 다른 AA 기법을 배우고 적용하는 시간이 클 것 같았고 그 결과에 대해 잘나오리라는 보장도 없기에 MSAA를 그대로 고집했다.

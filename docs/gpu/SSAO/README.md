@@ -200,6 +200,34 @@ return (occlusionFactor * attenuation);
 
 ### 4.6 MSAA Edge 처리 (`mainMSAA` 분기)
 
+```
+float main(psInput input) : SV_TARGET
+{
+    ...
+    float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal);
+    ...
+    return (occlusionFactor * attenuation);
+}
+
+float mainMSAA(psInput input) : SV_TARGET
+{
+    ...
+    // MakeSampleWeight -> sampleWeightArray[i]
+    ...
+    [loop]
+    for (uint i = 0; i < SAMPLE_COUNT; ++i) // loop max 4
+    {
+        ...
+        float occlusionFactor = getOcclusionFactor(input.posProj.xy, viewPos, viewNormal) * sampleWeightArray[i];
+        ...
+        sumOcclusionFactor += occlusionFactor * attenuation;
+    }
+    sumOcclusionFactor /= validSampleCount;
+    ...
+    return sumOcclusionFactor;
+}
+```
+
 `main`에서는 단순히 Non-Edge Pixel이라 한번만 처리했으면 됐으나, Edge 픽셀에서는 `mainMSAA`함수로 분기하여 4개 MSAA 샘플 각각에 대해 SSAO를 계산해야 한다.
 
 이 때, G-Buffer 과정 중에 생성한 `SV_Coverage` 값을 활용하여 SampleWeight를 두고 좀 더 최적화가 가능하다.
