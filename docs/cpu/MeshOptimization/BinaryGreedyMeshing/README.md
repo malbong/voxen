@@ -399,27 +399,30 @@ void Chunk::GreedyMeshing(std::vector<uint64_t>& faceColBit, std::vector<VoxelVe
 
 ## 5. 효과
 
-### 프로젝트 초기에 진행했던 단순한 벤치마크 (노이즈 거의 없음, 블록타입 같음, 싱글쓰레드 환경, 인텔내장GPU)
+### Meshing 생성 시간 기준
 
-<img width="500" height="300" alt="Image" src="https://github.com/user-attachments/assets/1693cb6f-1330-4cfb-bc2e-0a639a52fdd5" />
-<img width="800" height="79" alt="Image" src="https://github.com/user-attachments/assets/95e61b96-5e16-4bb0-86ed-195737b9d584" />
+- 그리디 메시 이전: 약 600 microseconds
+  - 별다른 타입 검사를 하지 않기 때문에 실사용 시 더 느릴 것
+<img width="1916" height="1072" alt="Image" src="https://github.com/user-attachments/assets/cf064e43-66fd-4ef7-b40a-a7005c1d7433" />
 
-#### Greedy Meshing 전 (인접한 블록면만 제거한 경우)
+- 그리디 메시 이후: 약 250 microseconds
+<img width="1918" height="1080" alt="Image" src="https://github.com/user-attachments/assets/7d73d055-39c1-4456-91cd-254d1ae7aaf3" />
 
-- 평균 로딩 속도: 1280ms
-- 사용 메모리: 1600MB
-- 평균 프레임: 15~ FPS
+### 메모리 사용 기준
 
----
+- 그리디 메시 이전 초기화 시에 드는 메모리: 약 3.5 GB
+<img width="750" height="28" alt="Image" src="https://github.com/user-attachments/assets/dad4ffa1-d1f3-4133-9203-8ea6053dbe88" />
 
-<img width="500" height="300" alt="Image" src="https://github.com/user-attachments/assets/f5d39f4d-4d50-4c04-9ba6-5f5d7ac3ef84" />
-<img width="800" height="77" alt="Image" src="https://github.com/user-attachments/assets/2ea81d07-accb-47bd-9a01-e80ab6c9567e" />
+- 그리디 메시 이후 초기화 시에 드는 메모리: 약 0.5 GB
+<img width="907" height="35" alt="Image" src="https://github.com/user-attachments/assets/cc06644f-4a1d-47e5-87d3-0cb0d9a7247a" />
 
-#### Greedy Meshing 후
+### 프레임
 
-- 평균 평균 약 530ms
-- 사용 메모리: 400MB
-- 평균 프레임: 50~ FPS
+- 그리디 메시 이전(비교 가능한 일반 장면에 한함): 약 110fps
+<img width="1919" height="1080" alt="Image" src="https://github.com/user-attachments/assets/1e095fd6-6ca3-4a24-865a-1b62a96572f0" />
+
+- 그리디 메시 이전(비교 가능한 일반 장면에 한함): 약 160fps
+<img width="1916" height="1075" alt="Image" src="https://github.com/user-attachments/assets/179ed3d3-8941-47e8-a86c-dd4ee12a3199" />
 
 ## 6. 문제점 및 해결
 
