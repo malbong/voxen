@@ -40,10 +40,10 @@
 
 ### 2. Mesh Optimization
 
-| 목차                | 내용                                      | 문서 경로                                                                              |
-| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------- |
-| BinaryBlockInfo     | 메모리를 아끼기 위한 비트단위 데이터 구성 | [cpu/MeshOptimization/BinaryBlockInfo/](cpu/MeshOptimization/BinaryBlockInfo/)         |
-| BinaryGreedyMeshing | 비트연산기반 Greedy Meshing 알고리즘      | [cpu/MeshOptimization/BinaryGreedyMeshing/](cpu/MeshOptimization/BinaryGreedyMeshing/) |
+| 목차                | 내용                                      | 문서 경로                                                                                |
+| ------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| BinaryBlockInfo     | 메모리를 아끼기 위한 비트단위 데이터 구성 | [cpu/MeshOptimization/BlockBitPackedVertex/](cpu/MeshOptimization/BlockBitPackedVertex/) |
+| BinaryGreedyMeshing | 비트연산기반 Greedy Meshing 알고리즘      | [cpu/MeshOptimization/BinaryGreedyMeshing/](cpu/MeshOptimization/BinaryGreedyMeshing/)   |
 
 ### 3. World Generation
 
