@@ -127,7 +127,7 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetTrees(std::move(tmpTrees));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetWeightParams(
 			{ 0.7f, 0.5f, 0.125f, 0.2f });
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetBaseHeight(108.0f);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetBaseHeight(130.0f);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TUNDRA].SetElevationScale(0.025f);
 
 		// BIOME_TAIGA
@@ -146,7 +146,7 @@ public:
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetTrees(std::move(tmpTrees));
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetWeightParams(
 			{ 0.7f, 0.5f, 0.34f, 0.66f });
-		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetBaseHeight(96.0f);
+		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetBaseHeight(106.0f);
 		m_biomeTypeInfoSet[BIOME_TYPE::BIOME_TAIGA].SetElevationScale(0.25f);
 
 
